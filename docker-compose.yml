@@ -1,0 +1,19 @@
+services:
+  synology-mcp:
+    build: .
+    container_name: synology-mcp
+    restart: unless-stopped
+    ports:
+      - "8099:8099"
+    environment:
+      # Adresse DSM vue depuis le conteneur. En Docker sur le NAS lui-même,
+      # utilisez l'IP locale du NAS (pas localhost).
+      SYNO_URL: "http://192.168.1.10:5000"
+      SYNO_ACCOUNT: "claude-lecture"
+      SYNO_PASSWORD: "CHANGEZ-MOI"
+      # Jeton secret de l'URL du connecteur. Générez-le avec : openssl rand -hex 24
+      MCP_TOKEN: "CHANGEZ-MOI-48-caracteres-aleatoires"
+      # Mettre "1" uniquement si SYNO_URL est en https avec certificat auto-signé.
+      SYNO_TLS_INSECURE: "0"
+      PORT: "8099"
+      MAX_DOWNLOAD_MB: "15"
