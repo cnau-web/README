@@ -4,6 +4,11 @@ Cardio le matin (tapis roulant), musculation le soir, du lundi au vendredi.
 **Groupes travaillés uniquement : épaules, dos, pectoraux, abdominaux.**
 Le tableau ci‑dessous ne concerne que la séance du soir.
 
+> **Version illustrée :** [`programme-musculation-soir.pdf`](programme-musculation-soir.pdf) —
+> une fiche par exercice avec un schéma du mouvement, la machine à chercher dans la salle,
+> les réglages, l'exécution pas à pas et les erreurs à éviter. Le PDF se régénère avec
+> `python3 outils/generer_pdf.py`.
+
 ## Organisation de la semaine
 
 | Jour | Séance du soir | Durée |
