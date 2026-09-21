@@ -1,6 +1,6 @@
 # Programme de musculation — séances du soir
 
-Cardio le matin (tapis roulant), musculation le soir.
+Cardio le matin (tapis roulant), musculation le soir, du lundi au vendredi.
 **Groupes travaillés uniquement : épaules, dos, pectoraux, abdominaux.**
 Le tableau ci‑dessous ne concerne que la séance du soir.
 
@@ -13,7 +13,7 @@ Le tableau ci‑dessous ne concerne que la séance du soir.
 | Mercredi | Repos (cardio du matin seulement) | — |
 | Jeudi | Séance C — Épaules + abdos (bloc C) | 45–55 min |
 | Vendredi | Séance D — Haut du corps complet + abdos (bloc A) | 55–65 min |
-| Samedi | Repos ou séance A/B au choix si récupéré | — |
+| Samedi | Repos complet | — |
 | Dimanche | Repos complet | — |
 
 Échauffement systématique avant chaque séance : 5 min de rameur/vélo + rotations
