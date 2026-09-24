@@ -52,6 +52,9 @@ VIDEO = {
 }
 
 CLE_GROUPE = {"Pectoraux": "pect", "Dos": "dos", "Épaules": "epaules", "Abdos": "abdos"}
+# Quelle seance utilise quel bloc abdominal (le bloc A revient en A et en D).
+SEANCE_BLOC = {"A": "A", "B": "B", "C": "C", "D": "A"}
+BLOC_DE_SEANCE = {"A": ["A", "D"], "B": ["B"], "C": ["C"]}
 YT = "https://www.youtube.com/results?search_query="
 
 
@@ -78,14 +81,17 @@ def construire_donnees():
         for fid, _, series, reps, repos, _ in lignes:
             d[fid]["seances"].append(dict(s=titre.split(" — ")[0], v=f"{series} × {reps}", r=repos))
     for titre, _, lignes in BLOCS:
+        lettre = titre.split("abdos ")[-1][0]
         for fid, _, series, reps, repos in lignes:
-            d[fid]["seances"].append(dict(s=titre.split(" — ")[0], v=f"{series} × {reps}", r=repos))
+            for seance in BLOC_DE_SEANCE[lettre]:
+                d[fid]["seances"].append(
+                    dict(s=f"Séance {seance}", v=f"{series} × {reps}", r=repos))
     return d
 
 
 def ligne(fid, nom, dose, repos, d):
     ex = d[fid]
-    return f"""<li><button class="row" type="button" data-id="{fid}" data-g="{ex['g']}"
+    return f"""<li class="row-li"><button class="row" type="button" data-id="{fid}" data-g="{ex['g']}"
       aria-haspopup="dialog" data-nom="{esc(nom.lower())}">
   <span class="vign">{ILLUS[fid]().svg()}</span>
   <span class="ligne-txt"><span class="ligne-nom">{esc(nom)}</span>
@@ -94,22 +100,27 @@ def ligne(fid, nom, dose, repos, d):
 </button></li>"""
 
 
-def carte_seance(titre, soustitre, lignes, d, bloc=False):
-    lettre = titre.split("Séance ")[-1][0] if not bloc else titre.split("abdos ")[-1][0]
-    ancre = ("bloc-" if bloc else "seance-") + lettre.lower()
-    jour = soustitre.split(" · ")[0]
-    items = ""
-    for e in lignes:
-        if bloc:
-            fid, nom, series, reps, repos = e
-        else:
-            fid, nom, series, reps, repos, _ = e
-        items += ligne(fid, nom, f"{series} × {reps}", repos, d)
-    return f"""<section class="carte{' carte-bloc' if bloc else ''}" id="{ancre}" tabindex="-1">
+def carte_seance(titre, soustitre, lignes, d, blocs):
+    """Une carte par jour : musculation puis abdominaux, dans la même liste."""
+    lettre = titre.split("Séance ")[-1][0]
+    jour, duree = soustitre.split(" · ")[0], soustitre.split(" · ")[1]
+    groupe = titre.split(" — ")[-1].replace("Haut du corps complet", "Haut du corps")
+    items = "".join(ligne(fid, nom, f"{series} × {reps}", repos, d)
+                    for fid, nom, series, reps, repos, _ in lignes)
+
+    bloc_lettre = SEANCE_BLOC[lettre]
+    btitre, _, blignes = next(b for b in blocs if b[0].split("abdos ")[-1][0] == bloc_lettre)
+    items += (f'<li class="sous-tete"><span>Abdominaux</span>'
+              f'<span class="sous-tete-note">{esc(btitre.split(" — ")[-1])} '
+              f'· bloc {bloc_lettre}</span></li>')
+    items += "".join(ligne(fid, nom, f"{series} × {reps}", repos, d)
+                     for fid, nom, series, reps, repos in blignes)
+
+    return f"""<section class="carte" id="seance-{lettre.lower()}" tabindex="-1">
   <header class="carte-tete">
     <span class="pastille">{esc(lettre)}</span>
-    <div><h2>{esc(titre.split(' — ')[-1] if not bloc else titre.split(' — ')[-1])}</h2>
-      <p class="carte-sous">{esc(jour)}</p></div>
+    <div><h2>{esc(groupe)} + abdos</h2>
+      <p class="carte-sous">{esc(jour)} · {esc(duree)}</p></div>
   </header>
   <ol class="rows">{items}</ol>
 </section>"""
@@ -133,8 +144,7 @@ def main():
             f'<span class="jour-val">{esc(lettre)}</span>'
             f'<span class="jour-quoi">{esc(groupe)}</span></a>')
     semaine = "".join(jours)
-    cartes = "".join(carte_seance(t, st, l, d) for t, st, l in SEANCES)
-    blocs = "".join(carte_seance(t, st, l, d, bloc=True) for t, st, l in BLOCS)
+    cartes = "".join(carte_seance(t, st, l, d, BLOCS) for t, st, l in SEANCES)
 
     page = f"""<title>Carte des exercices</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -217,9 +227,14 @@ a.jour:focus-visible {{ outline:2px solid var(--accent); outline-offset:2px; }}
 .pastille {{ width:34px; height:34px; flex:0 0 34px; border-radius:9px; display:grid;
   place-items:center; background:var(--ink); color:var(--surface); font-weight:700;
   font-size:19px; }}
-.carte-bloc .pastille {{ background:var(--abdos); color:var(--on-accent); }}
 .rows {{ list-style:none; margin:0; padding:0; }}
 .rows li + li {{ border-top:1px solid var(--line); }}
+.sous-tete {{ display:flex; flex-wrap:wrap; align-items:baseline; gap:2px 8px;
+  padding:9px 14px; background:var(--surface-2); }}
+.sous-tete > span:first-child {{ font-family:"Barlow Condensed","Source Sans 3",sans-serif;
+  font-weight:600; font-size:15px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--abdos); }}
+.sous-tete-note {{ font-size:13px; color:var(--muted); }}
 
 .row {{ display:flex; align-items:center; gap:12px; width:100%; min-height:62px;
   padding:9px 12px 9px 0; background:none; border:0; border-left:4px solid var(--g);
@@ -324,8 +339,6 @@ html {{ scroll-behavior:smooth; }}
   <p class="vide" id="vide" hidden>Aucun exercice ne correspond.</p>
 
   <div class="grille" id="grille">{cartes}</div>
-  <h2 class="eyebrow" style="margin:28px 0 0">Blocs abdominaux — en fin de séance</h2>
-  <div class="grille" id="grille-abdos">{blocs}</div>
 
   <footer>
     <p class="note">Les boutons vidéo ouvrent une <b>recherche YouTube</b> sur le nom de l'exercice :
@@ -438,8 +451,15 @@ html {{ scroll-behavior:smooth; }}
       var ok = !t || foin.indexOf(t) !== -1;
       r.parentElement.hidden = !ok; if (ok) n++;
     }});
+    document.querySelectorAll('.sous-tete').forEach(function (st) {{
+      var reste = false;
+      for (var n = st.nextElementSibling; n; n = n.nextElementSibling) {{
+        if (!n.hidden) {{ reste = true; break; }}
+      }}
+      st.hidden = !reste;
+    }});
     document.querySelectorAll('.carte').forEach(function (c) {{
-      c.hidden = !c.querySelector('.rows > li:not([hidden])');
+      c.hidden = !c.querySelector('.rows > li.row-li:not([hidden])');
     }});
     el('vide').hidden = n > 0;
   }}
