@@ -42,6 +42,10 @@ td { padding:1.6mm 2mm; border-bottom:1px solid #e5e7eb; vertical-align:top; }
 tr:nth-child(even) td { background:#f8fafc; }
 td.n { width:7mm; color:#6b7280; }
 td.c { width:12mm; text-align:center; white-space:nowrap; }
+th.c { text-align:center; }
+td.case { width:12mm; }
+td.case::before { content:""; display:inline-block; width:4.2mm; height:4.2mm;
+  border:1px solid #9aa3af; border-radius:.6mm; }
 td.note { color:#6b7280; font-size:8.2pt; }
 .enc { border:1px solid #d1d5db; border-left:3px solid #1d4ed8;
        background:#f8fafc; padding:3mm 3.5mm; margin:4mm 0; }
@@ -278,6 +282,32 @@ def page_fiches():
     return "".join(out)
 
 
+def page_calendrier():
+    blocs = ""
+    for i in range(4):
+        prog = "A" if i % 2 == 0 else "B"
+        blocs += (f"<tr><th colspan='6' style='background:#f1f5f9;color:#111827'>"
+                  f"Bloc {i + 1} — programme {prog}</th></tr>")
+        for _ in range(5):
+            blocs += ("<tr><td style='height:7mm'>Semaine du ____ / ____</td>"
+                      + "<td class='c case'></td>" * 4
+                      + "<td></td></tr>")
+    return f"""
+<div class="page">
+<h2>Calendrier des blocs</h2>
+<p class="sub">Note la date du lundi de chaque semaine et coche les quatre séances.
+Un bloc dure 4 à 5 semaines : si tu en fais quatre, laisse la dernière ligne vide et passe
+au bloc suivant. Tu ne peux pas te tromper de programme : il suffit de regarder dans quel
+bloc tu es.</p>
+<table><tr><th>Semaine</th><th class="c">Lun</th><th class="c">Mar</th><th class="c">Jeu</th>
+<th class="c">Ven</th><th>Remarques</th></tr>{blocs}</table>
+<div class="enc" style="margin-top:5mm"><b>Version interactive</b>
+La carte des exercices (<i>carte-exercices.html</i>) contient le même calendrier, mais elle
+calcule la semaine en cours à partir de ta date de départ, retient les séances cochées et
+ouvre directement le bon programme.</div>
+</div>"""
+
+
 def page_suivi():
     lignes = "".join(
         "<tr><td style='height:7.5mm'></td><td></td><td></td><td></td><td></td><td></td></tr>"
@@ -302,7 +332,8 @@ def main():
     seances = "".join(page_seances(p) for p in PROGRAMMES)
     doc = (f'<!doctype html><html lang="fr"><head><meta charset="utf-8">'
            f'<title>Programme de musculation du soir</title><style>{CSS}</style></head>'
-           f'<body>{page_garde()}{seances}{page_fiches()}{page_suivi()}</body></html>')
+           f'<body>{page_garde()}{seances}{page_fiches()}{page_calendrier()}'
+           f'{page_suivi()}</body></html>')
     tmp = os.path.join(RACINE, "outils", "_programme.html")
     with open(tmp, "w", encoding="utf-8") as fh:
         fh.write(doc)
