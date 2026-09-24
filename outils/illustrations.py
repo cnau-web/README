@@ -408,6 +408,37 @@ def _():
     return s
 
 
+@illu("planche")
+def _():
+    s = S(W, H); s.floor(40)
+    s.rect(60, 40, 220, 8, MAT, rx=4)
+    b = side(s, (176, 66), 10, (-90, 0), (195, 195), BODY, ls=1.05)
+    side_foot(s, b["ankle"], 60, BODY, l=14)
+    s.line((116, 50), (214, 74), LINE_OK, 3, dash="8 7")
+    return s
+
+
+@illu("planche_laterale")
+def _():
+    s = S(W, H); s.floor(40)
+    s.rect(60, 40, 220, 8, MAT, rx=4)
+    b = side(s, (176, 66), 10, (-90, 0), (195, 195), BODY, ls=1.05)
+    s.line(b["sh"], P(b["sh"], 96, 46), BODY, 5)           # bras libre vers le haut
+    s.line((116, 50), (214, 74), LINE_OK, 3, dash="8 7")
+    return s
+
+
+@illu("hollow")
+def _():
+    s = S(W, H); s.floor(34)
+    s.rect(46, 34, 250, 8, MAT, rx=4)
+    b = side(s, (170, 46), 150, (145, 148), (28, 32), BODY)
+    side_foot(s, b["ankle"], -60, BODY, l=13)
+    s.circle((170, 45), 5, "none", LINE_OK, 3)
+    s.arrow((132, 74), (132, 92)); s.arrow((236, 74), (236, 92))
+    return s
+
+
 @illu("ab_wheel")
 def _():
     s = S(W, H); s.floor(34)

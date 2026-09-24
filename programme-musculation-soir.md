@@ -17,11 +17,11 @@ Le tableau ci‑dessous ne concerne que la séance du soir.
 
 | Jour | Séance du soir | Durée |
 |---|---|---|
-| Lundi | Séance A — Pectoraux + abdos (bloc A) | 50–60 min |
-| Mardi | Séance B — Dos + abdos (bloc B) | 50–60 min |
+| Lundi | Séance A — Pectoraux + abdos (bloc A) + gainage | 55–65 min |
+| Mardi | Séance B — Dos + abdos (bloc B) + gainage | 55–65 min |
 | Mercredi | Repos (cardio du matin seulement) | — |
-| Jeudi | Séance C — Épaules + abdos (bloc C) | 45–55 min |
-| Vendredi | Séance D — Haut du corps complet + abdos (bloc A) | 55–65 min |
+| Jeudi | Séance C — Épaules + abdos (bloc C) + gainage | 50–60 min |
+| Vendredi | Séance D — Haut du corps complet + abdos (bloc A) + gainage | 60–70 min |
 | Samedi | Repos complet | — |
 | Dimanche | Repos complet | — |
 
@@ -104,6 +104,15 @@ d'épaules, élastique (rotations externes, tirage face) 2 × 15.
 | Russian twist (avec disque) | 3 | 20 (10 / côté) | 45 s |
 | Woodchopper à la poulie | 3 | 12 / côté | 45 s |
 | Ab wheel ou planche dynamique | 3 | 8–12 | 60 s |
+
+### Gainage de fin de séance (tous les jours d'entraînement)
+
+| Séance | Exercice | Séries | Durée | Repos |
+|---|---|---|---|---|
+| A (lundi) | Planche ventrale | 2 | 45 s | 30 s |
+| B (mardi) | Planche latérale | 2 | 30 s / côté | 30 s |
+| C (jeudi) | Hollow body hold | 2 | 30 s | 30 s |
+| D (vendredi) | Planche ventrale, bras tendus | 2 | 45 s | 30 s |
 
 ---
 

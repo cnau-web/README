@@ -12,7 +12,7 @@ import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from contenu import FICHES, IDX, SEANCES, BLOCS, SEMAINE
+from contenu import FICHES, IDX, SEANCES, BLOCS, SEMAINE, GAINAGE
 from illustrations import ILLUS
 
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -219,6 +219,20 @@ elle prendrait la place du mercredi ou du samedi.</div>
 </div>"""
 
 
+def table_gainage():
+    rows = ""
+    for seance, (fid, nom, series, duree, repos) in GAINAGE.items():
+        rows += (f"<tr><td class='c'><b>{seance}</b></td><td><b>{esc(nom)}</b></td>"
+                 f"<td class='c'>{series}</td><td class='c'>{esc(duree)}</td>"
+                 f"<td class='c'>{esc(repos)}</td><td class='c'>n° {IDX[fid]}</td></tr>")
+    return f"""
+<h3>Le gainage de fin de séance</h3>
+<p class="note" style="color:#6b7280;margin-bottom:1.5mm">2 à 3 min, après le bloc
+abdominal, tous les jours d'entraînement</p>
+<table><tr><th>Séance</th><th>Exercice</th><th>Séries</th><th>Durée</th>
+<th>Repos</th><th>Fiche</th></tr>{rows}</table>"""
+
+
 def page_seances():
     t = "".join(table_seance(*s) for s in SEANCES[:2])
     t2 = "".join(table_seance(*s) for s in SEANCES[2:])
@@ -228,7 +242,9 @@ def page_seances():
 <div class="page"><h2>Les quatre séances (suite)</h2>{t2}</div>
 <div class="page"><h2>Les blocs abdominaux</h2>
 <p class="sub">À enchaîner en fin de séance, dans l'ordre. Le bloc A revient deux fois par
-semaine : c'est le plus dur des trois, et le seul où la charge augmente au fil des semaines.</p>{b}
+semaine : c'est le plus dur des trois, et le seul où la charge augmente au fil des semaines.
+Chaque séance se termine ensuite par 2 à 3 min de gainage, qui protègent le bas du dos
+sollicité par les mouvements dynamiques.</p>{b}{table_gainage()}
 <div class="enc" style="margin-top:6mm"><b>Comment choisir son niveau</b>
 La bonne version d'un exercice est celle où tu tiens les répétitions demandées sans que
 le bas du dos se creuse. Dès que la position se dégrade, la série est finie : passe à la

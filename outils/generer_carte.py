@@ -12,7 +12,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from contenu import FICHES, IDX, SEANCES, BLOCS, SEMAINE
+from contenu import FICHES, IDX, SEANCES, BLOCS, SEMAINE, GAINAGE
 from illustrations import ILLUS
 
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -40,6 +40,9 @@ VIDEO = {
     "oiseau": "oiseau haltères arrière épaules technique",
     "face_pull": "face pull poulie corde technique épaules",
     "shrugs": "shrugs haltères trapèzes technique",
+    "planche": "gainage planche ventrale technique position",
+    "planche_laterale": "gainage planche latérale technique position",
+    "hollow": "hollow body hold gainage technique",
     "dragon_flag": "dragon flag progression négative technique abdos",
     "crunch_decline": "crunch banc décliné lesté disque technique abdos",
     "v_ups": "v ups exercice abdos technique",
@@ -79,6 +82,8 @@ def construire_donnees():
     for titre, _, lignes in SEANCES:
         for fid, _, series, reps, repos, _ in lignes:
             d[fid]["seances"].append(dict(s=titre.split(" — ")[0], v=f"{series} × {reps}", r=repos))
+    for seance, (fid, _, series, duree, repos) in GAINAGE.items():
+        d[fid]["seances"].append(dict(s=f"Séance {seance}", v=f"{series} × {duree}", r=repos))
     for titre, _, lignes in BLOCS:
         lettre = titre.split("abdos ")[-1][0]
         for fid, _, series, reps, repos in lignes:
@@ -114,6 +119,11 @@ def carte_seance(titre, soustitre, lignes, d, blocs):
               f'· bloc {bloc_lettre}</span></li>')
     items += "".join(ligne(fid, nom, f"{series} × {reps}", repos, d)
                      for fid, nom, series, reps, repos in blignes)
+
+    gfid, gnom, gser, gduree, grepos = GAINAGE[lettre]
+    items += ('<li class="sous-tete"><span>Gainage</span>'
+              '<span class="sous-tete-note">2 à 3 min · pour finir</span></li>')
+    items += ligne(gfid, gnom, f"{gser} × {gduree}", grepos, d)
 
     return f"""<section class="carte" id="seance-{lettre.lower()}" tabindex="-1">
   <header class="carte-tete">

@@ -415,20 +415,58 @@ FICHES = [
          erreurs=["Aller trop loin : le bas du dos se creuse et c'est lui qui encaisse.",
                   "Lever les fesses au retour.",
                   "Faire l'exercice en fatigue extrême, contrôle perdu."]),
+
+    dict(id="planche", nom="Planche ventrale (gainage)", groupe="Abdos",
+         machine="Un simple tapis de sol. Coudes sous les épaules, avant-bras à plat.",
+         reglage="Aucun matériel. Si c'est trop dur : pose les genoux au sol, la ligne épaules-hanches-genoux "
+                 "reste droite.",
+         etapes=["Coudes à la verticale sous les épaules, avant-bras parallèles.",
+                 "Pieds écartés de la largeur des hanches, corps en ligne droite.",
+                 "Rentre légèrement le bassin (comme si tu rentrais le nombril).",
+                 "Serre fessiers et abdominaux, respire normalement.",
+                 "Tiens 45 s, deux séries, en toute fin de séance.",
+                 "Version bras tendus (séance D) : mains sous les épaules, coudes déverrouillés."],
+         erreurs=["Fesses trop hautes (position de repos) ou trop basses (mal de dos).",
+                  "Bloquer sa respiration.",
+                  "Regarder devant : la nuque doit rester dans le prolongement du dos."]),
+
+    dict(id="planche_laterale", nom="Planche latérale", groupe="Abdos",
+         machine="Tapis de sol. Tu es sur le côté, en appui sur un seul avant-bras.",
+         reglage="Coude sous l'épaule, pieds superposés (ou décalés l'un devant l'autre pour plus de stabilité).",
+         etapes=["Allongé sur le côté, coude à la verticale sous l'épaule.",
+                 "Décolle les hanches : épaule, hanche et cheville forment une ligne.",
+                 "Bras libre tendu vers le plafond ou posé sur la hanche.",
+                 "Tiens 30 s, puis change de côté ; deux séries de chaque côté.",
+                 "Version facile : genoux fléchis au sol."],
+         erreurs=["Hanches qui redescendent vers le sol.",
+                  "Basculer le buste vers l'avant ou l'arrière.",
+                  "Tête qui tombe vers l'épaule."]),
+
+    dict(id="hollow", nom="Hollow body hold", groupe="Abdos",
+         machine="Tapis de sol. Exercice au poids du corps, très efficace sur le gainage profond.",
+         reglage="Rien à régler. Le point clé : le bas du dos reste collé au sol (repère vert sur le schéma).",
+         etapes=["Allongé sur le dos, plaque le bas du dos au sol en rentrant le nombril.",
+                 "Décolle les épaules et la tête de quelques centimètres.",
+                 "Tends les jambes et décolle-les à 20-30 cm du sol.",
+                 "Bras tendus vers l'arrière ou le long du corps (plus facile).",
+                 "Tiens 30 s en gardant le bas du dos plaqué, deux séries."],
+         erreurs=["Laisser le bas du dos se décoller : remonte les jambes plus haut.",
+                  "Tirer sur la nuque avec les mains.",
+                  "Retenir sa respiration."]),
 ]
 
 IDX = {f["id"]: i + 1 for i, f in enumerate(FICHES)}
 
 # Seances : (titre, sous-titre, [(id ou None, nom affiche, series, reps, repos, note)])
 SEANCES = [
-    ("Séance A — Pectoraux", "Lundi · 50 à 60 min · suivie du bloc abdos A", [
+    ("Séance A — Pectoraux", "Lundi · 55 à 65 min · puis bloc abdos A et gainage", [
         ("developpe_couche", "Développé couché à la barre", "4", "8 à 10", "2 min", "Exercice principal, le plus lourd"),
         ("developpe_incline", "Développé incliné haltères (30°)", "3", "10 à 12", "90 s", "Haut des pectoraux"),
         ("ecarte_poulie", "Écarté à la poulie vis-à-vis", "3", "12 à 15", "60 s", "Ou pec deck (fiche 4) si les poulies sont prises"),
         ("dips", "Dips assistés ou pompes", "3", "10 à 12", "90 s", "Buste penché en avant"),
         ("ecarte_incline", "Écarté incliné haltères", "2", "15", "60 s", "Finition, charge légère"),
     ]),
-    ("Séance B — Dos", "Mardi · 50 à 60 min · suivie du bloc abdos B", [
+    ("Séance B — Dos", "Mardi · 55 à 65 min · puis bloc abdos B et gainage", [
         ("tractions", "Tractions (ou tirage vertical, fiche 8)", "4", "8 à 10", "2 min", "Assistées tant que 8 reps ne passent pas"),
         ("rowing_barre", "Rowing barre, buste penché", "4", "8 à 10", "2 min", "Dos plat impératif"),
         ("tirage_horizontal", "Tirage horizontal à la poulie", "3", "10 à 12", "90 s", "Serrer les omoplates"),
@@ -436,7 +474,7 @@ SEANCES = [
         ("pullover_poulie", "Pull-over poulie haute, bras tendus", "3", "12 à 15", "60 s", "Isolation du grand dorsal"),
         ("extensions_lombaires", "Extensions lombaires (banc 45°)", "2", "15", "45 s", "Sans hyperextension"),
     ]),
-    ("Séance C — Épaules", "Jeudi · 45 à 55 min · suivie du bloc abdos C", [
+    ("Séance C — Épaules", "Jeudi · 50 à 60 min · puis bloc abdos C et gainage", [
         ("developpe_militaire", "Développé militaire", "4", "8 à 10", "2 min", "Abdos serrés, pas de cambrure"),
         ("elevations_laterales", "Élévations latérales", "4", "12 à 15", "60 s", "Léger, sans élan"),
         ("tirage_menton", "Tirage menton poulie, prise large", "3", "12", "60 s", "S'arrêter au haut des pectoraux"),
@@ -444,7 +482,7 @@ SEANCES = [
         ("face_pull", "Face pull à la poulie", "3", "15", "45 s", "Santé de l'épaule : à ne pas sauter"),
         ("shrugs", "Shrugs aux haltères", "3", "12 à 15", "60 s", "Pause 1 s en haut"),
     ]),
-    ("Séance D — Haut du corps complet", "Vendredi · 55 à 65 min · suivie du bloc abdos A", [
+    ("Séance D — Haut du corps complet", "Vendredi · 60 à 70 min · puis bloc abdos A et gainage", [
         ("developpe_incline", "Développé incliné haltères", "3", "10", "90 s", "Pectoraux"),
         ("tirage_vertical", "Tirage vertical prise neutre", "3", "10", "90 s", "Dos"),
         ("developpe_haltere_assis", "Développé haltères assis", "3", "10 à 12", "90 s", "Épaules"),
@@ -472,12 +510,21 @@ BLOCS = [
     ]),
 ]
 
+# Le finisher de gainage : 2 à 3 min à la toute fin de chaque séance, pour
+# équilibrer un bloc abdominal devenu très dynamique.
+GAINAGE = {
+    "A": ("planche", "Planche ventrale", "2", "45 s", "30 s"),
+    "B": ("planche_laterale", "Planche latérale", "2", "30 s par côté", "30 s"),
+    "C": ("hollow", "Hollow body hold", "2", "30 s", "30 s"),
+    "D": ("planche", "Planche ventrale, bras tendus", "2", "45 s", "30 s"),
+}
+
 SEMAINE = [
-    ("Lundi", "Séance A — Pectoraux + bloc abdos A", "50 à 60 min"),
-    ("Mardi", "Séance B — Dos + bloc abdos B", "50 à 60 min"),
+    ("Lundi", "Séance A — Pectoraux + abdos + gainage", "55 à 65 min"),
+    ("Mardi", "Séance B — Dos + abdos + gainage", "55 à 65 min"),
     ("Mercredi", "Repos (cardio du matin uniquement)", "—"),
-    ("Jeudi", "Séance C — Épaules + bloc abdos C", "45 à 55 min"),
-    ("Vendredi", "Séance D — Haut du corps complet + bloc abdos A", "55 à 65 min"),
+    ("Jeudi", "Séance C — Épaules + abdos + gainage", "50 à 60 min"),
+    ("Vendredi", "Séance D — Haut du corps complet + abdos + gainage", "60 à 70 min"),
     ("Samedi", "Repos complet", "—"),
     ("Dimanche", "Repos complet", "—"),
 ]
