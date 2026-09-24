@@ -42,7 +42,13 @@ h1 { font-size:clamp(30px,6vw,44px); font-weight:700; letter-spacing:-.01em;
 
 .semaine { display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-top:18px; }
 .jour { background:var(--surface); border:1px solid var(--line); border-radius:8px;
-  padding:7px 4px; text-align:center; }
+  padding:7px 4px 6px; text-align:center; display:block; text-decoration:none;
+  color:inherit; transition:border-color .15s, transform .15s; }
+a.jour { cursor:pointer; }
+a.jour:hover { border-color:var(--accent); transform:translateY(-1px); }
+a.jour:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+.jour-quoi { display:block; font-size:10.5px; line-height:1.25; color:var(--muted);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .jour-nom { display:block; font-size:11px; letter-spacing:.08em; text-transform:uppercase;
   color:var(--muted); }
 .jour-val { display:block; font-family:"Barlow Condensed",sans-serif; font-weight:700;
@@ -61,7 +67,10 @@ h1 { font-size:clamp(30px,6vw,44px); font-weight:700; letter-spacing:-.01em;
 .grille { display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(290px,1fr));
   align-items:start; margin-top:16px; }
 .carte { background:var(--surface); border:1px solid var(--line); border-radius:14px;
-  box-shadow:var(--ombre); overflow:hidden; }
+  box-shadow:var(--ombre); overflow:hidden; scroll-margin-top:14px;
+  outline:2px solid transparent; outline-offset:3px; transition:outline-color .4s ease; }
+.carte:focus { outline:none; }
+.carte.cible { outline-color:var(--accent); }
 .carte-tete { display:flex; gap:12px; align-items:center; padding:14px 16px;
   border-bottom:1px solid var(--line); }
 .carte-tete h2 { margin:0; font-size:20px; font-weight:600; text-transform:uppercase;
@@ -153,7 +162,11 @@ footer { margin-top:30px; padding-top:16px; border-top:1px solid var(--line);
   .btn { flex:1 1 auto; justify-content:center; }
   .vign { flex-basis:66px; width:66px; }
 }
-@media (prefers-reduced-motion:reduce) { * { animation:none !important; transition:none !important; } }
+html { scroll-behavior:smooth; }
+@media (prefers-reduced-motion:reduce) {
+  html { scroll-behavior:auto; }
+  * { animation:none !important; transition:none !important; }
+}
 </style>
 
 <div class="wrap">
@@ -163,7 +176,7 @@ footer { margin-top:30px; padding-top:16px; border-top:1px solid var(--line);
     <p class="intro">Épaules, dos, pectoraux, abdominaux. Touche un exercice pour ouvrir sa fiche :
       schéma du mouvement, machine à chercher dans la salle, réglages, exécution, erreurs à éviter,
       et deux liens vidéo.</p>
-    <div class="semaine"><div class="jour"><span class="jour-nom">Lun</span><span class="jour-val">A</span></div><div class="jour"><span class="jour-nom">Mar</span><span class="jour-val">B</span></div><div class="jour off"><span class="jour-nom">Mer</span><span class="jour-val">—</span></div><div class="jour"><span class="jour-nom">Jeu</span><span class="jour-val">C</span></div><div class="jour"><span class="jour-nom">Ven</span><span class="jour-val">D</span></div><div class="jour off"><span class="jour-nom">Sam</span><span class="jour-val">—</span></div><div class="jour off"><span class="jour-nom">Dim</span><span class="jour-val">—</span></div></div>
+    <div class="semaine"><a class="jour" href="#seance-a" aria-label="Aller aux exercices de lundi : séance A, pectoraux"><span class="jour-nom">Lun</span><span class="jour-val">A</span><span class="jour-quoi">Pectoraux</span></a><a class="jour" href="#seance-b" aria-label="Aller aux exercices de mardi : séance B, dos"><span class="jour-nom">Mar</span><span class="jour-val">B</span><span class="jour-quoi">Dos</span></a><div class="jour off"><span class="jour-nom">Mer</span><span class="jour-val">—</span><span class="jour-quoi">repos</span></div><a class="jour" href="#seance-c" aria-label="Aller aux exercices de jeudi : séance C, épaules"><span class="jour-nom">Jeu</span><span class="jour-val">C</span><span class="jour-quoi">Épaules</span></a><a class="jour" href="#seance-d" aria-label="Aller aux exercices de vendredi : séance D, haut du corps"><span class="jour-nom">Ven</span><span class="jour-val">D</span><span class="jour-quoi">Haut du corps</span></a><div class="jour off"><span class="jour-nom">Sam</span><span class="jour-val">—</span><span class="jour-quoi">repos</span></div><div class="jour off"><span class="jour-nom">Dim</span><span class="jour-val">—</span><span class="jour-quoi">repos</span></div></div>
   </header>
 
   <div class="filtre">
@@ -172,7 +185,7 @@ footer { margin-top:30px; padding-top:16px; border-top:1px solid var(--line);
   </div>
   <p class="vide" id="vide" hidden>Aucun exercice ne correspond.</p>
 
-  <div class="grille" id="grille"><section class="carte">
+  <div class="grille" id="grille"><section class="carte" id="seance-a" tabindex="-1">
   <header class="carte-tete">
     <span class="pastille">A</span>
     <div><h2>Pectoraux</h2>
@@ -357,7 +370,7 @@ footer { margin-top:30px; padding-top:16px; border-top:1px solid var(--line);
     <span class="ligne-dose">2 × 15<span class="sep">·</span>repos 60 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
 </button></li></ol>
-</section><section class="carte">
+</section><section class="carte" id="seance-b" tabindex="-1">
   <header class="carte-tete">
     <span class="pastille">B</span>
     <div><h2>Dos</h2>
@@ -545,7 +558,7 @@ footer { margin-top:30px; padding-top:16px; border-top:1px solid var(--line);
     <span class="ligne-dose">2 × 15<span class="sep">·</span>repos 45 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
 </button></li></ol>
-</section><section class="carte">
+</section><section class="carte" id="seance-c" tabindex="-1">
   <header class="carte-tete">
     <span class="pastille">C</span>
     <div><h2>Épaules</h2>
@@ -759,7 +772,7 @@ footer { margin-top:30px; padding-top:16px; border-top:1px solid var(--line);
     <span class="ligne-dose">3 × 12 à 15<span class="sep">·</span>repos 60 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
 </button></li></ol>
-</section><section class="carte">
+</section><section class="carte" id="seance-d" tabindex="-1">
   <header class="carte-tete">
     <span class="pastille">D</span>
     <div><h2>Haut du corps complet</h2>
@@ -976,7 +989,7 @@ footer { margin-top:30px; padding-top:16px; border-top:1px solid var(--line);
 </button></li></ol>
 </section></div>
   <h2 class="eyebrow" style="margin:28px 0 0">Blocs abdominaux — en fin de séance</h2>
-  <div class="grille" id="grille-abdos"><section class="carte carte-bloc">
+  <div class="grille" id="grille-abdos"><section class="carte carte-bloc" id="bloc-a" tabindex="-1">
   <header class="carte-tete">
     <span class="pastille">A</span>
     <div><h2>gainage</h2>
@@ -1029,7 +1042,7 @@ footer { margin-top:30px; padding-top:16px; border-top:1px solid var(--line);
     <span class="ligne-dose">3 × 30 s<span class="sep">·</span>repos 45 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
 </button></li></ol>
-</section><section class="carte carte-bloc">
+</section><section class="carte carte-bloc" id="bloc-b" tabindex="-1">
   <header class="carte-tete">
     <span class="pastille">B</span>
     <div><h2>grand droit</h2>
@@ -1115,7 +1128,7 @@ footer { margin-top:30px; padding-top:16px; border-top:1px solid var(--line);
     <span class="ligne-dose">3 × 15<span class="sep">·</span>repos 45 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
 </button></li></ol>
-</section><section class="carte carte-bloc">
+</section><section class="carte carte-bloc" id="bloc-c" tabindex="-1">
   <header class="carte-tete">
     <span class="pastille">C</span>
     <div><h2>obliques</h2>
@@ -1251,6 +1264,7 @@ footer { margin-top:30px; padding-top:16px; border-top:1px solid var(--line);
   var D = JSON.parse(document.getElementById('donnees').textContent);
   var dlg = document.getElementById('dlg');
   var el = function (id) { return document.getElementById(id); };
+  var champ = el('q');
 
   function liste(cible, items) {
     cible.textContent = '';
@@ -1287,15 +1301,30 @@ footer { margin-top:30px; padding-top:16px; border-top:1px solid var(--line);
     dlg.querySelector('.sheet').scrollTop = 0;
   }
 
+  var doux = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function allerA(ancre) {
+    var cible = document.getElementById(ancre);
+    if (!cible) return;
+    if (champ.value) { champ.value = ''; filtrer(); }   // une carte filtrée resterait cachée
+    cible.scrollIntoView({ behavior: doux ? 'smooth' : 'auto', block: 'start' });
+    cible.focus({ preventScroll: true });
+    document.querySelectorAll('.carte.cible').forEach(function (c) { c.classList.remove('cible'); });
+    cible.classList.add('cible');
+    clearTimeout(allerA.t);
+    allerA.t = setTimeout(function () { cible.classList.remove('cible'); }, 1800);
+  }
+
   document.addEventListener('click', function (e) {
+    var jour = e.target.closest('a.jour');
+    if (jour) { e.preventDefault(); allerA(jour.getAttribute('href').slice(1)); return; }
     var btn = e.target.closest('.row');
     if (btn) { ouvrir(btn); return; }
     if (e.target.id === 'dlg-fermer') { dlg.close(); return; }
     if (e.target === dlg || e.target.classList.contains('dlg-pos')) dlg.close();
   });
 
-  var champ = el('q');
-  champ.addEventListener('input', function () {
+  function filtrer() {
     var t = champ.value.trim().toLowerCase(), n = 0;
     document.querySelectorAll('.row').forEach(function (r) {
       var ex = D[r.dataset.id];
@@ -1307,6 +1336,7 @@ footer { margin-top:30px; padding-top:16px; border-top:1px solid var(--line);
       c.hidden = !c.querySelector('.rows > li:not([hidden])');
     });
     el('vide').hidden = n > 0;
-  });
+  }
+  champ.addEventListener('input', filtrer);
 })();
 </script>

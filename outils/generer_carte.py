@@ -96,6 +96,7 @@ def ligne(fid, nom, dose, repos, d):
 
 def carte_seance(titre, soustitre, lignes, d, bloc=False):
     lettre = titre.split("Séance ")[-1][0] if not bloc else titre.split("abdos ")[-1][0]
+    ancre = ("bloc-" if bloc else "seance-") + lettre.lower()
     jour = soustitre.split(" · ")[0]
     items = ""
     for e in lignes:
@@ -104,7 +105,7 @@ def carte_seance(titre, soustitre, lignes, d, bloc=False):
         else:
             fid, nom, series, reps, repos, _ = e
         items += ligne(fid, nom, f"{series} × {reps}", repos, d)
-    return f"""<section class="carte{' carte-bloc' if bloc else ''}">
+    return f"""<section class="carte{' carte-bloc' if bloc else ''}" id="{ancre}" tabindex="-1">
   <header class="carte-tete">
     <span class="pastille">{esc(lettre)}</span>
     <div><h2>{esc(titre.split(' — ')[-1] if not bloc else titre.split(' — ')[-1])}</h2>
@@ -116,11 +117,22 @@ def carte_seance(titre, soustitre, lignes, d, bloc=False):
 
 def main():
     d = construire_donnees()
-    semaine = "".join(
-        f'<div class="jour{" off" if s.startswith("Repos") else ""}">'
-        f'<span class="jour-nom">{j[:3]}</span>'
-        f'<span class="jour-val">{"—" if s.startswith("Repos") else esc(s.split(" — ")[0].replace("Séance ", ""))}</span></div>'
-        for j, s, _ in SEMAINE)
+    jours = []
+    for j, s, _ in SEMAINE:
+        if s.startswith("Repos"):
+            jours.append(f'<div class="jour off"><span class="jour-nom">{j[:3]}</span>'
+                         f'<span class="jour-val">—</span>'
+                         f'<span class="jour-quoi">repos</span></div>')
+            continue
+        lettre = s.split(" — ")[0].replace("Séance ", "").strip()
+        groupe = s.split(" — ")[1].split(" + ")[0].replace("Haut du corps complet", "Haut du corps")
+        jours.append(
+            f'<a class="jour" href="#seance-{lettre.lower()}" '
+            f'aria-label="Aller aux exercices de {j.lower()} : séance {lettre}, {esc(groupe.lower())}">'
+            f'<span class="jour-nom">{j[:3]}</span>'
+            f'<span class="jour-val">{esc(lettre)}</span>'
+            f'<span class="jour-quoi">{esc(groupe)}</span></a>')
+    semaine = "".join(jours)
     cartes = "".join(carte_seance(t, st, l, d) for t, st, l in SEANCES)
     blocs = "".join(carte_seance(t, st, l, d, bloc=True) for t, st, l in BLOCS)
 
@@ -168,7 +180,13 @@ h1 {{ font-size:clamp(30px,6vw,44px); font-weight:700; letter-spacing:-.01em;
 
 .semaine {{ display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-top:18px; }}
 .jour {{ background:var(--surface); border:1px solid var(--line); border-radius:8px;
-  padding:7px 4px; text-align:center; }}
+  padding:7px 4px 6px; text-align:center; display:block; text-decoration:none;
+  color:inherit; transition:border-color .15s, transform .15s; }}
+a.jour {{ cursor:pointer; }}
+a.jour:hover {{ border-color:var(--accent); transform:translateY(-1px); }}
+a.jour:focus-visible {{ outline:2px solid var(--accent); outline-offset:2px; }}
+.jour-quoi {{ display:block; font-size:10.5px; line-height:1.25; color:var(--muted);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
 .jour-nom {{ display:block; font-size:11px; letter-spacing:.08em; text-transform:uppercase;
   color:var(--muted); }}
 .jour-val {{ display:block; font-family:"Barlow Condensed",sans-serif; font-weight:700;
@@ -187,7 +205,10 @@ h1 {{ font-size:clamp(30px,6vw,44px); font-weight:700; letter-spacing:-.01em;
 .grille {{ display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(290px,1fr));
   align-items:start; margin-top:16px; }}
 .carte {{ background:var(--surface); border:1px solid var(--line); border-radius:14px;
-  box-shadow:var(--ombre); overflow:hidden; }}
+  box-shadow:var(--ombre); overflow:hidden; scroll-margin-top:14px;
+  outline:2px solid transparent; outline-offset:3px; transition:outline-color .4s ease; }}
+.carte:focus {{ outline:none; }}
+.carte.cible {{ outline-color:var(--accent); }}
 .carte-tete {{ display:flex; gap:12px; align-items:center; padding:14px 16px;
   border-bottom:1px solid var(--line); }}
 .carte-tete h2 {{ margin:0; font-size:20px; font-weight:600; text-transform:uppercase;
@@ -279,7 +300,11 @@ footer {{ margin-top:30px; padding-top:16px; border-top:1px solid var(--line);
   .btn {{ flex:1 1 auto; justify-content:center; }}
   .vign {{ flex-basis:66px; width:66px; }}
 }}
-@media (prefers-reduced-motion:reduce) {{ * {{ animation:none !important; transition:none !important; }} }}
+html {{ scroll-behavior:smooth; }}
+@media (prefers-reduced-motion:reduce) {{
+  html {{ scroll-behavior:auto; }}
+  * {{ animation:none !important; transition:none !important; }}
+}}
 </style>
 
 <div class="wrap">
@@ -345,6 +370,7 @@ footer {{ margin-top:30px; padding-top:16px; border-top:1px solid var(--line);
   var D = JSON.parse(document.getElementById('donnees').textContent);
   var dlg = document.getElementById('dlg');
   var el = function (id) {{ return document.getElementById(id); }};
+  var champ = el('q');
 
   function liste(cible, items) {{
     cible.textContent = '';
@@ -381,15 +407,30 @@ footer {{ margin-top:30px; padding-top:16px; border-top:1px solid var(--line);
     dlg.querySelector('.sheet').scrollTop = 0;
   }}
 
+  var doux = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function allerA(ancre) {{
+    var cible = document.getElementById(ancre);
+    if (!cible) return;
+    if (champ.value) {{ champ.value = ''; filtrer(); }}   // une carte filtrée resterait cachée
+    cible.scrollIntoView({{ behavior: doux ? 'smooth' : 'auto', block: 'start' }});
+    cible.focus({{ preventScroll: true }});
+    document.querySelectorAll('.carte.cible').forEach(function (c) {{ c.classList.remove('cible'); }});
+    cible.classList.add('cible');
+    clearTimeout(allerA.t);
+    allerA.t = setTimeout(function () {{ cible.classList.remove('cible'); }}, 1800);
+  }}
+
   document.addEventListener('click', function (e) {{
+    var jour = e.target.closest('a.jour');
+    if (jour) {{ e.preventDefault(); allerA(jour.getAttribute('href').slice(1)); return; }}
     var btn = e.target.closest('.row');
     if (btn) {{ ouvrir(btn); return; }}
     if (e.target.id === 'dlg-fermer') {{ dlg.close(); return; }}
     if (e.target === dlg || e.target.classList.contains('dlg-pos')) dlg.close();
   }});
 
-  var champ = el('q');
-  champ.addEventListener('input', function () {{
+  function filtrer() {{
     var t = champ.value.trim().toLowerCase(), n = 0;
     document.querySelectorAll('.row').forEach(function (r) {{
       var ex = D[r.dataset.id];
@@ -401,7 +442,8 @@ footer {{ margin-top:30px; padding-top:16px; border-top:1px solid var(--line);
       c.hidden = !c.querySelector('.rows > li:not([hidden])');
     }});
     el('vide').hidden = n > 0;
-  }});
+  }}
+  champ.addEventListener('input', filtrer);
 }})();
 </script>
 """
