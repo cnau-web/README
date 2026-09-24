@@ -2,6 +2,7 @@
 
 Cardio le matin (tapis roulant), musculation le soir, du lundi au vendredi.
 **Groupes travaillés uniquement : épaules, dos, pectoraux, abdominaux.**
+Deux programmes (A et B) alternent d'une semaine sur l'autre.
 Le tableau ci‑dessous ne concerne que la séance du soir.
 
 > **Version illustrée :** [`programme-musculation-soir.pdf`](programme-musculation-soir.pdf) —
@@ -113,6 +114,99 @@ d'épaules, élastique (rotations externes, tirage face) 2 × 15.
 | B (mardi) | Planche latérale | 2 | 30 s / côté | 30 s |
 | C (jeudi) | Hollow body hold | 2 | 30 s | 30 s |
 | D (vendredi) | Planche ventrale, bras tendus | 2 | 45 s | 30 s |
+
+
+---
+
+## Programme B — une semaine sur deux
+
+Mêmes jours, mêmes muscles, mêmes volumes : uniquement d'autres exercices, pour ne pas
+tourner en rond. Semaine 1 tu suis le programme A ci‑dessus, semaine 2 le programme B,
+puis tu recommences.
+
+
+### Séance A — Pectoraux (lundi)
+
+| # | Exercice | Séries | Répétitions | Repos | Notes |
+|---|---|---|---|---|---|
+| 1 | Développé couché aux haltères | 4 | 8 à 10 | 2 min | Exercice principal, chaque bras travaille seul |
+| 2 | Développé décliné à la barre | 3 | 10 à 12 | 90 s | Bas des pectoraux |
+| 3 | Presse à pectoraux (machine) | 3 | 12 | 90 s | Charge libre puisque la trajectoire est guidée |
+| 4 | Écarté poulie basse, de bas en haut | 3 | 12 à 15 | 60 s | Haut des pectoraux |
+| 5 | Pompes lestées | 2 | 10 à 15 | 60 s | Finisher, jusqu'à 2 reps de la limite |
+| — | *Puis bloc abdos A, puis gainage : Hollow body hold 2 × 30 s* | | | | |
+
+### Séance B — Dos (mardi)
+
+| # | Exercice | Séries | Répétitions | Repos | Notes |
+|---|---|---|---|---|---|
+| 1 | Tractions prise supination | 4 | 8 à 10 | 2 min | Plus faciles que la prise pronation |
+| 2 | Rowing machine, poitrine appuyée | 4 | 10 à 12 | 90 s | Le bas du dos ne travaille pas |
+| 3 | Rowing barre en T | 3 | 10 à 12 | 90 s | Dos plat impératif |
+| 4 | Pull-over à l'haltère | 3 | 12 à 15 | 60 s | Étirement des dorsaux |
+| 5 | Tirage horizontal à la poulie | 3 | 12 | 60 s | Identique au programme A : c'est le tirage de référence |
+| 6 | Extensions lombaires (banc 45°) | 2 | 15 | 45 s | Sans hyperextension |
+| — | *Puis bloc abdos B, puis gainage : Planche ventrale 2 × 45 s* | | | | |
+
+### Séance C — Épaules (jeudi)
+
+| # | Exercice | Séries | Répétitions | Repos | Notes |
+|---|---|---|---|---|---|
+| 1 | Presse à épaules (machine) | 4 | 10 | 2 min | Trajectoire guidée, pas de cambrure possible |
+| 2 | Élévations latérales à la poulie | 4 | 12 à 15 par bras | 45 s | Tension constante, un bras à la fois |
+| 3 | Élévations frontales au disque | 3 | 12 | 60 s | Avant de l'épaule |
+| 4 | Oiseau à la poulie, câbles croisés | 3 | 15 | 60 s | Arrière de l'épaule |
+| 5 | Face pull à la poulie | 3 | 15 | 45 s | Gardé des deux programmes : c'est l'exercice de santé de l'épaule |
+| 6 | Shrugs à la barre | 3 | 12 à 15 | 60 s | Plus lourd qu'aux haltères |
+| — | *Puis bloc abdos C, puis gainage : Planche latérale 2 × 30 s par côté* | | | | |
+
+### Séance D — Haut du corps complet (vendredi)
+
+| # | Exercice | Séries | Répétitions | Repos | Notes |
+|---|---|---|---|---|---|
+| 1 | Presse à pectoraux | 3 | 10 | 90 s | Pectoraux |
+| 2 | Rowing machine | 3 | 10 | 90 s | Dos |
+| 3 | Presse à épaules | 3 | 10 à 12 | 90 s | Épaules |
+| 4 | Pull-over à l'haltère | 3 | 12 | 60 s | Dos |
+| 5 | Élévations latérales poulie | 3 | 15 par bras | 30 s | Épaules |
+| 6 | Écarté poulie basse | 3 | 15 | 60 s | Pectoraux, finition |
+| — | *Puis bloc abdos A, puis gainage : Hollow body hold 2 × 30 s* | | | | |
+
+### Blocs abdominaux du programme B
+
+
+**Bloc abdos A — suspension** — 8 à 10 min, en fin de séance A et D
+
+| Exercice | Séries | Durée / Répétitions | Repos |
+|---|---|---|---|
+| Relevés de jambes suspendu | 4 | 10 à 15 | 60 s |
+| Roue abdominale | 3 | 8 à 12 | 60 s |
+| Russian twist (avec disque) | 3 | 20 (10 par côté) | 45 s |
+
+**Bloc abdos B — flexion lestée** — 6 à 9 min, en fin de séance B
+
+| Exercice | Séries | Durée / Répétitions | Repos |
+|---|---|---|---|
+| Crunch décliné lesté | 4 | 10 à 12 | 60 s |
+| Crunch inversé au sol | 3 | 15 | 45 s |
+| Woodchopper à la poulie | 3 | 12 par côté | 45 s |
+
+**Bloc abdos C — force** — 8 à 10 min, en fin de séance C
+
+| Exercice | Séries | Durée / Répétitions | Repos |
+|---|---|---|---|
+| Dragon flag (négatif) | 3 | 6 à 8 | 90 s |
+| V-ups | 3 | 12 à 15 | 45 s |
+| Crunch à la poulie haute | 3 | 15 | 45 s |
+
+### Gainage du programme B
+
+| Séance | Exercice | Séries | Durée | Repos |
+|---|---|---|---|---|
+| A | Hollow body hold | 2 | 30 s | 30 s |
+| B | Planche ventrale | 2 | 45 s | 30 s |
+| C | Planche latérale | 2 | 30 s par côté | 30 s |
+| D | Hollow body hold | 2 | 30 s | 30 s |
 
 ---
 

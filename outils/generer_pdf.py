@@ -12,7 +12,7 @@ import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from contenu import FICHES, IDX, SEANCES, BLOCS, SEMAINE, GAINAGE
+from contenu import FICHES, IDX, SEMAINE, PROGRAMMES
 from illustrations import ILLUS
 
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -92,7 +92,7 @@ def fiche_html(f, n):
     erreurs = "".join(f"<li>{esc(e)}</li>" for e in f["erreurs"])
     return f"""
 <div class="fiche">
-  <div class="img">{ILLUS[f['id']]().svg()}</div>
+  <div class="img">{ILLUS[f.get('illu', f['id'])]().svg()}</div>
   <div class="txt">
     <div class="tete"><span class="num">{n}</span>
       <span class="nom">{esc(f['nom'])}</span>
@@ -141,9 +141,16 @@ def page_garde():
 <div class="page">
 <h1>Programme de musculation du soir</h1>
 <p class="sub">Épaules · Dos · Pectoraux · Abdominaux — 4 séances par semaine, du lundi au vendredi.
-Le cardio du matin (tapis roulant) n'est pas repris ici.</p>
+Deux programmes alternent d'une semaine sur l'autre. Le cardio du matin (tapis roulant) n'est pas
+repris ici.</p>
 
-<h2>La semaine</h2>
+<div class="enc" style="margin:0 0 5mm"><b>Programme A et programme B</b>
+Mêmes jours, mêmes muscles, mêmes volumes : seuls les exercices changent. Semaine 1 tu suis le
+programme A, semaine 2 le programme B, puis tu recommences. Les deux se valent — l'alternance
+sert à éviter la lassitude et à varier les angles de travail, pas à « choquer le muscle ». Garde
+le même carnet de suivi : les charges d'un exercice se comparent d'une semaine paire à l'autre.</div>
+
+<h2>La semaine (identique dans les deux programmes)</h2>
 <table><tr><th>Jour</th><th>Séance du soir</th><th>Durée</th></tr>{sem}</table>
 
 <h2 style="margin-top:7mm">Comment lire les fiches</h2>
@@ -219,9 +226,9 @@ elle prendrait la place du mercredi ou du samedi.</div>
 </div>"""
 
 
-def table_gainage():
+def table_gainage(gainage):
     rows = ""
-    for seance, (fid, nom, series, duree, repos) in GAINAGE.items():
+    for seance, (fid, nom, series, duree, repos) in gainage.items():
         rows += (f"<tr><td class='c'><b>{seance}</b></td><td><b>{esc(nom)}</b></td>"
                  f"<td class='c'>{series}</td><td class='c'>{esc(duree)}</td>"
                  f"<td class='c'>{esc(repos)}</td><td class='c'>n° {IDX[fid]}</td></tr>")
@@ -233,18 +240,19 @@ abdominal, tous les jours d'entraînement</p>
 <th>Repos</th><th>Fiche</th></tr>{rows}</table>"""
 
 
-def page_seances():
-    t = "".join(table_seance(*s) for s in SEANCES[:2])
-    t2 = "".join(table_seance(*s) for s in SEANCES[2:])
-    b = "".join(table_bloc(*x) for x in BLOCS)
+def page_seances(prog):
+    t = "".join(table_seance(*s) for s in prog["seances"][:2])
+    t2 = "".join(table_seance(*s) for s in prog["seances"][2:])
+    b = "".join(table_bloc(*x) for x in prog["blocs"])
+    nom = esc(prog["titre"]) + " — " + esc(prog["sous"])
     return f"""
-<div class="page"><h2>Les quatre séances</h2>{t}</div>
-<div class="page"><h2>Les quatre séances (suite)</h2>{t2}</div>
-<div class="page"><h2>Les blocs abdominaux</h2>
+<div class="page"><p class="eyebrow">{nom}</p><h2>Les quatre séances</h2>{t}</div>
+<div class="page"><p class="eyebrow">{nom}</p><h2>Les quatre séances (suite)</h2>{t2}</div>
+<div class="page"><p class="eyebrow">{nom}</p><h2>Les blocs abdominaux</h2>
 <p class="sub">À enchaîner en fin de séance, dans l'ordre. Le bloc A revient deux fois par
 semaine : c'est le plus dur des trois, et le seul où la charge augmente au fil des semaines.
 Chaque séance se termine ensuite par 2 à 3 min de gainage, qui protègent le bas du dos
-sollicité par les mouvements dynamiques.</p>{b}{table_gainage()}
+sollicité par les mouvements dynamiques.</p>{b}{table_gainage(prog["gainage"])}
 <div class="enc" style="margin-top:6mm"><b>Comment choisir son niveau</b>
 La bonne version d'un exercice est celle où tu tiens les répétitions demandées sans que
 le bas du dos se creuse. Dès que la position se dégrade, la série est finie : passe à la
@@ -287,9 +295,10 @@ Semaine 7 : semaine allégée (mêmes exercices, une série de moins) avant de r
 
 
 def main():
+    seances = "".join(page_seances(p) for p in PROGRAMMES)
     doc = (f'<!doctype html><html lang="fr"><head><meta charset="utf-8">'
            f'<title>Programme de musculation du soir</title><style>{CSS}</style></head>'
-           f'<body>{page_garde()}{page_seances()}{page_fiches()}{page_suivi()}</body></html>')
+           f'<body>{page_garde()}{seances}{page_fiches()}{page_suivi()}</body></html>')
     tmp = os.path.join(RACINE, "outils", "_programme.html")
     with open(tmp, "w", encoding="utf-8") as fh:
         fh.write(doc)

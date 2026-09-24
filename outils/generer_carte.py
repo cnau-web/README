@@ -12,7 +12,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from contenu import FICHES, IDX, SEANCES, BLOCS, SEMAINE, GAINAGE
+from contenu import FICHES, IDX, SEMAINE, PROGRAMMES
 from illustrations import ILLUS
 
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -52,6 +52,20 @@ VIDEO = {
     "russian_twist": "russian twist disque technique obliques",
     "woodchopper": "woodchopper poulie technique obliques",
     "ab_wheel": "roue abdominale ab wheel débutant technique",
+    "developpe_couche_halteres": "développé couché haltères technique musculation",
+    "developpe_decline": "développé décliné barre pectoraux technique",
+    "presse_pectoraux": "presse à pectoraux machine chest press technique",
+    "ecarte_poulie_basse": "écarté poulie basse de bas en haut pectoraux technique",
+    "pompes": "pompes lestées technique exécution",
+    "tractions_supination": "tractions prise supination chin up technique",
+    "rowing_machine": "rowing machine poitrine appuyée technique dos",
+    "rowing_t": "rowing barre en T technique dos",
+    "pullover_haltere": "pull over haltère banc technique dorsaux",
+    "presse_epaules": "presse à épaules machine technique",
+    "elevations_poulie": "élévations latérales à la poulie un bras technique",
+    "elevations_frontales": "élévations frontales disque épaules technique",
+    "oiseau_poulie": "oiseau poulie câbles croisés arrière épaule technique",
+    "shrugs_barre": "shrugs barre trapèzes technique",
 }
 
 CLE_GROUPE = {"Pectoraux": "pect", "Dos": "dos", "Épaules": "epaules", "Abdos": "abdos"}
@@ -71,7 +85,7 @@ def q(texte):
 
 
 def construire_donnees():
-    """Fiche + seances dans lesquelles l'exercice apparait."""
+    """Fiche + seances (des deux programmes) dans lesquelles l'exercice apparait."""
     d = {}
     for f in FICHES:
         d[f["id"]] = dict(n=IDX[f["id"]], nom=f["nom"], groupe=f["groupe"],
@@ -79,33 +93,44 @@ def construire_donnees():
                           reglage=f["reglage"], etapes=f["etapes"],
                           erreurs=f["erreurs"], seances=[],
                           video=q(VIDEO[f["id"]]))
-    for titre, _, lignes in SEANCES:
-        for fid, _, series, reps, repos, _ in lignes:
-            d[fid]["seances"].append(dict(s=titre.split(" — ")[0], v=f"{series} × {reps}", r=repos))
-    for seance, (fid, _, series, duree, repos) in GAINAGE.items():
-        d[fid]["seances"].append(dict(s=f"Séance {seance}", v=f"{series} × {duree}", r=repos))
-    for titre, _, lignes in BLOCS:
-        lettre = titre.split("abdos ")[-1][0]
-        for fid, _, series, reps, repos in lignes:
-            for seance in BLOC_DE_SEANCE[lettre]:
-                d[fid]["seances"].append(
-                    dict(s=f"Séance {seance}", v=f"{series} × {reps}", r=repos))
+
+    def dose(fid, prog, lettre, valeur, repos):
+        e = dict(p=prog, s=f"Séance {lettre}", v=valeur, r=repos)
+        if e not in d[fid]["seances"]:
+            d[fid]["seances"].append(e)
+
+    for prog in PROGRAMMES:
+        for titre, _, lignes in prog["seances"]:
+            lettre = titre.split("Séance ")[-1][0]
+            for fid, _, series, reps, repos, _ in lignes:
+                dose(fid, prog["cle"], lettre, f"{series} × {reps}", repos)
+        for lettre, (fid, _, series, duree, repos) in prog["gainage"].items():
+            dose(fid, prog["cle"], lettre, f"{series} × {duree}", repos)
+        for titre, _, lignes in prog["blocs"]:
+            bl = titre.split("abdos ")[-1][0]
+            for fid, _, series, reps, repos in lignes:
+                for lettre in BLOC_DE_SEANCE[bl]:
+                    dose(fid, prog["cle"], lettre, f"{series} × {reps}", repos)
     return d
+
+
+ILLU = {f["id"]: f.get("illu", f["id"]) for f in FICHES}
 
 
 def ligne(fid, nom, dose, repos, d):
     ex = d[fid]
     return f"""<li class="row-li"><button class="row" type="button" data-id="{fid}" data-g="{ex['g']}"
       aria-haspopup="dialog" data-nom="{esc(nom.lower())}">
-  <span class="vign">{ILLUS[fid]().svg()}</span>
+  <span class="vign">{ILLUS[ILLU[fid]]().svg()}</span>
   <span class="ligne-txt"><span class="ligne-nom">{esc(nom)}</span>
     <span class="ligne-dose">{esc(dose)}<span class="sep">·</span>repos {esc(repos)}</span></span>
   <span class="chev" aria-hidden="true">›</span>
 </button></li>"""
 
 
-def carte_seance(titre, soustitre, lignes, d, blocs):
-    """Une carte par jour : musculation puis abdominaux, dans la même liste."""
+def carte_seance(titre, soustitre, lignes, d, prog):
+    """Une carte par jour : musculation, abdominaux puis gainage, dans une seule liste."""
+    blocs, gainage, cle = prog["blocs"], prog["gainage"], prog["cle"]
     lettre = titre.split("Séance ")[-1][0]
     jour, duree = soustitre.split(" · ")[0], soustitre.split(" · ")[1]
     groupe = titre.split(" — ")[-1].replace("Haut du corps complet", "Haut du corps")
@@ -120,12 +145,13 @@ def carte_seance(titre, soustitre, lignes, d, blocs):
     items += "".join(ligne(fid, nom, f"{series} × {reps}", repos, d)
                      for fid, nom, series, reps, repos in blignes)
 
-    gfid, gnom, gser, gduree, grepos = GAINAGE[lettre]
+    gfid, gnom, gser, gduree, grepos = gainage[lettre]
     items += ('<li class="sous-tete"><span>Gainage</span>'
               '<span class="sous-tete-note">2 à 3 min · pour finir</span></li>')
     items += ligne(gfid, gnom, f"{gser} × {gduree}", grepos, d)
 
-    return f"""<section class="carte" id="seance-{lettre.lower()}" tabindex="-1">
+    return f"""<section class="carte" id="p{cle}-seance-{lettre.lower()}"
+  data-seance="{lettre.lower()}" tabindex="-1">
   <header class="carte-tete">
     <span class="pastille">{esc(lettre)}</span>
     <div><h2>{esc(groupe)} + abdos</h2>
@@ -147,13 +173,20 @@ def main():
         lettre = s.split(" — ")[0].replace("Séance ", "").strip()
         groupe = s.split(" — ")[1].split(" + ")[0].replace("Haut du corps complet", "Haut du corps")
         jours.append(
-            f'<a class="jour" href="#seance-{lettre.lower()}" '
+            f'<a class="jour" href="#pA-seance-{lettre.lower()}" data-seance="{lettre.lower()}" '
             f'aria-label="Aller aux exercices de {j.lower()} : séance {lettre}, {esc(groupe.lower())}">'
             f'<span class="jour-nom">{j[:3]}</span>'
             f'<span class="jour-val">{esc(lettre)}</span>'
             f'<span class="jour-quoi">{esc(groupe)}</span></a>')
     semaine = "".join(jours)
-    cartes = "".join(carte_seance(t, st, l, d, BLOCS) for t, st, l in SEANCES)
+    grilles, onglets = "", ""
+    for i, prog in enumerate(PROGRAMMES):
+        cartes = "".join(carte_seance(t, st, l, d, prog) for t, st, l in prog["seances"])
+        grilles += (f'<div class="grille" data-prog="{prog["cle"]}"'
+                    f'{"" if i == 0 else " hidden"}>{cartes}</div>')
+        onglets += (f'<button class="onglet" type="button" role="tab" data-prog="{prog["cle"]}"'
+                    f' aria-selected="{"true" if i == 0 else "false"}">'
+                    f'{esc(prog["titre"])}<span>{esc(prog["sous"])}</span></button>')
 
     page = f"""<title>Carte des exercices</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -185,6 +218,7 @@ def main():
   --ombre:0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
 }}
 * {{ box-sizing:border-box; }}
+[hidden] {{ display:none !important; }}
 body {{ margin:0; background:var(--bg); color:var(--ink);
   font-family:"Source Sans 3",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
   font-size:16px; line-height:1.5; }}
@@ -213,7 +247,19 @@ a.jour:focus-visible {{ outline:2px solid var(--accent); outline-offset:2px; }}
 .jour.off {{ background:transparent; }}
 .jour.off .jour-val {{ color:var(--muted); }}
 
-.filtre {{ display:flex; align-items:center; gap:10px; margin:22px 0 6px; }}
+.onglets {{ display:flex; gap:8px; margin:22px 0 0; flex-wrap:wrap; }}
+.onglet {{ flex:1 1 200px; text-align:left; font:inherit; cursor:pointer;
+  background:var(--surface); color:var(--muted); border:1px solid var(--line);
+  border-radius:11px; padding:10px 14px; font-family:"Barlow Condensed","Source Sans 3",sans-serif;
+  font-size:19px; font-weight:600; text-transform:uppercase; letter-spacing:.02em;
+  transition:border-color .15s, color .15s; }}
+.onglet span {{ display:block; font-family:"Source Sans 3",sans-serif; font-size:12.5px;
+  font-weight:400; text-transform:none; letter-spacing:0; color:var(--muted); margin-top:1px; }}
+.onglet[aria-selected="true"] {{ background:var(--ink); color:var(--surface);
+  border-color:var(--ink); }}
+.onglet[aria-selected="true"] span {{ color:var(--surface); opacity:.75; }}
+.onglet:focus-visible {{ outline:2px solid var(--accent); outline-offset:2px; }}
+.filtre {{ display:flex; align-items:center; gap:10px; margin:14px 0 6px; }}
 .filtre input {{ flex:1; min-width:0; font:inherit; color:var(--ink);
   background:var(--surface); border:1px solid var(--line); border-radius:9px;
   padding:11px 13px; }}
@@ -339,7 +385,9 @@ html {{ scroll-behavior:smooth; }}
     <h1>Carte des exercices</h1>
     <p class="intro">Épaules, dos, pectoraux, abdominaux. Touche un exercice pour ouvrir sa fiche :
       schéma du mouvement, machine à chercher dans la salle, réglages, exécution, erreurs à éviter
-      et lien vidéo. Le bouton « exercice suivant » enchaîne les fiches dans l'ordre de la séance.</p>
+      et lien vidéo. Le bouton « exercice suivant » enchaîne les fiches dans l'ordre de la séance.
+      Les deux programmes alternent d'une semaine sur l'autre : mêmes jours, mêmes muscles,
+      d'autres exercices.</p>
     <div class="semaine">{semaine}</div>
   </header>
 
@@ -349,7 +397,8 @@ html {{ scroll-behavior:smooth; }}
   </div>
   <p class="vide" id="vide" hidden>Aucun exercice ne correspond.</p>
 
-  <div class="grille" id="grille">{cartes}</div>
+  <div class="onglets" role="tablist" aria-label="Choix du programme">{onglets}</div>
+  {grilles}
 
   <footer>
     <p class="note">Le bouton vidéo ouvre une <b>recherche YouTube</b> sur le nom de l'exercice :
@@ -427,7 +476,7 @@ html {{ scroll-behavior:smooth; }}
     ex.seances.forEach(function (s) {{
       var d = document.createElement('span'); d.className = 'dose';
       d.innerHTML = '<b></b> <span></span>';
-      d.querySelector('b').textContent = s.s;
+      d.querySelector('b').textContent = s.p + ' · ' + s.s;
       d.querySelector('span').textContent = s.v + ' — repos ' + s.r;
       doses.appendChild(d);
     }});
@@ -446,8 +495,29 @@ html {{ scroll-behavior:smooth; }}
 
   var doux = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  function allerA(ancre) {{
-    var cible = document.getElementById(ancre);
+  function choisirProg(cle, defiler) {{
+    var connu = false;
+    document.querySelectorAll('.onglet').forEach(function (o) {{
+      var actif = o.dataset.prog === cle;
+      if (actif) connu = true;
+      o.setAttribute('aria-selected', actif ? 'true' : 'false');
+    }});
+    if (!connu) return;
+    document.querySelectorAll('.grille').forEach(function (g) {{
+      g.hidden = g.dataset.prog !== cle;
+    }});
+    try {{ localStorage.setItem('programme', cle); }} catch (e) {{}}
+    if (defiler) document.querySelector('.grille:not([hidden])')
+      .scrollIntoView({{ behavior: doux ? 'smooth' : 'auto', block: 'start' }});
+  }}
+
+  try {{
+    var memo = localStorage.getItem('programme');
+    if (memo) choisirProg(memo, false);
+  }} catch (e) {{}}
+
+  function allerA(lettre) {{
+    var cible = document.querySelector('.grille:not([hidden]) .carte[data-seance="' + lettre + '"]');
     if (!cible) return;
     if (champ.value) {{ champ.value = ''; filtrer(); }}   // une carte filtrée resterait cachée
     cible.scrollIntoView({{ behavior: doux ? 'smooth' : 'auto', block: 'start' }});
@@ -459,8 +529,10 @@ html {{ scroll-behavior:smooth; }}
   }}
 
   document.addEventListener('click', function (e) {{
+    var onglet = e.target.closest('.onglet');
+    if (onglet) {{ choisirProg(onglet.dataset.prog, true); return; }}
     var jour = e.target.closest('a.jour');
-    if (jour) {{ e.preventDefault(); allerA(jour.getAttribute('href').slice(1)); return; }}
+    if (jour) {{ e.preventDefault(); allerA(jour.dataset.seance); return; }}
     var btn = e.target.closest('.row');
     if (btn) {{ ouvrir(btn); return; }}
     if (e.target.id === 'dlg-fermer') {{ dlg.close(); return; }}

@@ -449,3 +449,187 @@ def _():
         s.circle(b["hand"], 3, "none", g(op), 3, op)
     s.arrow((212, 74), (168, 62))
     return s
+
+
+# ================== PROGRAMME B — semaine 2 ===============================
+
+@illu("developpe_couche_halteres")
+def _():
+    s = S(W, H); s.floor(26)
+    bench(s, (166, 74), 0, 74, legs=True, y_floor=26)
+    for op, col, arm in ((0.45, GHOST, (72, 72)), (1, BODY, (-2, 104))):
+        b = side(s, (196, 86), 180, arm, (-35, -85), col, op=op)
+        side_foot(s, b["ankle"], -80, col, op=op, l=20)
+        dumbbell(s, b["hand"], 90, 11, g(op), op)
+    s.arrow((212, 106), (212, 136))
+    return s
+
+
+@illu("developpe_decline")
+def _():
+    s = S(W, H); s.floor(24)
+    s.line((118, 60), (216, 98), FRAME, 12, cap="butt")     # banc décliné
+    s.line((150, 70), (150, 24), FRAME, 5)
+    s.line((206, 92), (206, 24), FRAME, 5)
+    s.line((214, 108), (238, 108), FRAME, 9)                # boudins des cuisses
+    for op, col, arm in ((0.45, GHOST, (110, 110)), (1, BODY, (170, 50))):
+        b = side(s, (196, 92), 200, arm, (12, 100), col, op=op)
+        side_foot(s, b["ankle"], 10, col, op=op, l=13)
+        plate(s, b["hand"], 14, g(op), op)
+    s.arrow((120, 104), (114, 128))
+    return s
+
+
+@illu("presse_pectoraux")
+def _():
+    s = S(W, H); s.floor(24)
+    s.rect(180, 54, 84, 12, FRAME, rx=4)                    # assise
+    s.line((222, 60), (222, 146), FRAME, 11, cap="butt")    # dossier
+    s.line((212, 54), (212, 24), FRAME, 6)
+    tower(s, 258, 24, 150); stack(s, 246, 30)
+    for op, col, arm in ((0.45, GHOST, (180, 180)), (1, BODY, (240, 129))):
+        b = side(s, (206, 66), 94, arm, (176, -88), col, op=op)
+        side_foot(s, b["ankle"], -6, col, op=op, l=14)
+        s.line((252, 140), b["hand"], FRAME, 3, op)         # bras de la machine
+        handle(s, b["hand"], 90, 9, op)
+    s.arrow((150, 84), (118, 84))
+    return s
+
+
+@illu("ecarte_poulie_basse")
+def _():
+    s = S(W, H); s.floor(24)
+    for x in (26, 314):
+        tower(s, x, 24, 120); pulley(s, (x, 44))
+    stack(s, 13, 30); stack(s, 301, 30)
+    for op, col, aL, aR in ((0.45, GHOST, (30, 58), (150, 122)),
+                            (1, BODY, (244, 250), (-64, -70))):
+        b = front(s, (170, 78), aL, aR, col, op=op)
+        cable(s, (26, 44), b["hL"], FRAME, op); cable(s, (314, 44), b["hR"], FRAME, op)
+        handle(s, b["hL"], 90, 7, op); handle(s, b["hR"], 90, 7, op)
+    s.arc_arrow((155, 116), 50, 248, 300)
+    s.arc_arrow((185, 116), 50, -68, -120)
+    return s
+
+
+@illu("pompes")
+def _():
+    s = S(W, H); s.floor(38)
+    s.rect(60, 30, 220, 8, MAT, rx=4)
+    for op, col, hip, arm in ((0.45, GHOST, (160, 55), (210, -30)),
+                              (1, BODY, (160, 77), (-88, -92))):
+        b = side(s, hip, 8, arm, (188, 188), col, op=op)
+        side_foot(s, b["ankle"], -60, col, op=op, l=13)
+    plate(s, (176, 64), 11, GEAR)                           # lest sur le haut du dos
+    s.arrow((236, 60), (236, 86))
+    return s
+
+
+@illu("rowing_machine")
+def _():
+    s = S(W, H); s.floor(24)
+    s.rect(182, 52, 86, 12, FRAME, rx=4)                    # assise
+    s.line((214, 52), (214, 24), FRAME, 6)
+    s.line((178, 68), (182, 126), FRAME, 12, cap="butt")    # coussin de poitrine
+    tower(s, 120, 24, 150); stack(s, 108, 30)
+    for op, col, arm in ((0.45, GHOST, (13, -133)), (1, BODY, (-140, -140))):
+        b = side(s, (200, 62), 100, arm, (176, -88), col, op=op)
+        side_foot(s, b["ankle"], -6, col, op=op, l=14)
+        s.line((126, 140), b["hand"], FRAME, 3, op)         # bras de la machine
+        handle(s, b["hand"], 90, 9, op)
+    s.arrow((132, 60), (168, 60))
+    return s
+
+
+@illu("rowing_t")
+def _():
+    s = S(W, H); s.floor(28)
+    s.line((44, 30), (214, 78), GEAR, 5)                    # barre en T ancrée au sol
+    s.circle((44, 30), 6, "none", FRAME, 4)
+    for c in ((206, 76), (214, 78)):
+        plate(s, c, 15, GEAR)
+    for op, col, arm in ((0.45, GHOST, (162, -72)), (1, BODY, (-90, -158))):
+        b = side(s, (190, 90), 20, arm, (-80, -95), col, op=op)
+        side_foot(s, b["ankle"], -20, col, op=op, l=16)
+        s.circle(b["hand"], 4, "none", col, 4, op)
+    s.arrow((262, 62), (256, 92))
+    return s
+
+
+@illu("pullover_haltere")
+def _():
+    s = S(W, H); s.floor(26)
+    s.line((140, 72), (206, 72), FRAME, 12, cap="butt")     # banc, en travers
+    s.line((150, 66), (150, 26), FRAME, 5); s.line((196, 66), (196, 26), FRAME, 5)
+    for op, col, arm in ((0.45, GHOST, (136, 140)), (1, BODY, (76, 84))):
+        b = side(s, (200, 80), 180, arm, (-62, -88), col, op=op)
+        side_foot(s, b["ankle"], -8, col, op=op, l=15)
+        dumbbell(s, b["hand"], 0, 11, g(op), op)
+    s.arc_arrow((164, 80), 46, 78, 136)
+    return s
+
+
+@illu("presse_epaules")
+def _():
+    s = S(W, H); s.floor(24)
+    s.rect(160, 54, 84, 12, FRAME, rx=4)                    # assise
+    s.line((236, 60), (240, 150), FRAME, 11, cap="butt")    # dossier
+    s.line((196, 54), (196, 24), FRAME, 6)
+    tower(s, 140, 24, 180); stack(s, 128, 30)
+    for op, col, arm in ((0.45, GHOST, (88, 92)), (1, BODY, (150, 95))):
+        b = side(s, (208, 70), 98, arm, (178, -88), col, op=op)
+        side_foot(s, b["ankle"], -6, col, op=op, l=16)
+        s.line((146, 172), b["hand"], FRAME, 3, op)         # bras de la machine
+        handle(s, b["hand"], 0, 10, op)
+    s.arrow((110, 120), (110, 158))
+    return s
+
+
+@illu("elevations_poulie")
+def _():
+    s = S(W, H); s.floor(24)
+    tower(s, 306, 24, 120); pulley(s, (306, 44)); stack(s, 293, 30)
+    for op, col, aL in ((0.45, GHOST, (178, 176)), (1, BODY, (-54, -54))):
+        b = front(s, (168, 78), aL, (-76, -82), col, op=op)
+        cable(s, (306, 44), b["hL"], FRAME, op)
+        handle(s, b["hL"], 90, 7, op)
+    s.arc_arrow((153, 114), 48, -52, -182)
+    return s
+
+
+@illu("elevations_frontales")
+def _():
+    s = S(W, H); s.floor(26)
+    for op, col, arm in ((0.45, GHOST, (2, 0)), (1, BODY, (-88, -92))):
+        b = side(s, (160, 84), 90, arm, (-86, -92), col, op=op)
+        side_foot(s, b["ankle"], 0, col, op=op, l=15)
+        plate(s, b["hand"], 14, g(op), op)
+    s.arc_arrow((160, 120), 54, -80, -6)
+    return s
+
+
+@illu("oiseau_poulie")
+def _():
+    s = S(W, H); s.floor(24)
+    for x in (26, 314):
+        tower(s, x, 24, 170); pulley(s, (x, 122))
+    stack(s, 13, 30); stack(s, 301, 30)
+    for op, col, aL, aR in ((0.45, GHOST, (176, 178), (4, 2)),
+                            (1, BODY, (-24, -6), (204, 186))):
+        b = front(s, (170, 78), aL, aR, col, op=op)
+        cable(s, (314, 122), b["hL"], FRAME, op)            # câbles croisés
+        cable(s, (26, 122), b["hR"], FRAME, op)
+        handle(s, b["hL"], 90, 7, op); handle(s, b["hR"], 90, 7, op)
+    s.arrow((150, 120), (104, 120)); s.arrow((190, 120), (236, 120))
+    return s
+
+
+@illu("shrugs_barre")
+def _():
+    s = S(W, H); s.floor(24)
+    for op, col, sg in ((0.45, GHOST, 14), (1, BODY, 0)):
+        b = front(s, (170, 78), (256, 262), (-76, -82), col, op=op, shrug=sg)
+        y = (b["hL"][1] + b["hR"][1]) / 2
+        barbell(s, (170, y), 0, 72, 15, g(op), op)
+    s.arrow((252, 96), (252, 126)); s.arrow((88, 96), (88, 126))
+    return s

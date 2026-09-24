@@ -92,6 +92,87 @@ FICHES = [
                   "Transformer le mouvement en développé (coudes qui plient).",
                   "Charge trop lourde : c'est l'exercice de finition de la séance."]),
 
+    # --- programme B ---
+    dict(id="developpe_couche_halteres", nom="Développé couché aux haltères", groupe="Pectoraux",
+         machine="Le même banc plat, mais avec deux haltères au lieu de la barre. Chaque bras "
+                 "travaille seul : le côté faible ne peut plus se cacher derrière l'autre, et "
+                 "l'amplitude en bas est plus grande.",
+         reglage="Prends des haltères 30 à 40 % plus légers que ta barre habituelle. Assieds-toi "
+                 "au bout du banc, haltères posés sur les cuisses, puis bascule en arrière en les "
+                 "remontant avec les genoux.",
+         etapes=["Allongé, pieds au sol, haltères au niveau de la poitrine, paumes vers l'avant.",
+                 "Coudes à 45° du buste, poignets dans l'axe des avant-bras.",
+                 "Pousse vers le haut en rapprochant légèrement les haltères, sans les cogner.",
+                 "Descends en 2 s jusqu'à ce que les coudes passent sous la ligne des épaules.",
+                 "Garde les omoplates serrées et le haut du dos plaqué tout du long.",
+                 "Pour reposer : ramène les haltères sur les cuisses, puis relève-toi."],
+         erreurs=["Descendre trop bas en cherchant l'étirement : l'épaule paie l'addition.",
+                  "Laisser les haltères partir vers l'extérieur en fin de série.",
+                  "Lâcher les haltères sur le côté : repose-les toujours sur les cuisses."]),
+
+    dict(id="developpe_decline", nom="Développé décliné à la barre", groupe="Pectoraux",
+         machine="Le banc décliné (tête en bas) avec ses boudins pour caler les cuisses, sous un "
+                 "rack. Si ta salle n'en a pas, la machine à développé décliné convergente fait "
+                 "le même travail, en plus simple à installer.",
+         reglage="Déclinaison de 15 à 30°, pas plus. Cale les cuisses sous les boudins avant de "
+                 "t'allonger. Fais-toi aider pour sortir la barre les premières fois : la position "
+                 "tête en bas déstabilise au début.",
+         etapes=["Allongé tête en bas, cuisses bloquées, barre à la verticale des yeux.",
+                 "Prise un peu plus large que les épaules, barre sortie du rack bras tendus.",
+                 "Descends vers le bas des pectoraux, sous la ligne des tétons.",
+                 "Coudes à 45°, descente en 2 s jusqu'à effleurer la poitrine.",
+                 "Pousse à la verticale, sans bloquer sèchement les coudes.",
+                 "Repose la barre sur les crochets avant de te relever, jamais l'inverse."],
+         erreurs=["Rester trop longtemps tête en bas entre les séries : relève-toi pour récupérer.",
+                  "Descendre la barre trop haut, vers le cou.",
+                  "Décliner le banc à 45° : inutile et désagréable."]),
+
+    dict(id="presse_pectoraux", nom="Presse à pectoraux (machine)", groupe="Pectoraux",
+         machine="La machine assise où l'on pousse deux poignées vers l'avant, dos calé contre un "
+                 "dossier. C'est l'exercice le plus sûr du groupe : aucune stabilisation à gérer, "
+                 "donc tu peux pousser fort en fin de séance sans partenaire.",
+         reglage="Règle la hauteur du siège pour que les poignées arrivent au niveau du milieu de "
+                 "la poitrine, pas des épaules. Goupille dans la pile de plaques.",
+         etapes=["Assis, dos et épaules en contact avec le dossier, pieds bien à plat.",
+                 "Poignées au niveau de la poitrine, coudes légèrement sous les mains.",
+                 "Pousse vers l'avant jusqu'à tendre les bras sans verrouiller.",
+                 "Reviens en 2 s jusqu'à ce que les mains reviennent au niveau de la poitrine.",
+                 "Ne laisse pas les plaques retomber en butée entre les répétitions."],
+         erreurs=["Décoller le dos du dossier pour pousser plus lourd.",
+                  "Laisser les coudes monter à hauteur d'épaules.",
+                  "Amplitude tronquée : les mains doivent revenir jusqu'au buste."]),
+
+    dict(id="ecarte_poulie_basse", nom="Écarté à la poulie basse (de bas en haut)", groupe="Pectoraux",
+         machine="La cage à poulies vis-à-vis, mais avec les deux poulies réglées **en bas**. Le "
+                 "mouvement monte au lieu de descendre : il cible le haut des pectoraux, la zone "
+                 "la moins sollicitée par le reste du programme.",
+         reglage="Poignées simples sur les deux poulies basses, même charge des deux côtés. "
+                 "Place-toi au milieu, un pied légèrement avancé, buste droit.",
+         etapes=["Une poignée dans chaque main, bras le long du corps, paumes vers l'avant.",
+                 "Coudes très légèrement fléchis, angle figé pour toute la série.",
+                 "Monte les mains l'une vers l'autre jusqu'à hauteur des épaules, en arc de cercle.",
+                 "Serre les pectoraux 1 s en haut, mains presque jointes devant le sternum.",
+                 "Redescends en 3 s en contrôlant, sans laisser les bras partir en arrière."],
+         erreurs=["Monter les mains au-dessus des épaules : ça devient une élévation frontale.",
+                  "Se pencher en arrière pour lancer la charge.",
+                  "Plier les coudes en cours de route."]),
+
+    dict(id="pompes", nom="Pompes lestées", groupe="Pectoraux",
+         machine="Un tapis de sol, et un disque de 5 à 20 kg posé au milieu du haut du dos (demande "
+                 "à quelqu'un de le poser, ou utilise un gilet lesté). Finisher de séance : on va "
+                 "chercher l'échec proprement.",
+         reglage="Mains légèrement plus larges que les épaules, à la verticale sous elles. Sans "
+                 "lest tant que 15 pompes strictes ne passent pas.",
+         etapes=["Corps en ligne droite des talons à la tête, fessiers et abdos serrés.",
+                 "Coudes à 45° du buste, pas en croix.",
+                 "Descends jusqu'à ce que la poitrine frôle le sol, en 2 s.",
+                 "Pousse sans creuser le bas du dos ni décoller les fesses.",
+                 "Série menée jusqu'à 2 répétitions de la limite, pas jusqu'à la casse technique.",
+                 "Trop dur ? Mains sur un banc. Trop facile ? Pieds surélevés, puis lest."],
+         erreurs=["Bassin qui s'affaisse ou fesses en l'air.",
+                  "Amplitude partielle : la poitrine doit descendre au niveau des coudes.",
+                  "Tête qui part en avant à chaque répétition."]),
+
     # ---------------------------------- DOS ----------------------------------
     dict(id="tractions", nom="Tractions", groupe="Dos",
          machine="Barre fixe horizontale, ou la machine à tractions assistées (tu poses les genoux ou les "
@@ -191,6 +272,68 @@ FICHES = [
                   "Prendre de l'élan en balançant le buste.",
                   "Ajouter du poids trop tôt : commence au poids du corps."]),
 
+    # --- programme B ---
+    dict(id="tractions_supination", illu="tractions", nom="Tractions prise supination", groupe="Dos",
+         machine="La même barre fixe (ou la machine assistée), mais paumes tournées vers toi, mains "
+                 "à largeur d'épaules. Cette prise met plus de biceps dans le coup : tu monteras "
+                 "plus haut et plus souvent qu'en prise pronation.",
+         reglage="Sur la machine assistée, réduis l'assistance de 5 kg par rapport à ta prise "
+                 "pronation habituelle : cette variante est plus facile.",
+         etapes=["Prise supination (paumes vers toi), mains à largeur d'épaules.",
+                 "Pars bras tendus, épaules basses, gainage serré, jambes croisées.",
+                 "Abaisse d'abord les omoplates, puis tire les coudes vers le bas et l'arrière.",
+                 "Monte jusqu'à ce que la poitrine approche la barre.",
+                 "Redescends en 2 s jusqu'à bras tendus, sans lâcher la tension."],
+         erreurs=["Se balancer pour prendre de l'élan.",
+                  "Tirer uniquement avec les bras en oubliant le dos.",
+                  "Sauter la fin de la descente."]),
+
+    dict(id="rowing_machine", nom="Rowing machine, poitrine appuyée", groupe="Dos",
+         machine="La machine de rowing assis avec un coussin pour la poitrine (chest-supported "
+                 "row). Le buste étant calé, le bas du dos ne travaille pas : c'est la variante à "
+                 "privilégier le lendemain d'une séance lourde.",
+         reglage="Règle la hauteur du siège pour que les poignées soient à hauteur du bas de la "
+                 "poitrine. Le coussin doit soutenir le sternum, pas la gorge.",
+         etapes=["Assis, poitrine contre le coussin, pieds calés, bras tendus vers l'avant.",
+                 "Tire les poignées vers les côtes en menant avec les coudes.",
+                 "Serre les omoplates 1 s en fin de tirage.",
+                 "Laisse repartir les bras en 2 s, sans décoller la poitrine du coussin.",
+                 "Prise neutre (paumes face à face) si la machine le permet : plus confortable."],
+         erreurs=["Décoller la poitrine du coussin pour tricher.",
+                  "Hausser les épaules pendant le tirage.",
+                  "Tirer trop haut, vers les aisselles."]),
+
+    dict(id="rowing_t", nom="Rowing barre en T", groupe="Dos",
+         machine="La barre dont une extrémité est bloquée au sol dans un angle (ou dans le support "
+                 "prévu), et qu'on charge de disques à l'autre bout. Tu te places à cheval "
+                 "au-dessus, une poignée en V passée sous la barre.",
+         reglage="Commence avec un seul disque de 10 kg : le bras de levier rend l'exercice plus "
+                 "lourd qu'il n'en a l'air. Certaines salles ont la machine dédiée, avec un appui "
+                 "pour la poitrine.",
+         etapes=["Debout à cheval sur la barre, genoux fléchis, buste penché à 45°.",
+                 "Dos plat, poignée en V tenue à deux mains sous la barre.",
+                 "Tire la barre vers le nombril, coudes près du corps.",
+                 "Pause 1 s en haut, omoplates serrées.",
+                 "Redescends en contrôlant, sans que les disques touchent le sol entre les reps."],
+         erreurs=["Arrondir le dos : arrête la série immédiatement.",
+                  "Se redresser à chaque répétition pour lancer la charge.",
+                  "Charger trop de disques et ne plus faire que des demi-répétitions."]),
+
+    dict(id="pullover_haltere", nom="Pull-over à l'haltère", groupe="Dos",
+         machine="Un banc plat et un seul haltère tenu à deux mains. Version libre du pull-over à "
+                 "la poulie : plus d'étirement, et un travail de la cage thoracique que rien "
+                 "d'autre ne donne dans le programme.",
+         reglage="Allonge-toi dans l'axe du banc, tête soutenue. Haltère modéré : c'est un "
+                 "mouvement d'étirement, pas de force. Tiens-le par le disque supérieur, à deux mains.",
+         etapes=["Allongé, pieds au sol, haltère tenu bras tendus au-dessus de la poitrine.",
+                 "Coudes légèrement fléchis, angle figé.",
+                 "Descends l'haltère derrière la tête en arc de cercle, en inspirant à fond.",
+                 "Va jusqu'à l'étirement confortable des dorsaux, pas au-delà.",
+                 "Ramène l'haltère au-dessus de la poitrine en soufflant, sans plier les bras."],
+         erreurs=["Cambrer le bas du dos pour descendre plus loin.",
+                  "Plier les coudes : l'exercice devient un travail de triceps.",
+                  "Charge trop lourde : l'épaule est en position vulnérable, bras au-dessus de la tête."]),
+
     # -------------------------------- EPAULES --------------------------------
     dict(id="developpe_militaire", nom="Développé militaire (barre)", groupe="Épaules",
          machine="Une barre droite prise dans un rack à hauteur de poitrine, debout. Alternative guidée : "
@@ -286,6 +429,80 @@ FICHES = [
          erreurs=["Faire des rotations d'épaules : mouvement strictement vertical.",
                   "Plier les coudes pour aider.",
                   "Pencher la tête en avant."]),
+
+    # --- programme B ---
+    dict(id="presse_epaules", nom="Presse à épaules (machine)", groupe="Épaules",
+         machine="La machine assise où l'on pousse deux poignées vers le haut, dossier vertical "
+                 "dans le dos. Trajectoire guidée : tu peux charger sans risquer de cambrer, ce "
+                 "que le développé militaire debout ne pardonne pas.",
+         reglage="Siège réglé pour que les poignées soient au niveau des oreilles au départ, pas "
+                 "plus haut. Dos entièrement plaqué au dossier.",
+         etapes=["Assis, dos plaqué, pieds au sol, poignées à hauteur d'oreilles.",
+                 "Pousse à la verticale jusqu'à tendre les bras sans bloquer les coudes.",
+                 "Redescends en 2 s jusqu'à ce que les coudes passent sous les épaules.",
+                 "Garde les côtes basses : pas de cambrure malgré le dossier.",
+                 "Souffle en poussant, inspire en descendant."],
+         erreurs=["Descendre trop bas en forçant sur l'épaule.",
+                  "Décoller le dos du dossier en fin de série.",
+                  "Pousser en donnant un coup de jambes."]),
+
+    dict(id="elevations_poulie", nom="Élévations latérales à la poulie", groupe="Épaules",
+         machine="Une poulie basse et une poignée simple, un bras à la fois. Le câble maintient la "
+                 "tension du début à la fin du mouvement, ce que les haltères ne font pas : c'est "
+                 "la version la plus efficace de l'élévation latérale.",
+         reglage="Poulie tout en bas. Place-toi de profil, la machine du côté opposé au bras qui "
+                 "travaille, et attrape la poignée en passant devant toi.",
+         etapes=["Debout de profil, poignée dans la main éloignée de la machine, bras devant les cuisses.",
+                 "Coude très légèrement fléchi, épaule basse.",
+                 "Monte le bras sur le côté jusqu'à l'horizontale, pas plus haut.",
+                 "Pause 1 s en haut, puis redescends en 3 s contre la tension du câble.",
+                 "Fais toutes les répétitions d'un côté, puis change."],
+         erreurs=["Se pencher du côté opposé pour aider.",
+                  "Monter au-dessus de l'horizontale.",
+                  "Charge trop lourde : 5 kg suffisent souvent sur cet exercice."]),
+
+    dict(id="elevations_frontales", nom="Élévations frontales au disque", groupe="Épaules",
+         machine="Un disque de 5 à 15 kg tenu à deux mains (ou un haltère). Travail de l'avant de "
+                 "l'épaule, complément direct du développé.",
+         reglage="Commence avec un disque de 5 kg. Debout, pieds largeur de hanches, disque tenu à "
+                 "deux mains à 3 h et 9 h, bras tendus devant les cuisses.",
+         etapes=["Debout, gainage serré, disque devant les cuisses, bras tendus.",
+                 "Monte le disque devant toi jusqu'à hauteur des yeux, bras tendus.",
+                 "Pas d'élan : le buste reste strictement immobile.",
+                 "Pause 1 s en haut, puis descends en 3 s.",
+                 "Arrête la série dès que tu as besoin de donner un coup de reins."],
+         erreurs=["Se cambrer en arrière pour monter le disque.",
+                  "Monter beaucoup plus haut que les yeux.",
+                  "Plier les coudes pour raccourcir le levier."]),
+
+    dict(id="oiseau_poulie", nom="Oiseau à la poulie (câbles croisés)", groupe="Épaules",
+         machine="La cage à poulies vis-à-vis, poulies réglées à hauteur d'épaules. Tu attrapes la "
+                 "poignée de droite avec la main gauche et inversement : les câbles se croisent "
+                 "devant toi. Tension constante sur l'arrière de l'épaule, impossible à tricher.",
+         reglage="Les deux poulies à hauteur d'épaules, charge légère des deux côtés. Place-toi au "
+                 "milieu, un pied légèrement avancé.",
+         etapes=["Bras croisés devant toi, chaque main tenant la poignée opposée.",
+                 "Bras quasi tendus, coudes à peine fléchis, épaules basses.",
+                 "Ouvre les bras sur les côtés en décrivant un grand arc, jusqu'à l'horizontale.",
+                 "Serre les omoplates 1 s en fin d'ouverture.",
+                 "Reviens en 3 s en retenant la charge, sans laisser les épaules partir en avant."],
+         erreurs=["Plier les coudes : le mouvement devient un tirage.",
+                  "Ouvrir au-delà de la ligne des épaules.",
+                  "Charge trop lourde qui fait basculer le buste en avant."]),
+
+    dict(id="shrugs_barre", nom="Shrugs à la barre", groupe="Épaules",
+         machine="Une barre droite chargée, tenue devant les cuisses. Comparé aux haltères, la "
+                 "barre permet de charger plus lourd, mais l'amplitude est un peu plus courte.",
+         reglage="Barre prise en pronation, mains à largeur d'épaules. Des sangles de tirage "
+                 "aident si les mains lâchent avant les trapèzes.",
+         etapes=["Debout, barre devant les cuisses, bras tendus, épaules relâchées vers le bas.",
+                 "Hausse les épaules droit vers les oreilles, le plus haut possible.",
+                 "Pause 1 s en haut sans plier les bras.",
+                 "Redescends lentement jusqu'à l'étirement complet des trapèzes.",
+                 "Souffle en montant."],
+         erreurs=["Faire des rotations d'épaules : le mouvement est strictement vertical.",
+                  "Plier les coudes pour aider.",
+                  "Pencher la tête en avant sous la charge."]),
 
     # --------------------------------- ABDOS ---------------------------------
     dict(id="dragon_flag", nom="Dragon flag (version négative)", groupe="Abdos",
@@ -519,6 +736,81 @@ GAINAGE = {
     "D": ("planche", "Planche ventrale, bras tendus", "2", "45 s", "30 s"),
 }
 
+# ======================= PROGRAMME B — semaine 2 ==========================
+# Mêmes muscles, mêmes jours, mêmes volumes : uniquement d'autres exercices.
+
+SEANCES_B = [
+    ("Séance A — Pectoraux", "Lundi · 55 à 65 min · puis bloc abdos A et gainage", [
+        ("developpe_couche_halteres", "Développé couché aux haltères", "4", "8 à 10", "2 min",
+         "Exercice principal, chaque bras travaille seul"),
+        ("developpe_decline", "Développé décliné à la barre", "3", "10 à 12", "90 s",
+         "Bas des pectoraux"),
+        ("presse_pectoraux", "Presse à pectoraux (machine)", "3", "12", "90 s",
+         "Charge libre puisque la trajectoire est guidée"),
+        ("ecarte_poulie_basse", "Écarté poulie basse, de bas en haut", "3", "12 à 15", "60 s",
+         "Haut des pectoraux"),
+        ("pompes", "Pompes lestées", "2", "10 à 15", "60 s", "Finisher, jusqu'à 2 reps de la limite"),
+    ]),
+    ("Séance B — Dos", "Mardi · 55 à 65 min · puis bloc abdos B et gainage", [
+        ("tractions_supination", "Tractions prise supination", "4", "8 à 10", "2 min",
+         "Plus faciles que la prise pronation"),
+        ("rowing_machine", "Rowing machine, poitrine appuyée", "4", "10 à 12", "90 s",
+         "Le bas du dos ne travaille pas"),
+        ("rowing_t", "Rowing barre en T", "3", "10 à 12", "90 s", "Dos plat impératif"),
+        ("pullover_haltere", "Pull-over à l'haltère", "3", "12 à 15", "60 s", "Étirement des dorsaux"),
+        ("tirage_horizontal", "Tirage horizontal à la poulie", "3", "12", "60 s",
+         "Identique au programme A : c'est le tirage de référence"),
+        ("extensions_lombaires", "Extensions lombaires (banc 45°)", "2", "15", "45 s",
+         "Sans hyperextension"),
+    ]),
+    ("Séance C — Épaules", "Jeudi · 50 à 60 min · puis bloc abdos C et gainage", [
+        ("presse_epaules", "Presse à épaules (machine)", "4", "10", "2 min",
+         "Trajectoire guidée, pas de cambrure possible"),
+        ("elevations_poulie", "Élévations latérales à la poulie", "4", "12 à 15 par bras", "45 s",
+         "Tension constante, un bras à la fois"),
+        ("elevations_frontales", "Élévations frontales au disque", "3", "12", "60 s",
+         "Avant de l'épaule"),
+        ("oiseau_poulie", "Oiseau à la poulie, câbles croisés", "3", "15", "60 s",
+         "Arrière de l'épaule"),
+        ("face_pull", "Face pull à la poulie", "3", "15", "45 s",
+         "Gardé des deux programmes : c'est l'exercice de santé de l'épaule"),
+        ("shrugs_barre", "Shrugs à la barre", "3", "12 à 15", "60 s", "Plus lourd qu'aux haltères"),
+    ]),
+    ("Séance D — Haut du corps complet", "Vendredi · 60 à 70 min · puis bloc abdos A et gainage", [
+        ("presse_pectoraux", "Presse à pectoraux", "3", "10", "90 s", "Pectoraux"),
+        ("rowing_machine", "Rowing machine", "3", "10", "90 s", "Dos"),
+        ("presse_epaules", "Presse à épaules", "3", "10 à 12", "90 s", "Épaules"),
+        ("pullover_haltere", "Pull-over à l'haltère", "3", "12", "60 s", "Dos"),
+        ("elevations_poulie", "Élévations latérales poulie", "3", "15 par bras", "30 s", "Épaules"),
+        ("ecarte_poulie_basse", "Écarté poulie basse", "3", "15", "60 s", "Pectoraux, finition"),
+    ]),
+]
+
+BLOCS_B = [
+    ("Bloc abdos A — suspension", "8 à 10 min, en fin de séance A et D", [
+        ("releves_jambes", "Relevés de jambes suspendu", "4", "10 à 15", "60 s"),
+        ("ab_wheel", "Roue abdominale", "3", "8 à 12", "60 s"),
+        ("russian_twist", "Russian twist (avec disque)", "3", "20 (10 par côté)", "45 s"),
+    ]),
+    ("Bloc abdos B — flexion lestée", "6 à 9 min, en fin de séance B", [
+        ("crunch_decline", "Crunch décliné lesté", "4", "10 à 12", "60 s"),
+        ("crunch_inverse", "Crunch inversé au sol", "3", "15", "45 s"),
+        ("woodchopper", "Woodchopper à la poulie", "3", "12 par côté", "45 s"),
+    ]),
+    ("Bloc abdos C — force", "8 à 10 min, en fin de séance C", [
+        ("dragon_flag", "Dragon flag (négatif)", "3", "6 à 8", "90 s"),
+        ("v_ups", "V-ups", "3", "12 à 15", "45 s"),
+        ("crunch_poulie", "Crunch à la poulie haute", "3", "15", "45 s"),
+    ]),
+]
+
+GAINAGE_B = {
+    "A": ("hollow", "Hollow body hold", "2", "30 s", "30 s"),
+    "B": ("planche", "Planche ventrale", "2", "45 s", "30 s"),
+    "C": ("planche_laterale", "Planche latérale", "2", "30 s par côté", "30 s"),
+    "D": ("hollow", "Hollow body hold", "2", "30 s", "30 s"),
+}
+
 SEMAINE = [
     ("Lundi", "Séance A — Pectoraux + abdos + gainage", "55 à 65 min"),
     ("Mardi", "Séance B — Dos + abdos + gainage", "55 à 65 min"),
@@ -527,4 +819,14 @@ SEMAINE = [
     ("Vendredi", "Séance D — Haut du corps complet + abdos + gainage", "60 à 70 min"),
     ("Samedi", "Repos complet", "—"),
     ("Dimanche", "Repos complet", "—"),
+]
+
+SEMAINE_B = [(j, s.replace("Séance ", "Séance "), d) for j, s, d in SEMAINE]
+
+# Les deux programmes alternent d'une semaine sur l'autre.
+PROGRAMMES = [
+    dict(cle="A", titre="Programme A", sous="semaines 1, 3, 5…",
+         seances=SEANCES, blocs=BLOCS, gainage=GAINAGE, semaine=SEMAINE),
+    dict(cle="B", titre="Programme B", sous="semaines 2, 4, 6…",
+         seances=SEANCES_B, blocs=BLOCS_B, gainage=GAINAGE_B, semaine=SEMAINE_B),
 ]
