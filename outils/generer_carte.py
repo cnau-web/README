@@ -95,8 +95,8 @@ MATERIEL = {
 }
 MAT_DE = {fid: cle for cle, (_, ids) in MATERIEL.items() for fid in ids}
 # Quelle seance utilise quel bloc abdominal (le bloc A revient en A et en D).
-SEANCE_BLOC = {"A": "A", "B": "B", "C": "C", "D": "A"}
-BLOC_DE_SEANCE = {"A": ["A", "D"], "B": ["B"], "C": ["C"]}
+SEANCE_BLOC = {"A": "A", "B": "B", "C": "C", "D": "D"}
+BLOC_DE_SEANCE = {"A": ["A"], "B": ["B"], "C": ["C"], "D": ["D"]}
 YT = "https://www.youtube.com/results?search_query="
 
 
@@ -429,6 +429,7 @@ button.btn:disabled {{ opacity:.45; cursor:default; }}
 .btn:hover {{ filter:brightness(.97); }}
 .btn:focus-visible {{ outline:2px solid var(--accent); outline-offset:2px; }}
 .note {{ font-size:13.5px; color:var(--muted); margin:0; }}
+.rotation {{ margin:9px 2px 0; max-width:70ch; }}
 footer {{ margin-top:30px; padding-top:16px; border-top:1px solid var(--line);
   color:var(--muted); font-size:14px; }}
 @media (max-width:560px) {{
@@ -462,6 +463,7 @@ html {{ scroll-behavior:smooth; }}
   <p class="vide" id="vide" hidden {A["vide"]}>{esc(UI["vide"][0])}</p>
 
   <div class="onglets" role="tablist" aria-label="Choix du programme">{onglets}</div>
+  <p class="note rotation" {A["rotation"]}>{esc(UI["rotation"][0])}</p>
   {grilles}
 
   <footer>

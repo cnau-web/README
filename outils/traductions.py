@@ -17,17 +17,17 @@ UI = {
         "Épaules, dos, pectoraux, abdominaux. Touche un exercice pour ouvrir sa fiche : schéma du "
         "mouvement, machine à chercher dans la salle, réglages, exécution, erreurs à éviter et lien "
         "vidéo. Le bouton « exercice suivant » enchaîne les fiches dans l'ordre de la séance. Les "
-        "deux programmes alternent d'une semaine sur l'autre : mêmes jours, mêmes muscles, d'autres "
-        "exercices.",
+        "deux programmes se suivent par blocs de 4 à 5 semaines : mêmes jours, mêmes muscles, "
+        "d'autres exercices.",
         "Shoulders, back, chest, abs. Tap an exercise to open its card: movement diagram, which "
         "machine to look for, setup, step-by-step execution, mistakes to avoid and a video link. "
         "The “next exercise” button walks through the session in order. The two programmes "
-        "alternate week by week: same days, same muscles, different exercises.",
+        "run in blocks of 4 to 5 weeks: same days, same muscles, different exercises.",
         "Hombros, espalda, pecho, abdominales. Toca un ejercicio para abrir su ficha: esquema del "
         "movimiento, qué máquina buscar, ajustes, ejecución paso a paso, errores a evitar y un "
         "enlace de vídeo. El botón «siguiente ejercicio» encadena las fichas en el orden de la "
-        "sesión. Los dos programas se alternan cada semana: mismos días, mismos músculos, otros "
-        "ejercicios."),
+        "sesión. Los dos programas se hacen en bloques de 4 a 5 semanas: mismos días, mismos "
+        "músculos, otros ejercicios."),
     "langue": ("Langue", "Language", "Idioma"),
     "filtrer": ("Filtrer", "Filter", "Filtrar"),
     "tous": ("Tous les exercices", "All exercises", "Todos los ejercicios"),
@@ -66,8 +66,20 @@ UI = {
         "cambian con el tiempo, así que elige una demostración reciente y completa en lugar de la "
         "primera miniatura. Los esquemas y las fichas provienen del PDF del programa, redactado en "
         "francés."),
-    "prog_sous_a": ("semaines 1, 3, 5…", "weeks 1, 3, 5…", "semanas 1, 3, 5…"),
-    "prog_sous_b": ("semaines 2, 4, 6…", "weeks 2, 4, 6…", "semanas 2, 4, 6…"),
+    "rotation": (
+        "Suis le programme A pendant 4 à 5 semaines, puis passe au programme B pour 4 à 5 semaines. "
+        "Répéter le même exercice plusieurs semaines de suite est ce qui permet d'augmenter les "
+        "charges ; alterner chaque semaine ne le permet pas.",
+        "Follow programme A for 4 to 5 weeks, then switch to programme B for 4 to 5 weeks. Repeating "
+        "the same exercise week after week is what lets you add weight; alternating every week does "
+        "not.",
+        "Sigue el programa A durante 4 o 5 semanas y pasa luego al programa B otras 4 o 5 semanas. "
+        "Repetir el mismo ejercicio varias semanas seguidas es lo que permite subir las cargas; "
+        "alternar cada semana no lo permite."),
+    "prog_sous_a": ("1er bloc · 4 à 5 semaines", "1st block · 4 to 5 weeks",
+                    "1.er bloque · 4 a 5 semanas"),
+    "prog_sous_b": ("2e bloc · 4 à 5 semaines", "2nd block · 4 to 5 weeks",
+                    "2.º bloque · 4 a 5 semanas"),
     "programme": ("Programme", "Programme", "Programa"),
     "repos_jour": ("repos", "rest", "descanso"),
     "plus_abdos": ("+ abdos", "+ abs", "+ abdominales"),
@@ -113,6 +125,7 @@ BLOCS_NOM = {
     "obliques": ("obliques", "obliques", "oblicuos"),
     "suspension": ("suspension", "hanging", "suspensión"),
     "flexion lestée": ("flexion lestée", "loaded flexion", "flexión con carga"),
+    "mixte": ("mixte", "mixed", "mixto"),
 }
 
 # Suffixe ajouté à la recherche vidéo selon la langue.

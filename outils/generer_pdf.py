@@ -144,11 +144,13 @@ def page_garde():
 Deux programmes alternent d'une semaine sur l'autre. Le cardio du matin (tapis roulant) n'est pas
 repris ici.</p>
 
-<div class="enc" style="margin:0 0 5mm"><b>Programme A et programme B</b>
-Mêmes jours, mêmes muscles, mêmes volumes : seuls les exercices changent. Semaine 1 tu suis le
-programme A, semaine 2 le programme B, puis tu recommences. Les deux se valent — l'alternance
-sert à éviter la lassitude et à varier les angles de travail, pas à « choquer le muscle ». Garde
-le même carnet de suivi : les charges d'un exercice se comparent d'une semaine paire à l'autre.</div>
+<div class="enc" style="margin:0 0 5mm"><b>Programme A et programme B : par blocs de 4 à 5 semaines</b>
+Mêmes jours, mêmes muscles, mêmes volumes : seuls les exercices changent. Tu suis le programme A
+pendant 4 à 5 semaines, puis le programme B pendant 4 à 5 semaines, et ainsi de suite. Ne les
+alterne pas chaque semaine : répéter le même exercice plusieurs séances de suite est précisément
+ce qui permet d'augmenter les charges, et c'est l'augmentation des charges qui fait progresser —
+pas la variété. Le changement de bloc sert à éviter la lassitude et à varier les angles de
+travail.</div>
 
 <h2>La semaine (identique dans les deux programmes)</h2>
 <table><tr><th>Jour</th><th>Séance du soir</th><th>Durée</th></tr>{sem}</table>
@@ -249,10 +251,12 @@ def page_seances(prog):
 <div class="page"><p class="eyebrow">{nom}</p><h2>Les quatre séances</h2>{t}</div>
 <div class="page"><p class="eyebrow">{nom}</p><h2>Les quatre séances (suite)</h2>{t2}</div>
 <div class="page"><p class="eyebrow">{nom}</p><h2>Les blocs abdominaux</h2>
-<p class="sub">À enchaîner en fin de séance, dans l'ordre. Le bloc A revient deux fois par
-semaine : c'est le plus dur des trois, et le seul où la charge augmente au fil des semaines.
-Chaque séance se termine ensuite par 2 à 3 min de gainage, qui protègent le bas du dos
-sollicité par les mouvements dynamiques.</p>{b}{table_gainage(prog["gainage"])}
+<p class="sub">À enchaîner en fin de séance, dans l'ordre. Chaque
+séance a son bloc : deux exercices, trois séries chacun, soit 5 à 6 min. Le volume est
+volontairement contenu — les abdominaux ne répondent pas mieux au volume que les autres muscles,
+et des abdominaux visibles se gagnent dans l'assiette, pas en séries supplémentaires. Chaque
+séance se termine par 2 à 3 min de gainage, qui protègent le bas du dos sollicité par les
+mouvements dynamiques.</p>{b}{table_gainage(prog["gainage"])}
 <div class="enc" style="margin-top:6mm"><b>Comment choisir son niveau</b>
 La bonne version d'un exercice est celle où tu tiens les répétitions demandées sans que
 le bas du dos se creuse. Dès que la position se dégrade, la série est finie : passe à la
