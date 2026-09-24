@@ -12,7 +12,7 @@ import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from contenu import FICHES, IDX, SEMAINE, PROGRAMMES
+from contenu import FICHES, IDX, SEMAINE, PROGRAMMES, resoudre
 from illustrations import ILLUS
 
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -109,7 +109,7 @@ def table_seance(titre, soustitre, lignes):
     rows = ""
     for i, (fid, nom, series, reps, repos, note) in enumerate(lignes, 1):
         rows += (f"<tr><td class='n'>{i}</td><td><b>{esc(nom)}</b><br>"
-                 f"<span class='note'>{esc(note)}</span></td>"
+                 f"<span class='note'>{esc(resoudre(note))}</span></td>"
                  f"<td class='c'>{series}</td><td class='c'>{esc(reps)}</td>"
                  f"<td class='c'>{esc(repos)}</td>"
                  f"<td class='c'>n° {IDX[fid]}</td></tr>")

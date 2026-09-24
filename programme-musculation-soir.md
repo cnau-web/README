@@ -15,16 +15,19 @@ Le tableau ci‑dessous ne concerne que la séance du soir.
 > recherche vidéo. Se régénère avec `python3 outils/generer_carte.py`.
 > Disponible en français, anglais et espagnol (sélecteur en haut de page) ;
 > les traductions sont dans `outils/traductions.py`. Le PDF reste en français.
+>
+> Trois exercices restent documentés sans être programmés, comme variantes : tirage menton
+> (fiche 26), pull-over poulie (fiche 17) et élévations frontales (fiche 32).
 
 ## Organisation de la semaine
 
 | Jour | Séance du soir | Durée |
 |---|---|---|
 | Lundi | Séance A — Pectoraux + abdos + gainage | 50 à 60 min |
-| Mardi | Séance B — Dos + abdos + gainage | 50 à 60 min |
+| Mardi | Séance B — Dos + abdos + gainage | 45 à 55 min |
 | Mercredi | Repos (cardio du matin uniquement) | — |
 | Jeudi | Séance C — Épaules + abdos + gainage | 45 à 55 min |
-| Vendredi | Séance D — Haut du corps complet + abdos + gainage | 50 à 60 min |
+| Vendredi | Séance D — Haut du corps complet + abdos + gainage | 45 à 55 min |
 | Samedi | Repos complet | — |
 | Dimanche | Repos complet | — |
 
@@ -52,12 +55,11 @@ montent sur chaque exercice, puis tu passes au programme B.
 
 | # | Exercice | Séries | Répétitions | Repos | Notes |
 |---|---|---|---|---|---|
-| 1 | Tractions (ou tirage vertical, fiche 8) | 4 | 8 à 10 | 2 min | Assistées tant que 8 reps ne passent pas |
+| 1 | Tractions | 4 | 8 à 10 | 2 min | Assistées tant que 8 reps ne passent pas · ou tirage vertical (fiche 13) |
 | 2 | Rowing barre, buste penché | 4 | 8 à 10 | 2 min | Dos plat impératif |
-| 3 | Tirage horizontal à la poulie | 3 | 10 à 12 | 90 s | Serrer les omoplates |
+| 3 | Tirage horizontal à la poulie | 3 | 10 à 12 | 90 s | Serrer les omoplates · variante : pull-over poulie (fiche 17) |
 | 4 | Rowing haltère à un bras | 3 | 10 à 12 par bras | 60 s | Descente contrôlée |
-| 5 | Pull-over poulie haute, bras tendus | 3 | 12 à 15 | 60 s | Isolation du grand dorsal |
-| 6 | Extensions lombaires (banc 45°) | 2 | 15 | 45 s | Sans hyperextension |
+| 5 | Extensions lombaires (banc 45°) | 2 | 15 | 45 s | Sans hyperextension |
 | — | *Puis bloc abdos B, puis gainage : Planche latérale 2 × 30 s par côté* | | | | |
 
 ### Séance C — Épaules — jeudi
@@ -65,7 +67,7 @@ montent sur chaque exercice, puis tu passes au programme B.
 | # | Exercice | Séries | Répétitions | Repos | Notes |
 |---|---|---|---|---|---|
 | 1 | Développé militaire | 4 | 8 à 10 | 2 min | Abdos serrés, pas de cambrure |
-| 2 | Élévations latérales | 3 | 12 à 15 | 60 s | Léger, sans élan · variante : tirage menton (fiche 17) |
+| 2 | Élévations latérales | 3 | 12 à 15 | 60 s | Léger, sans élan · variante : tirage menton (fiche 26) |
 | 3 | Oiseau (arrière d'épaule) | 3 | 15 | 60 s | Très léger |
 | 4 | Face pull à la poulie | 3 | 15 | 45 s | Santé de l'épaule : à ne pas sauter |
 | 5 | Shrugs aux haltères | 2 | 12 à 15 | 60 s | Pause 1 s en haut |
@@ -78,8 +80,7 @@ montent sur chaque exercice, puis tu passes au programme B.
 | 1 | Développé incliné haltères | 3 | 10 | 90 s | Pectoraux |
 | 2 | Tirage vertical prise neutre | 3 | 10 | 90 s | Dos |
 | 3 | Développé haltères assis | 3 | 10 à 12 | 90 s | Épaules |
-| 4 | Rowing poulie basse | 3 | 12 | 60 s | Dos |
-| 5 | Pec deck | 3 | 15 | 60 s | Pectoraux, finition |
+| 4 | Pec deck | 3 | 15 | 60 s | Pectoraux, finition |
 | — | *Puis bloc abdos D, puis gainage : Planche ventrale, bras tendus 2 × 45 s* | | | | |
 
 ### Blocs abdominaux
@@ -151,8 +152,7 @@ les 4 à 5 semaines du programme A, puis tu reviens au A.
 | 2 | Rowing machine, poitrine appuyée | 4 | 10 à 12 | 90 s | Le bas du dos ne travaille pas |
 | 3 | Rowing barre en T | 3 | 10 à 12 | 90 s | Dos plat impératif |
 | 4 | Pull-over à l'haltère | 3 | 12 à 15 | 60 s | Étirement des dorsaux |
-| 5 | Tirage horizontal à la poulie | 3 | 12 | 60 s | Identique au programme A : c'est le tirage de référence |
-| 6 | Extensions lombaires (banc 45°) | 2 | 15 | 45 s | Sans hyperextension |
+| 5 | Extensions lombaires (banc 45°) | 2 | 15 | 45 s | Sans hyperextension |
 | — | *Puis bloc abdos B, puis gainage : Planche ventrale 2 × 45 s* | | | | |
 
 ### Séance C — Épaules — jeudi
@@ -160,7 +160,7 @@ les 4 à 5 semaines du programme A, puis tu reviens au A.
 | # | Exercice | Séries | Répétitions | Repos | Notes |
 |---|---|---|---|---|---|
 | 1 | Presse à épaules (machine) | 4 | 10 | 2 min | Trajectoire guidée, pas de cambrure possible |
-| 2 | Élévations latérales à la poulie | 3 | 12 à 15 par bras | 45 s | Tension constante · variante : élévations frontales (fiche 34) |
+| 2 | Élévations latérales à la poulie | 3 | 12 à 15 par bras | 45 s | Tension constante · variante : élévations frontales (fiche 32) |
 | 3 | Oiseau à la poulie, câbles croisés | 3 | 15 | 60 s | Arrière de l'épaule |
 | 4 | Face pull à la poulie | 3 | 15 | 45 s | Gardé des deux programmes : c'est l'exercice de santé de l'épaule |
 | 5 | Shrugs à la barre | 2 | 12 à 15 | 60 s | Plus lourd qu'aux haltères |
@@ -173,8 +173,7 @@ les 4 à 5 semaines du programme A, puis tu reviens au A.
 | 1 | Presse à pectoraux | 3 | 10 | 90 s | Pectoraux |
 | 2 | Rowing machine | 3 | 10 | 90 s | Dos |
 | 3 | Presse à épaules | 3 | 10 à 12 | 90 s | Épaules |
-| 4 | Pull-over à l'haltère | 3 | 12 | 60 s | Dos |
-| 5 | Écarté poulie basse | 3 | 15 | 60 s | Pectoraux, finition |
+| 4 | Écarté poulie basse | 3 | 15 | 60 s | Pectoraux, finition |
 | — | *Puis bloc abdos D, puis gainage : Hollow body hold 2 × 30 s* | | | | |
 
 ### Blocs abdominaux
@@ -235,7 +234,7 @@ Deux exercices, trois séries chacun : 5 à 6 min en fin de séance.
 - **Rotation des programmes** : 4 à 5 semaines de programme A, puis 4 à 5 semaines de
   programme B. Ne pas alterner chaque semaine : répéter le même exercice plusieurs
   séances de suite est ce qui permet d'augmenter les charges.
-- **Volume** : environ 21 séries hebdomadaires pour les pectoraux, 25 pour le dos,
+- **Volume** : environ 21 séries hebdomadaires pour les pectoraux, 19 pour le dos,
   18 pour les épaules, 24 d'abdominaux et 8 de gainage. Si les charges stagnent deux
   à trois semaines de suite avec un sommeil correct, c'est le signe qu'il y en a trop :
   retirer une série sur les exercices d'assistance avant de toucher aux exercices

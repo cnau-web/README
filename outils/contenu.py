@@ -674,36 +674,42 @@ FICHES = [
 
 IDX = {f["id"]: i + 1 for i, f in enumerate(FICHES)}
 
+
+def resoudre(txt):
+    """Remplace {fiche:identifiant} par le numéro de fiche courant."""
+    import re
+    return re.sub(r"\{fiche:([a-z_]+)\}", lambda m: str(IDX[m.group(1)]), txt)
+
 # Seances : (titre, sous-titre, [(id ou None, nom affiche, series, reps, repos, note)])
 SEANCES = [
     ("Séance A — Pectoraux", "Lundi · 50 à 60 min · puis bloc abdos A et gainage", [
         ("developpe_couche", "Développé couché à la barre", "4", "8 à 10", "2 min", "Exercice principal, le plus lourd"),
         ("developpe_incline", "Développé incliné haltères (30°)", "3", "10 à 12", "90 s", "Haut des pectoraux"),
-        ("ecarte_poulie", "Écarté à la poulie vis-à-vis", "3", "12 à 15", "60 s", "Ou pec deck (fiche 4) si les poulies sont prises"),
+        ("ecarte_poulie", "Écarté à la poulie vis-à-vis", "3", "12 à 15", "60 s", "Ou pec deck (fiche {fiche:pec_deck}) si les poulies sont prises"),
         ("dips", "Dips assistés ou pompes", "3", "10 à 12", "90 s", "Buste penché en avant"),
         ("ecarte_incline", "Écarté incliné haltères", "2", "15", "60 s", "Finition, charge légère"),
     ]),
-    ("Séance B — Dos", "Mardi · 50 à 60 min · puis bloc abdos B et gainage", [
-        ("tractions", "Tractions (ou tirage vertical, fiche 8)", "4", "8 à 10", "2 min", "Assistées tant que 8 reps ne passent pas"),
+    ("Séance B — Dos", "Mardi · 45 à 55 min · puis bloc abdos B et gainage", [
+        ("tractions", "Tractions", "4", "8 à 10", "2 min",
+         "Assistées tant que 8 reps ne passent pas · ou tirage vertical (fiche {fiche:tirage_vertical})"),
         ("rowing_barre", "Rowing barre, buste penché", "4", "8 à 10", "2 min", "Dos plat impératif"),
-        ("tirage_horizontal", "Tirage horizontal à la poulie", "3", "10 à 12", "90 s", "Serrer les omoplates"),
+        ("tirage_horizontal", "Tirage horizontal à la poulie", "3", "10 à 12", "90 s",
+         "Serrer les omoplates · variante : pull-over poulie (fiche {fiche:pullover_poulie})"),
         ("rowing_haltere", "Rowing haltère à un bras", "3", "10 à 12 par bras", "60 s", "Descente contrôlée"),
-        ("pullover_poulie", "Pull-over poulie haute, bras tendus", "3", "12 à 15", "60 s", "Isolation du grand dorsal"),
         ("extensions_lombaires", "Extensions lombaires (banc 45°)", "2", "15", "45 s", "Sans hyperextension"),
     ]),
     ("Séance C — Épaules", "Jeudi · 45 à 55 min · puis bloc abdos C et gainage", [
         ("developpe_militaire", "Développé militaire", "4", "8 à 10", "2 min", "Abdos serrés, pas de cambrure"),
         ("elevations_laterales", "Élévations latérales", "3", "12 à 15", "60 s",
-         "Léger, sans élan · variante : tirage menton (fiche 17)"),
+         "Léger, sans élan · variante : tirage menton (fiche {fiche:tirage_menton})"),
         ("oiseau", "Oiseau (arrière d'épaule)", "3", "15", "60 s", "Très léger"),
         ("face_pull", "Face pull à la poulie", "3", "15", "45 s", "Santé de l'épaule : à ne pas sauter"),
         ("shrugs", "Shrugs aux haltères", "2", "12 à 15", "60 s", "Pause 1 s en haut"),
     ]),
-    ("Séance D — Haut du corps complet", "Vendredi · 50 à 60 min · puis bloc abdos D et gainage", [
+    ("Séance D — Haut du corps complet", "Vendredi · 45 à 55 min · puis bloc abdos D et gainage", [
         ("developpe_incline", "Développé incliné haltères", "3", "10", "90 s", "Pectoraux"),
         ("tirage_vertical", "Tirage vertical prise neutre", "3", "10", "90 s", "Dos"),
         ("developpe_haltere_assis", "Développé haltères assis", "3", "10 à 12", "90 s", "Épaules"),
-        ("tirage_horizontal", "Rowing poulie basse", "3", "12", "60 s", "Dos"),
         ("pec_deck", "Pec deck", "3", "15", "60 s", "Pectoraux, finition"),
     ]),
 ]
@@ -751,15 +757,13 @@ SEANCES_B = [
          "Haut des pectoraux"),
         ("pompes", "Pompes lestées", "2", "10 à 15", "60 s", "Finisher, jusqu'à 2 reps de la limite"),
     ]),
-    ("Séance B — Dos", "Mardi · 50 à 60 min · puis bloc abdos B et gainage", [
+    ("Séance B — Dos", "Mardi · 45 à 55 min · puis bloc abdos B et gainage", [
         ("tractions_supination", "Tractions prise supination", "4", "8 à 10", "2 min",
          "Plus faciles que la prise pronation"),
         ("rowing_machine", "Rowing machine, poitrine appuyée", "4", "10 à 12", "90 s",
          "Le bas du dos ne travaille pas"),
         ("rowing_t", "Rowing barre en T", "3", "10 à 12", "90 s", "Dos plat impératif"),
         ("pullover_haltere", "Pull-over à l'haltère", "3", "12 à 15", "60 s", "Étirement des dorsaux"),
-        ("tirage_horizontal", "Tirage horizontal à la poulie", "3", "12", "60 s",
-         "Identique au programme A : c'est le tirage de référence"),
         ("extensions_lombaires", "Extensions lombaires (banc 45°)", "2", "15", "45 s",
          "Sans hyperextension"),
     ]),
@@ -767,18 +771,17 @@ SEANCES_B = [
         ("presse_epaules", "Presse à épaules (machine)", "4", "10", "2 min",
          "Trajectoire guidée, pas de cambrure possible"),
         ("elevations_poulie", "Élévations latérales à la poulie", "3", "12 à 15 par bras", "45 s",
-         "Tension constante · variante : élévations frontales (fiche 34)"),
+         "Tension constante · variante : élévations frontales (fiche {fiche:elevations_frontales})"),
         ("oiseau_poulie", "Oiseau à la poulie, câbles croisés", "3", "15", "60 s",
          "Arrière de l'épaule"),
         ("face_pull", "Face pull à la poulie", "3", "15", "45 s",
          "Gardé des deux programmes : c'est l'exercice de santé de l'épaule"),
         ("shrugs_barre", "Shrugs à la barre", "2", "12 à 15", "60 s", "Plus lourd qu'aux haltères"),
     ]),
-    ("Séance D — Haut du corps complet", "Vendredi · 50 à 60 min · puis bloc abdos D et gainage", [
+    ("Séance D — Haut du corps complet", "Vendredi · 45 à 55 min · puis bloc abdos D et gainage", [
         ("presse_pectoraux", "Presse à pectoraux", "3", "10", "90 s", "Pectoraux"),
         ("rowing_machine", "Rowing machine", "3", "10", "90 s", "Dos"),
         ("presse_epaules", "Presse à épaules", "3", "10 à 12", "90 s", "Épaules"),
-        ("pullover_haltere", "Pull-over à l'haltère", "3", "12", "60 s", "Dos"),
         ("ecarte_poulie_basse", "Écarté poulie basse", "3", "15", "60 s", "Pectoraux, finition"),
     ]),
 ]
@@ -811,10 +814,10 @@ GAINAGE_B = {
 
 SEMAINE = [
     ("Lundi", "Séance A — Pectoraux + abdos + gainage", "50 à 60 min"),
-    ("Mardi", "Séance B — Dos + abdos + gainage", "50 à 60 min"),
+    ("Mardi", "Séance B — Dos + abdos + gainage", "45 à 55 min"),
     ("Mercredi", "Repos (cardio du matin uniquement)", "—"),
     ("Jeudi", "Séance C — Épaules + abdos + gainage", "45 à 55 min"),
-    ("Vendredi", "Séance D — Haut du corps complet + abdos + gainage", "50 à 60 min"),
+    ("Vendredi", "Séance D — Haut du corps complet + abdos + gainage", "45 à 55 min"),
     ("Samedi", "Repos complet", "—"),
     ("Dimanche", "Repos complet", "—"),
 ]
