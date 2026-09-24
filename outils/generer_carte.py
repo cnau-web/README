@@ -69,6 +69,29 @@ VIDEO = {
 }
 
 CLE_GROUPE = {"Pectoraux": "pect", "Dos": "dos", "Épaules": "epaules", "Abdos": "abdos"}
+
+# Materiel principal de chaque exercice, pour le menu de filtrage.
+MATERIEL = {
+    "barre": ("Barre", [
+        "developpe_couche", "developpe_decline", "rowing_barre", "rowing_t",
+        "developpe_militaire", "shrugs_barre"]),
+    "halteres": ("Haltères et disques", [
+        "developpe_incline", "ecarte_incline", "developpe_couche_halteres",
+        "rowing_haltere", "pullover_haltere", "developpe_haltere_assis",
+        "elevations_laterales", "oiseau", "shrugs", "elevations_frontales",
+        "crunch_decline", "russian_twist"]),
+    "poulie": ("Poulie et câbles", [
+        "ecarte_poulie", "ecarte_poulie_basse", "tirage_vertical", "tirage_horizontal",
+        "pullover_poulie", "tirage_menton", "face_pull", "elevations_poulie",
+        "oiseau_poulie", "crunch_poulie", "woodchopper"]),
+    "machine": ("Machine guidée", [
+        "pec_deck", "presse_pectoraux", "rowing_machine", "presse_epaules"]),
+    "corps": ("Poids du corps", [
+        "dips", "pompes", "tractions", "tractions_supination", "extensions_lombaires",
+        "dragon_flag", "v_ups", "releves_jambes", "crunch_inverse", "ab_wheel",
+        "planche", "planche_laterale", "hollow"]),
+}
+MAT_DE = {fid: cle for cle, (_, ids) in MATERIEL.items() for fid in ids}
 # Quelle seance utilise quel bloc abdominal (le bloc A revient en A et en D).
 SEANCE_BLOC = {"A": "A", "B": "B", "C": "C", "D": "A"}
 BLOC_DE_SEANCE = {"A": ["A", "D"], "B": ["B"], "C": ["C"]}
@@ -119,7 +142,8 @@ ILLU = {f["id"]: f.get("illu", f["id"]) for f in FICHES}
 
 def ligne(fid, nom, dose, repos, d):
     ex = d[fid]
-    return f"""<li class="row-li"><button class="row" type="button" data-id="{fid}" data-g="{ex['g']}"
+    return f"""<li class="row-li"><button class="row" type="button" data-id="{fid}"
+      data-g="{ex['g']}" data-m="{MAT_DE[fid]}"
       aria-haspopup="dialog" data-nom="{esc(nom.lower())}">
   <span class="vign">{ILLUS[ILLU[fid]]().svg()}</span>
   <span class="ligne-txt"><span class="ligne-nom">{esc(nom)}</span>
@@ -179,6 +203,15 @@ def main():
             f'<span class="jour-val">{esc(lettre)}</span>'
             f'<span class="jour-quoi">{esc(groupe)}</span></a>')
     semaine = "".join(jours)
+    options = '<option value="">Tous les exercices</option><optgroup label="Groupe musculaire">'
+    options += "".join(f'<option value="g:{c}">{esc(n)}</option>'
+                       for n, c in (("Pectoraux", "pect"), ("Dos", "dos"),
+                                    ("Épaules", "epaules"), ("Abdominaux et gainage", "abdos")))
+    options += '</optgroup><optgroup label="Matériel">'
+    options += "".join(f'<option value="m:{cle}">{esc(nom)}</option>'
+                       for cle, (nom, _) in MATERIEL.items())
+    options += "</optgroup>"
+
     grilles, onglets = "", ""
     for i, prog in enumerate(PROGRAMMES):
         cartes = "".join(carte_seance(t, st, l, d, prog) for t, st, l in prog["seances"])
@@ -260,11 +293,12 @@ a.jour:focus-visible {{ outline:2px solid var(--accent); outline-offset:2px; }}
 .onglet[aria-selected="true"] span {{ color:var(--surface); opacity:.75; }}
 .onglet:focus-visible {{ outline:2px solid var(--accent); outline-offset:2px; }}
 .filtre {{ display:flex; align-items:center; gap:10px; margin:14px 0 6px; }}
-.filtre input {{ flex:1; min-width:0; font:inherit; color:var(--ink);
+.filtre label {{ font-size:12.5px; font-weight:600; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--muted); }}
+.filtre select {{ flex:1; min-width:0; font:inherit; font-weight:600; color:var(--ink);
   background:var(--surface); border:1px solid var(--line); border-radius:9px;
-  padding:11px 13px; }}
-.filtre input::placeholder {{ color:var(--muted); }}
-.filtre input:focus-visible {{ outline:2px solid var(--accent); outline-offset:1px; }}
+  padding:11px 13px; cursor:pointer; }}
+.filtre select:focus-visible {{ outline:2px solid var(--accent); outline-offset:1px; }}
 .vide {{ color:var(--muted); padding:10px 2px; }}
 
 .grille {{ display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(290px,1fr));
@@ -392,8 +426,8 @@ html {{ scroll-behavior:smooth; }}
   </header>
 
   <div class="filtre">
-    <label for="q" class="sr-only" style="position:absolute;left:-9999px">Filtrer les exercices</label>
-    <input id="q" type="search" placeholder="Filtrer : haltère, poulie, dos…" autocomplete="off">
+    <label for="q">Filtrer</label>
+    <select id="q">{options}</select>
   </div>
   <p class="vide" id="vide" hidden>Aucun exercice ne correspond.</p>
 
@@ -545,16 +579,15 @@ html {{ scroll-behavior:smooth; }}
   }});
 
   function filtrer() {{
-    var t = champ.value.trim().toLowerCase(), n = 0;
+    var v = champ.value, cle = v.slice(2), par = v.slice(0, 1), n = 0;
     document.querySelectorAll('.row').forEach(function (r) {{
-      var ex = D[r.dataset.id];
-      var foin = r.dataset.nom + ' ' + ex.groupe.toLowerCase() + ' ' + ex.machine.toLowerCase();
-      var ok = !t || foin.indexOf(t) !== -1;
+      var ok = !v || (par === 'g' ? r.dataset.g === cle : r.dataset.m === cle);
       r.parentElement.hidden = !ok; if (ok) n++;
     }});
     document.querySelectorAll('.sous-tete').forEach(function (st) {{
       var reste = false;
-      for (var n = st.nextElementSibling; n; n = n.nextElementSibling) {{
+      for (var n = st.nextElementSibling;
+           n && !n.classList.contains('sous-tete'); n = n.nextElementSibling) {{
         if (!n.hidden) {{ reste = true; break; }}
       }}
       st.hidden = !reste;
@@ -564,7 +597,7 @@ html {{ scroll-behavior:smooth; }}
     }});
     el('vide').hidden = n > 0;
   }}
-  champ.addEventListener('input', filtrer);
+  champ.addEventListener('change', filtrer);
 }})();
 </script>
 """

@@ -70,11 +70,12 @@ a.jour:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 .onglet[aria-selected="true"] span { color:var(--surface); opacity:.75; }
 .onglet:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 .filtre { display:flex; align-items:center; gap:10px; margin:14px 0 6px; }
-.filtre input { flex:1; min-width:0; font:inherit; color:var(--ink);
+.filtre label { font-size:12.5px; font-weight:600; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--muted); }
+.filtre select { flex:1; min-width:0; font:inherit; font-weight:600; color:var(--ink);
   background:var(--surface); border:1px solid var(--line); border-radius:9px;
-  padding:11px 13px; }
-.filtre input::placeholder { color:var(--muted); }
-.filtre input:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+  padding:11px 13px; cursor:pointer; }
+.filtre select:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
 .vide { color:var(--muted); padding:10px 2px; }
 
 .grille { display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(290px,1fr));
@@ -202,8 +203,8 @@ html { scroll-behavior:smooth; }
   </header>
 
   <div class="filtre">
-    <label for="q" class="sr-only" style="position:absolute;left:-9999px">Filtrer les exercices</label>
-    <input id="q" type="search" placeholder="Filtrer : haltère, poulie, dos…" autocomplete="off">
+    <label for="q">Filtrer</label>
+    <select id="q"><option value="">Tous les exercices</option><optgroup label="Groupe musculaire"><option value="g:pect">Pectoraux</option><option value="g:dos">Dos</option><option value="g:epaules">Épaules</option><option value="g:abdos">Abdominaux et gainage</option></optgroup><optgroup label="Matériel"><option value="m:barre">Barre</option><option value="m:halteres">Haltères et disques</option><option value="m:poulie">Poulie et câbles</option><option value="m:machine">Machine guidée</option><option value="m:corps">Poids du corps</option></optgroup></select>
   </div>
   <p class="vide" id="vide" hidden>Aucun exercice ne correspond.</p>
 
@@ -215,7 +216,8 @@ html { scroll-behavior:smooth; }
     <div><h2>Pectoraux + abdos</h2>
       <p class="carte-sous">Lundi · 55 à 65 min</p></div>
   </header>
-  <ol class="rows"><li class="row-li"><button class="row" type="button" data-id="developpe_couche" data-g="pect"
+  <ol class="rows"><li class="row-li"><button class="row" type="button" data-id="developpe_couche"
+      data-g="pect" data-m="barre"
       aria-haspopup="dialog" data-nom="développé couché à la barre">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="26.0" x2="330.0" y2="26.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <line x1="92.0" y1="74.0" x2="240.0" y2="74.0" stroke="#8b97a8" stroke-width="11" stroke-linecap="butt" opacity="1.0"/>
@@ -242,7 +244,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Développé couché à la barre</span>
     <span class="ligne-dose">4 × 8 à 10<span class="sep">·</span>repos 2 min</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="developpe_incline" data-g="pect"
+</button></li><li class="row-li"><button class="row" type="button" data-id="developpe_incline"
+      data-g="pect" data-m="halteres"
       aria-haspopup="dialog" data-nom="développé incliné haltères (30°)">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="24.0" x2="330.0" y2="24.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <line x1="128.0" y1="106.0" x2="198.0" y2="68.0" stroke="#8b97a8" stroke-width="12" stroke-linecap="butt" opacity="1.0"/>
@@ -272,7 +275,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Développé incliné haltères (30°)</span>
     <span class="ligne-dose">3 × 10 à 12<span class="sep">·</span>repos 90 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="ecarte_poulie" data-g="pect"
+</button></li><li class="row-li"><button class="row" type="button" data-id="ecarte_poulie"
+      data-g="pect" data-m="poulie"
       aria-haspopup="dialog" data-nom="écarté à la poulie vis-à-vis">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="24.0" x2="330.0" y2="24.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <line x1="26.0" y1="24.0" x2="26.0" y2="210.0" stroke="#8b97a8" stroke-width="6" stroke-linecap="round" opacity="1.0"/>
@@ -328,7 +332,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Écarté à la poulie vis-à-vis</span>
     <span class="ligne-dose">3 × 12 à 15<span class="sep">·</span>repos 60 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="dips" data-g="pect"
+</button></li><li class="row-li"><button class="row" type="button" data-id="dips"
+      data-g="pect" data-m="corps"
       aria-haspopup="dialog" data-nom="dips assistés ou pompes">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="20.0" x2="330.0" y2="20.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <line x1="126.0" y1="120.0" x2="200.0" y2="120.0" stroke="#8b97a8" stroke-width="7" stroke-linecap="round" opacity="1.0"/>
@@ -351,7 +356,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Dips assistés ou pompes</span>
     <span class="ligne-dose">3 × 10 à 12<span class="sep">·</span>repos 90 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="ecarte_incline" data-g="pect"
+</button></li><li class="row-li"><button class="row" type="button" data-id="ecarte_incline"
+      data-g="pect" data-m="halteres"
       aria-haspopup="dialog" data-nom="écarté incliné haltères">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="22.0" x2="330.0" y2="22.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <rect x="152.0" y="46.0" width="36.0" height="112.0" rx="8" fill="#e2e7ee" opacity="1.0"/>
@@ -393,7 +399,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Écarté incliné haltères</span>
     <span class="ligne-dose">2 × 15<span class="sep">·</span>repos 60 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="sous-tete"><span>Abdominaux</span><span class="sous-tete-note">force · bloc A</span></li><li class="row-li"><button class="row" type="button" data-id="dragon_flag" data-g="abdos"
+</button></li><li class="sous-tete"><span>Abdominaux</span><span class="sous-tete-note">force · bloc A</span></li><li class="row-li"><button class="row" type="button" data-id="dragon_flag"
+      data-g="abdos" data-m="corps"
       aria-haspopup="dialog" data-nom="dragon flag (négatif)">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="26.0" x2="330.0" y2="26.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <line x1="92.0" y1="74.0" x2="248.0" y2="74.0" stroke="#8b97a8" stroke-width="11" stroke-linecap="butt" opacity="1.0"/>
@@ -419,7 +426,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Dragon flag (négatif)</span>
     <span class="ligne-dose">3 × 6 à 8<span class="sep">·</span>repos 90 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="crunch_decline" data-g="abdos"
+</button></li><li class="row-li"><button class="row" type="button" data-id="crunch_decline"
+      data-g="abdos" data-m="halteres"
       aria-haspopup="dialog" data-nom="crunch décliné lesté">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="24.0" x2="330.0" y2="24.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <line x1="104.0" y1="62.0" x2="246.0" y2="112.0" stroke="#8b97a8" stroke-width="12" stroke-linecap="butt" opacity="1.0"/>
@@ -448,7 +456,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Crunch décliné lesté</span>
     <span class="ligne-dose">4 × 10 à 12<span class="sep">·</span>repos 60 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="v_ups" data-g="abdos"
+</button></li><li class="row-li"><button class="row" type="button" data-id="v_ups"
+      data-g="abdos" data-m="corps"
       aria-haspopup="dialog" data-nom="v-ups">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="34.0" x2="330.0" y2="34.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <rect x="40.0" y="34.0" width="262.0" height="8.0" rx="4" fill="#e2e7ee" opacity="1.0"/>
@@ -473,7 +482,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">V-ups</span>
     <span class="ligne-dose">3 × 12 à 15<span class="sep">·</span>repos 45 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="sous-tete"><span>Gainage</span><span class="sous-tete-note">2 à 3 min · pour finir</span></li><li class="row-li"><button class="row" type="button" data-id="planche" data-g="abdos"
+</button></li><li class="sous-tete"><span>Gainage</span><span class="sous-tete-note">2 à 3 min · pour finir</span></li><li class="row-li"><button class="row" type="button" data-id="planche"
+      data-g="abdos" data-m="corps"
       aria-haspopup="dialog" data-nom="planche ventrale">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="40.0" x2="330.0" y2="40.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <rect x="60.0" y="40.0" width="220.0" height="8.0" rx="4" fill="#e2e7ee" opacity="1.0"/>
@@ -495,7 +505,8 @@ html { scroll-behavior:smooth; }
     <div><h2>Dos + abdos</h2>
       <p class="carte-sous">Mardi · 55 à 65 min</p></div>
   </header>
-  <ol class="rows"><li class="row-li"><button class="row" type="button" data-id="tractions" data-g="dos"
+  <ol class="rows"><li class="row-li"><button class="row" type="button" data-id="tractions"
+      data-g="dos" data-m="corps"
       aria-haspopup="dialog" data-nom="tractions (ou tirage vertical, fiche 8)">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="18.0" x2="330.0" y2="18.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <line x1="70.0" y1="214.0" x2="270.0" y2="214.0" stroke="#8b97a8" stroke-width="7" stroke-linecap="round" opacity="1.0"/>
@@ -526,7 +537,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Tractions (ou tirage vertical, fiche 8)</span>
     <span class="ligne-dose">4 × 8 à 10<span class="sep">·</span>repos 2 min</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="rowing_barre" data-g="dos"
+</button></li><li class="row-li"><button class="row" type="button" data-id="rowing_barre"
+      data-g="dos" data-m="barre"
       aria-haspopup="dialog" data-nom="rowing barre, buste penché">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="30.0" x2="330.0" y2="30.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <line x1="170.0" y1="90.0" x2="203.8" y2="102.3" stroke="#b6bec9" stroke-width="7" stroke-linecap="round" opacity="0.45"/>
@@ -550,7 +562,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Rowing barre, buste penché</span>
     <span class="ligne-dose">4 × 8 à 10<span class="sep">·</span>repos 2 min</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="tirage_horizontal" data-g="dos"
+</button></li><li class="row-li"><button class="row" type="button" data-id="tirage_horizontal"
+      data-g="dos" data-m="poulie"
       aria-haspopup="dialog" data-nom="tirage horizontal à la poulie">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="22.0" x2="330.0" y2="22.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <line x1="52.0" y1="22.0" x2="52.0" y2="110.0" stroke="#8b97a8" stroke-width="6" stroke-linecap="round" opacity="1.0"/>
@@ -586,7 +599,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Tirage horizontal à la poulie</span>
     <span class="ligne-dose">3 × 10 à 12<span class="sep">·</span>repos 90 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="rowing_haltere" data-g="dos"
+</button></li><li class="row-li"><button class="row" type="button" data-id="rowing_haltere"
+      data-g="dos" data-m="halteres"
       aria-haspopup="dialog" data-nom="rowing haltère à un bras">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="26.0" x2="330.0" y2="26.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <line x1="78.0" y1="72.0" x2="162.0" y2="72.0" stroke="#8b97a8" stroke-width="11" stroke-linecap="butt" opacity="1.0"/>
@@ -617,7 +631,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Rowing haltère à un bras</span>
     <span class="ligne-dose">3 × 10 à 12 par bras<span class="sep">·</span>repos 60 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="pullover_poulie" data-g="dos"
+</button></li><li class="row-li"><button class="row" type="button" data-id="pullover_poulie"
+      data-g="dos" data-m="poulie"
       aria-haspopup="dialog" data-nom="pull-over poulie haute, bras tendus">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="24.0" x2="330.0" y2="24.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <line x1="62.0" y1="24.0" x2="62.0" y2="212.0" stroke="#8b97a8" stroke-width="6" stroke-linecap="round" opacity="1.0"/>
@@ -652,7 +667,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Pull-over poulie haute, bras tendus</span>
     <span class="ligne-dose">3 × 12 à 15<span class="sep">·</span>repos 60 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="extensions_lombaires" data-g="dos"
+</button></li><li class="row-li"><button class="row" type="button" data-id="extensions_lombaires"
+      data-g="dos" data-m="corps"
       aria-haspopup="dialog" data-nom="extensions lombaires (banc 45°)">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="22.0" x2="330.0" y2="22.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <line x1="162.0" y1="116.0" x2="194.0" y2="84.0" stroke="#8b97a8" stroke-width="13" stroke-linecap="butt" opacity="1.0"/>
@@ -676,7 +692,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Extensions lombaires (banc 45°)</span>
     <span class="ligne-dose">2 × 15<span class="sep">·</span>repos 45 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="sous-tete"><span>Abdominaux</span><span class="sous-tete-note">grand droit · bloc B</span></li><li class="row-li"><button class="row" type="button" data-id="releves_jambes" data-g="abdos"
+</button></li><li class="sous-tete"><span>Abdominaux</span><span class="sous-tete-note">grand droit · bloc B</span></li><li class="row-li"><button class="row" type="button" data-id="releves_jambes"
+      data-g="abdos" data-m="corps"
       aria-haspopup="dialog" data-nom="relevés de jambes suspendu">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="18.0" x2="330.0" y2="18.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <line x1="100.0" y1="212.0" x2="240.0" y2="212.0" stroke="#8b97a8" stroke-width="7" stroke-linecap="round" opacity="1.0"/>
@@ -702,7 +719,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Relevés de jambes suspendu</span>
     <span class="ligne-dose">4 × 10 à 15<span class="sep">·</span>repos 60 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="crunch_poulie" data-g="abdos"
+</button></li><li class="row-li"><button class="row" type="button" data-id="crunch_poulie"
+      data-g="abdos" data-m="poulie"
       aria-haspopup="dialog" data-nom="crunch à la poulie haute">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="26.0" x2="330.0" y2="26.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <line x1="58.0" y1="26.0" x2="58.0" y2="210.0" stroke="#8b97a8" stroke-width="6" stroke-linecap="round" opacity="1.0"/>
@@ -735,7 +753,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Crunch à la poulie haute</span>
     <span class="ligne-dose">3 × 15<span class="sep">·</span>repos 45 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="crunch_inverse" data-g="abdos"
+</button></li><li class="row-li"><button class="row" type="button" data-id="crunch_inverse"
+      data-g="abdos" data-m="corps"
       aria-haspopup="dialog" data-nom="crunch inversé au sol">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="34.0" x2="330.0" y2="34.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <rect x="46.0" y="34.0" width="250.0" height="8.0" rx="4" fill="#e2e7ee" opacity="1.0"/>
@@ -755,7 +774,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Crunch inversé au sol</span>
     <span class="ligne-dose">3 × 15<span class="sep">·</span>repos 45 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="sous-tete"><span>Gainage</span><span class="sous-tete-note">2 à 3 min · pour finir</span></li><li class="row-li"><button class="row" type="button" data-id="planche_laterale" data-g="abdos"
+</button></li><li class="sous-tete"><span>Gainage</span><span class="sous-tete-note">2 à 3 min · pour finir</span></li><li class="row-li"><button class="row" type="button" data-id="planche_laterale"
+      data-g="abdos" data-m="corps"
       aria-haspopup="dialog" data-nom="planche latérale">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="40.0" x2="330.0" y2="40.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <rect x="60.0" y="40.0" width="220.0" height="8.0" rx="4" fill="#e2e7ee" opacity="1.0"/>
@@ -777,7 +797,8 @@ html { scroll-behavior:smooth; }
     <div><h2>Épaules + abdos</h2>
       <p class="carte-sous">Jeudi · 50 à 60 min</p></div>
   </header>
-  <ol class="rows"><li class="row-li"><button class="row" type="button" data-id="developpe_militaire" data-g="epaules"
+  <ol class="rows"><li class="row-li"><button class="row" type="button" data-id="developpe_militaire"
+      data-g="epaules" data-m="barre"
       aria-haspopup="dialog" data-nom="développé militaire">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="24.0" x2="330.0" y2="24.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <polygon points="155.0,114.0 185.0,114.0 179.0,78.0 161.0,78.0" fill="none" stroke="#b6bec9" stroke-width="6" opacity="0.45"/>
@@ -807,7 +828,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Développé militaire</span>
     <span class="ligne-dose">4 × 8 à 10<span class="sep">·</span>repos 2 min</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="elevations_laterales" data-g="epaules"
+</button></li><li class="row-li"><button class="row" type="button" data-id="elevations_laterales"
+      data-g="epaules" data-m="halteres"
       aria-haspopup="dialog" data-nom="élévations latérales">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="24.0" x2="330.0" y2="24.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <polygon points="155.0,114.0 185.0,114.0 179.0,78.0 161.0,78.0" fill="none" stroke="#b6bec9" stroke-width="6" opacity="0.45"/>
@@ -847,7 +869,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Élévations latérales</span>
     <span class="ligne-dose">4 × 12 à 15<span class="sep">·</span>repos 60 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="tirage_menton" data-g="epaules"
+</button></li><li class="row-li"><button class="row" type="button" data-id="tirage_menton"
+      data-g="epaules" data-m="poulie"
       aria-haspopup="dialog" data-nom="tirage menton poulie, prise large">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="24.0" x2="330.0" y2="24.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <line x1="40.0" y1="24.0" x2="40.0" y2="120.0" stroke="#8b97a8" stroke-width="6" stroke-linecap="round" opacity="1.0"/>
@@ -885,7 +908,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Tirage menton poulie, prise large</span>
     <span class="ligne-dose">3 × 12<span class="sep">·</span>repos 60 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="oiseau" data-g="epaules"
+</button></li><li class="row-li"><button class="row" type="button" data-id="oiseau"
+      data-g="epaules" data-m="halteres"
       aria-haspopup="dialog" data-nom="oiseau (arrière d'épaule)">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="30.0" x2="330.0" y2="30.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <line x1="170.0" y1="90.0" x2="203.8" y2="102.3" stroke="#b6bec9" stroke-width="7" stroke-linecap="round" opacity="0.45"/>
@@ -912,7 +936,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Oiseau (arrière d'épaule)</span>
     <span class="ligne-dose">3 × 15<span class="sep">·</span>repos 60 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="face_pull" data-g="epaules"
+</button></li><li class="row-li"><button class="row" type="button" data-id="face_pull"
+      data-g="epaules" data-m="poulie"
       aria-haspopup="dialog" data-nom="face pull à la poulie">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="24.0" x2="330.0" y2="24.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <line x1="54.0" y1="24.0" x2="54.0" y2="200.0" stroke="#8b97a8" stroke-width="6" stroke-linecap="round" opacity="1.0"/>
@@ -946,7 +971,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Face pull à la poulie</span>
     <span class="ligne-dose">3 × 15<span class="sep">·</span>repos 45 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="shrugs" data-g="epaules"
+</button></li><li class="row-li"><button class="row" type="button" data-id="shrugs"
+      data-g="epaules" data-m="halteres"
       aria-haspopup="dialog" data-nom="shrugs aux haltères">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="24.0" x2="330.0" y2="24.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <polygon points="155.0,128.0 185.0,128.0 179.0,78.0 161.0,78.0" fill="none" stroke="#b6bec9" stroke-width="6" opacity="0.45"/>
@@ -984,7 +1010,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Shrugs aux haltères</span>
     <span class="ligne-dose">3 × 12 à 15<span class="sep">·</span>repos 60 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="sous-tete"><span>Abdominaux</span><span class="sous-tete-note">obliques · bloc C</span></li><li class="row-li"><button class="row" type="button" data-id="russian_twist" data-g="abdos"
+</button></li><li class="sous-tete"><span>Abdominaux</span><span class="sous-tete-note">obliques · bloc C</span></li><li class="row-li"><button class="row" type="button" data-id="russian_twist"
+      data-g="abdos" data-m="halteres"
       aria-haspopup="dialog" data-nom="russian twist (avec disque)">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="34.0" x2="330.0" y2="34.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <rect x="46.0" y="34.0" width="250.0" height="8.0" rx="4" fill="#e2e7ee" opacity="1.0"/>
@@ -1007,7 +1034,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Russian twist (avec disque)</span>
     <span class="ligne-dose">3 × 20 (10 par côté)<span class="sep">·</span>repos 45 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="woodchopper" data-g="abdos"
+</button></li><li class="row-li"><button class="row" type="button" data-id="woodchopper"
+      data-g="abdos" data-m="poulie"
       aria-haspopup="dialog" data-nom="woodchopper à la poulie">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="24.0" x2="330.0" y2="24.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <line x1="36.0" y1="24.0" x2="36.0" y2="212.0" stroke="#8b97a8" stroke-width="6" stroke-linecap="round" opacity="1.0"/>
@@ -1045,7 +1073,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Woodchopper à la poulie</span>
     <span class="ligne-dose">3 × 12 par côté<span class="sep">·</span>repos 45 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="ab_wheel" data-g="abdos"
+</button></li><li class="row-li"><button class="row" type="button" data-id="ab_wheel"
+      data-g="abdos" data-m="corps"
       aria-haspopup="dialog" data-nom="roue abdominale">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="34.0" x2="330.0" y2="34.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <rect x="46.0" y="26.0" width="250.0" height="8.0" rx="4" fill="#e2e7ee" opacity="1.0"/>
@@ -1068,7 +1097,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Roue abdominale</span>
     <span class="ligne-dose">3 × 8 à 12<span class="sep">·</span>repos 60 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="sous-tete"><span>Gainage</span><span class="sous-tete-note">2 à 3 min · pour finir</span></li><li class="row-li"><button class="row" type="button" data-id="hollow" data-g="abdos"
+</button></li><li class="sous-tete"><span>Gainage</span><span class="sous-tete-note">2 à 3 min · pour finir</span></li><li class="row-li"><button class="row" type="button" data-id="hollow"
+      data-g="abdos" data-m="corps"
       aria-haspopup="dialog" data-nom="hollow body hold">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="34.0" x2="330.0" y2="34.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <rect x="46.0" y="34.0" width="250.0" height="8.0" rx="4" fill="#e2e7ee" opacity="1.0"/>
@@ -1094,7 +1124,8 @@ html { scroll-behavior:smooth; }
     <div><h2>Haut du corps + abdos</h2>
       <p class="carte-sous">Vendredi · 60 à 70 min</p></div>
   </header>
-  <ol class="rows"><li class="row-li"><button class="row" type="button" data-id="developpe_incline" data-g="pect"
+  <ol class="rows"><li class="row-li"><button class="row" type="button" data-id="developpe_incline"
+      data-g="pect" data-m="halteres"
       aria-haspopup="dialog" data-nom="développé incliné haltères">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="24.0" x2="330.0" y2="24.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <line x1="128.0" y1="106.0" x2="198.0" y2="68.0" stroke="#8b97a8" stroke-width="12" stroke-linecap="butt" opacity="1.0"/>
@@ -1124,7 +1155,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Développé incliné haltères</span>
     <span class="ligne-dose">3 × 10<span class="sep">·</span>repos 90 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="tirage_vertical" data-g="dos"
+</button></li><li class="row-li"><button class="row" type="button" data-id="tirage_vertical"
+      data-g="dos" data-m="poulie"
       aria-haspopup="dialog" data-nom="tirage vertical prise neutre">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="22.0" x2="330.0" y2="22.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <line x1="70.0" y1="22.0" x2="70.0" y2="216.0" stroke="#8b97a8" stroke-width="6" stroke-linecap="round" opacity="1.0"/>
@@ -1162,7 +1194,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Tirage vertical prise neutre</span>
     <span class="ligne-dose">3 × 10<span class="sep">·</span>repos 90 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="developpe_haltere_assis" data-g="epaules"
+</button></li><li class="row-li"><button class="row" type="button" data-id="developpe_haltere_assis"
+      data-g="epaules" data-m="halteres"
       aria-haspopup="dialog" data-nom="développé haltères assis">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="24.0" x2="330.0" y2="24.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <rect x="122.0" y="56.0" width="92.0" height="12.0" rx="4" fill="#8b97a8" opacity="1.0"/>
@@ -1191,7 +1224,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Développé haltères assis</span>
     <span class="ligne-dose">3 × 10 à 12<span class="sep">·</span>repos 90 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="tirage_horizontal" data-g="dos"
+</button></li><li class="row-li"><button class="row" type="button" data-id="tirage_horizontal"
+      data-g="dos" data-m="poulie"
       aria-haspopup="dialog" data-nom="rowing poulie basse">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="22.0" x2="330.0" y2="22.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <line x1="52.0" y1="22.0" x2="52.0" y2="110.0" stroke="#8b97a8" stroke-width="6" stroke-linecap="round" opacity="1.0"/>
@@ -1227,7 +1261,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Rowing poulie basse</span>
     <span class="ligne-dose">3 × 12<span class="sep">·</span>repos 60 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="elevations_laterales" data-g="epaules"
+</button></li><li class="row-li"><button class="row" type="button" data-id="elevations_laterales"
+      data-g="epaules" data-m="halteres"
       aria-haspopup="dialog" data-nom="élévations latérales">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="24.0" x2="330.0" y2="24.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <polygon points="155.0,114.0 185.0,114.0 179.0,78.0 161.0,78.0" fill="none" stroke="#b6bec9" stroke-width="6" opacity="0.45"/>
@@ -1267,7 +1302,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Élévations latérales</span>
     <span class="ligne-dose">3 × 15<span class="sep">·</span>repos 30 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="pec_deck" data-g="pect"
+</button></li><li class="row-li"><button class="row" type="button" data-id="pec_deck"
+      data-g="pect" data-m="machine"
       aria-haspopup="dialog" data-nom="pec deck">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="24.0" x2="330.0" y2="24.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <rect x="158.0" y="62.0" width="24.0" height="74.0" rx="4" fill="#dde3ea" opacity="1.0"/>
@@ -1302,7 +1338,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Pec deck</span>
     <span class="ligne-dose">3 × 15<span class="sep">·</span>repos 60 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="sous-tete"><span>Abdominaux</span><span class="sous-tete-note">force · bloc A</span></li><li class="row-li"><button class="row" type="button" data-id="dragon_flag" data-g="abdos"
+</button></li><li class="sous-tete"><span>Abdominaux</span><span class="sous-tete-note">force · bloc A</span></li><li class="row-li"><button class="row" type="button" data-id="dragon_flag"
+      data-g="abdos" data-m="corps"
       aria-haspopup="dialog" data-nom="dragon flag (négatif)">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="26.0" x2="330.0" y2="26.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <line x1="92.0" y1="74.0" x2="248.0" y2="74.0" stroke="#8b97a8" stroke-width="11" stroke-linecap="butt" opacity="1.0"/>
@@ -1328,7 +1365,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Dragon flag (négatif)</span>
     <span class="ligne-dose">3 × 6 à 8<span class="sep">·</span>repos 90 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="crunch_decline" data-g="abdos"
+</button></li><li class="row-li"><button class="row" type="button" data-id="crunch_decline"
+      data-g="abdos" data-m="halteres"
       aria-haspopup="dialog" data-nom="crunch décliné lesté">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="24.0" x2="330.0" y2="24.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <line x1="104.0" y1="62.0" x2="246.0" y2="112.0" stroke="#8b97a8" stroke-width="12" stroke-linecap="butt" opacity="1.0"/>
@@ -1357,7 +1395,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Crunch décliné lesté</span>
     <span class="ligne-dose">4 × 10 à 12<span class="sep">·</span>repos 60 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="v_ups" data-g="abdos"
+</button></li><li class="row-li"><button class="row" type="button" data-id="v_ups"
+      data-g="abdos" data-m="corps"
       aria-haspopup="dialog" data-nom="v-ups">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="34.0" x2="330.0" y2="34.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <rect x="40.0" y="34.0" width="262.0" height="8.0" rx="4" fill="#e2e7ee" opacity="1.0"/>
@@ -1382,7 +1421,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">V-ups</span>
     <span class="ligne-dose">3 × 12 à 15<span class="sep">·</span>repos 45 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="sous-tete"><span>Gainage</span><span class="sous-tete-note">2 à 3 min · pour finir</span></li><li class="row-li"><button class="row" type="button" data-id="planche" data-g="abdos"
+</button></li><li class="sous-tete"><span>Gainage</span><span class="sous-tete-note">2 à 3 min · pour finir</span></li><li class="row-li"><button class="row" type="button" data-id="planche"
+      data-g="abdos" data-m="corps"
       aria-haspopup="dialog" data-nom="planche ventrale, bras tendus">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="40.0" x2="330.0" y2="40.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <rect x="60.0" y="40.0" width="220.0" height="8.0" rx="4" fill="#e2e7ee" opacity="1.0"/>
@@ -1404,7 +1444,8 @@ html { scroll-behavior:smooth; }
     <div><h2>Pectoraux + abdos</h2>
       <p class="carte-sous">Lundi · 55 à 65 min</p></div>
   </header>
-  <ol class="rows"><li class="row-li"><button class="row" type="button" data-id="developpe_couche_halteres" data-g="pect"
+  <ol class="rows"><li class="row-li"><button class="row" type="button" data-id="developpe_couche_halteres"
+      data-g="pect" data-m="halteres"
       aria-haspopup="dialog" data-nom="développé couché aux haltères">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="26.0" x2="330.0" y2="26.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <line x1="92.0" y1="74.0" x2="240.0" y2="74.0" stroke="#8b97a8" stroke-width="11" stroke-linecap="butt" opacity="1.0"/>
@@ -1433,7 +1474,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Développé couché aux haltères</span>
     <span class="ligne-dose">4 × 8 à 10<span class="sep">·</span>repos 2 min</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="developpe_decline" data-g="pect"
+</button></li><li class="row-li"><button class="row" type="button" data-id="developpe_decline"
+      data-g="pect" data-m="barre"
       aria-haspopup="dialog" data-nom="développé décliné à la barre">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="24.0" x2="330.0" y2="24.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <line x1="118.0" y1="60.0" x2="216.0" y2="98.0" stroke="#8b97a8" stroke-width="12" stroke-linecap="butt" opacity="1.0"/>
@@ -1461,7 +1503,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Développé décliné à la barre</span>
     <span class="ligne-dose">3 × 10 à 12<span class="sep">·</span>repos 90 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="presse_pectoraux" data-g="pect"
+</button></li><li class="row-li"><button class="row" type="button" data-id="presse_pectoraux"
+      data-g="pect" data-m="machine"
       aria-haspopup="dialog" data-nom="presse à pectoraux (machine)">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="24.0" x2="330.0" y2="24.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <rect x="180.0" y="54.0" width="84.0" height="12.0" rx="4" fill="#8b97a8" opacity="1.0"/>
@@ -1497,7 +1540,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Presse à pectoraux (machine)</span>
     <span class="ligne-dose">3 × 12<span class="sep">·</span>repos 90 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="ecarte_poulie_basse" data-g="pect"
+</button></li><li class="row-li"><button class="row" type="button" data-id="ecarte_poulie_basse"
+      data-g="pect" data-m="poulie"
       aria-haspopup="dialog" data-nom="écarté poulie basse, de bas en haut">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="24.0" x2="330.0" y2="24.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <line x1="26.0" y1="24.0" x2="26.0" y2="120.0" stroke="#8b97a8" stroke-width="6" stroke-linecap="round" opacity="1.0"/>
@@ -1553,7 +1597,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Écarté poulie basse, de bas en haut</span>
     <span class="ligne-dose">3 × 12 à 15<span class="sep">·</span>repos 60 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="pompes" data-g="pect"
+</button></li><li class="row-li"><button class="row" type="button" data-id="pompes"
+      data-g="pect" data-m="corps"
       aria-haspopup="dialog" data-nom="pompes lestées">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="38.0" x2="330.0" y2="38.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <rect x="60.0" y="30.0" width="220.0" height="8.0" rx="4" fill="#e2e7ee" opacity="1.0"/>
@@ -1576,7 +1621,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Pompes lestées</span>
     <span class="ligne-dose">2 × 10 à 15<span class="sep">·</span>repos 60 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="sous-tete"><span>Abdominaux</span><span class="sous-tete-note">suspension · bloc A</span></li><li class="row-li"><button class="row" type="button" data-id="releves_jambes" data-g="abdos"
+</button></li><li class="sous-tete"><span>Abdominaux</span><span class="sous-tete-note">suspension · bloc A</span></li><li class="row-li"><button class="row" type="button" data-id="releves_jambes"
+      data-g="abdos" data-m="corps"
       aria-haspopup="dialog" data-nom="relevés de jambes suspendu">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="18.0" x2="330.0" y2="18.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <line x1="100.0" y1="212.0" x2="240.0" y2="212.0" stroke="#8b97a8" stroke-width="7" stroke-linecap="round" opacity="1.0"/>
@@ -1602,7 +1648,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Relevés de jambes suspendu</span>
     <span class="ligne-dose">4 × 10 à 15<span class="sep">·</span>repos 60 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="ab_wheel" data-g="abdos"
+</button></li><li class="row-li"><button class="row" type="button" data-id="ab_wheel"
+      data-g="abdos" data-m="corps"
       aria-haspopup="dialog" data-nom="roue abdominale">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="34.0" x2="330.0" y2="34.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <rect x="46.0" y="26.0" width="250.0" height="8.0" rx="4" fill="#e2e7ee" opacity="1.0"/>
@@ -1625,7 +1672,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Roue abdominale</span>
     <span class="ligne-dose">3 × 8 à 12<span class="sep">·</span>repos 60 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="russian_twist" data-g="abdos"
+</button></li><li class="row-li"><button class="row" type="button" data-id="russian_twist"
+      data-g="abdos" data-m="halteres"
       aria-haspopup="dialog" data-nom="russian twist (avec disque)">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="34.0" x2="330.0" y2="34.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <rect x="46.0" y="34.0" width="250.0" height="8.0" rx="4" fill="#e2e7ee" opacity="1.0"/>
@@ -1648,7 +1696,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Russian twist (avec disque)</span>
     <span class="ligne-dose">3 × 20 (10 par côté)<span class="sep">·</span>repos 45 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="sous-tete"><span>Gainage</span><span class="sous-tete-note">2 à 3 min · pour finir</span></li><li class="row-li"><button class="row" type="button" data-id="hollow" data-g="abdos"
+</button></li><li class="sous-tete"><span>Gainage</span><span class="sous-tete-note">2 à 3 min · pour finir</span></li><li class="row-li"><button class="row" type="button" data-id="hollow"
+      data-g="abdos" data-m="corps"
       aria-haspopup="dialog" data-nom="hollow body hold">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="34.0" x2="330.0" y2="34.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <rect x="46.0" y="34.0" width="250.0" height="8.0" rx="4" fill="#e2e7ee" opacity="1.0"/>
@@ -1674,7 +1723,8 @@ html { scroll-behavior:smooth; }
     <div><h2>Dos + abdos</h2>
       <p class="carte-sous">Mardi · 55 à 65 min</p></div>
   </header>
-  <ol class="rows"><li class="row-li"><button class="row" type="button" data-id="tractions_supination" data-g="dos"
+  <ol class="rows"><li class="row-li"><button class="row" type="button" data-id="tractions_supination"
+      data-g="dos" data-m="corps"
       aria-haspopup="dialog" data-nom="tractions prise supination">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="18.0" x2="330.0" y2="18.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <line x1="70.0" y1="214.0" x2="270.0" y2="214.0" stroke="#8b97a8" stroke-width="7" stroke-linecap="round" opacity="1.0"/>
@@ -1705,7 +1755,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Tractions prise supination</span>
     <span class="ligne-dose">4 × 8 à 10<span class="sep">·</span>repos 2 min</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="rowing_machine" data-g="dos"
+</button></li><li class="row-li"><button class="row" type="button" data-id="rowing_machine"
+      data-g="dos" data-m="machine"
       aria-haspopup="dialog" data-nom="rowing machine, poitrine appuyée">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="24.0" x2="330.0" y2="24.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <rect x="182.0" y="52.0" width="86.0" height="12.0" rx="4" fill="#8b97a8" opacity="1.0"/>
@@ -1741,7 +1792,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Rowing machine, poitrine appuyée</span>
     <span class="ligne-dose">4 × 10 à 12<span class="sep">·</span>repos 90 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="rowing_t" data-g="dos"
+</button></li><li class="row-li"><button class="row" type="button" data-id="rowing_t"
+      data-g="dos" data-m="barre"
       aria-haspopup="dialog" data-nom="rowing barre en t">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="28.0" x2="330.0" y2="28.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <line x1="44.0" y1="30.0" x2="214.0" y2="78.0" stroke="#2563eb" stroke-width="5" stroke-linecap="round" opacity="1.0"/>
@@ -1769,7 +1821,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Rowing barre en T</span>
     <span class="ligne-dose">3 × 10 à 12<span class="sep">·</span>repos 90 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="pullover_haltere" data-g="dos"
+</button></li><li class="row-li"><button class="row" type="button" data-id="pullover_haltere"
+      data-g="dos" data-m="halteres"
       aria-haspopup="dialog" data-nom="pull-over à l'haltère">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="26.0" x2="330.0" y2="26.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <line x1="140.0" y1="72.0" x2="206.0" y2="72.0" stroke="#8b97a8" stroke-width="12" stroke-linecap="butt" opacity="1.0"/>
@@ -1799,7 +1852,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Pull-over à l'haltère</span>
     <span class="ligne-dose">3 × 12 à 15<span class="sep">·</span>repos 60 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="tirage_horizontal" data-g="dos"
+</button></li><li class="row-li"><button class="row" type="button" data-id="tirage_horizontal"
+      data-g="dos" data-m="poulie"
       aria-haspopup="dialog" data-nom="tirage horizontal à la poulie">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="22.0" x2="330.0" y2="22.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <line x1="52.0" y1="22.0" x2="52.0" y2="110.0" stroke="#8b97a8" stroke-width="6" stroke-linecap="round" opacity="1.0"/>
@@ -1835,7 +1889,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Tirage horizontal à la poulie</span>
     <span class="ligne-dose">3 × 12<span class="sep">·</span>repos 60 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="extensions_lombaires" data-g="dos"
+</button></li><li class="row-li"><button class="row" type="button" data-id="extensions_lombaires"
+      data-g="dos" data-m="corps"
       aria-haspopup="dialog" data-nom="extensions lombaires (banc 45°)">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="22.0" x2="330.0" y2="22.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <line x1="162.0" y1="116.0" x2="194.0" y2="84.0" stroke="#8b97a8" stroke-width="13" stroke-linecap="butt" opacity="1.0"/>
@@ -1859,7 +1914,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Extensions lombaires (banc 45°)</span>
     <span class="ligne-dose">2 × 15<span class="sep">·</span>repos 45 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="sous-tete"><span>Abdominaux</span><span class="sous-tete-note">flexion lestée · bloc B</span></li><li class="row-li"><button class="row" type="button" data-id="crunch_decline" data-g="abdos"
+</button></li><li class="sous-tete"><span>Abdominaux</span><span class="sous-tete-note">flexion lestée · bloc B</span></li><li class="row-li"><button class="row" type="button" data-id="crunch_decline"
+      data-g="abdos" data-m="halteres"
       aria-haspopup="dialog" data-nom="crunch décliné lesté">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="24.0" x2="330.0" y2="24.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <line x1="104.0" y1="62.0" x2="246.0" y2="112.0" stroke="#8b97a8" stroke-width="12" stroke-linecap="butt" opacity="1.0"/>
@@ -1888,7 +1944,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Crunch décliné lesté</span>
     <span class="ligne-dose">4 × 10 à 12<span class="sep">·</span>repos 60 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="crunch_inverse" data-g="abdos"
+</button></li><li class="row-li"><button class="row" type="button" data-id="crunch_inverse"
+      data-g="abdos" data-m="corps"
       aria-haspopup="dialog" data-nom="crunch inversé au sol">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="34.0" x2="330.0" y2="34.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <rect x="46.0" y="34.0" width="250.0" height="8.0" rx="4" fill="#e2e7ee" opacity="1.0"/>
@@ -1908,7 +1965,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Crunch inversé au sol</span>
     <span class="ligne-dose">3 × 15<span class="sep">·</span>repos 45 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="woodchopper" data-g="abdos"
+</button></li><li class="row-li"><button class="row" type="button" data-id="woodchopper"
+      data-g="abdos" data-m="poulie"
       aria-haspopup="dialog" data-nom="woodchopper à la poulie">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="24.0" x2="330.0" y2="24.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <line x1="36.0" y1="24.0" x2="36.0" y2="212.0" stroke="#8b97a8" stroke-width="6" stroke-linecap="round" opacity="1.0"/>
@@ -1946,7 +2004,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Woodchopper à la poulie</span>
     <span class="ligne-dose">3 × 12 par côté<span class="sep">·</span>repos 45 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="sous-tete"><span>Gainage</span><span class="sous-tete-note">2 à 3 min · pour finir</span></li><li class="row-li"><button class="row" type="button" data-id="planche" data-g="abdos"
+</button></li><li class="sous-tete"><span>Gainage</span><span class="sous-tete-note">2 à 3 min · pour finir</span></li><li class="row-li"><button class="row" type="button" data-id="planche"
+      data-g="abdos" data-m="corps"
       aria-haspopup="dialog" data-nom="planche ventrale">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="40.0" x2="330.0" y2="40.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <rect x="60.0" y="40.0" width="220.0" height="8.0" rx="4" fill="#e2e7ee" opacity="1.0"/>
@@ -1968,7 +2027,8 @@ html { scroll-behavior:smooth; }
     <div><h2>Épaules + abdos</h2>
       <p class="carte-sous">Jeudi · 50 à 60 min</p></div>
   </header>
-  <ol class="rows"><li class="row-li"><button class="row" type="button" data-id="presse_epaules" data-g="epaules"
+  <ol class="rows"><li class="row-li"><button class="row" type="button" data-id="presse_epaules"
+      data-g="epaules" data-m="machine"
       aria-haspopup="dialog" data-nom="presse à épaules (machine)">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="24.0" x2="330.0" y2="24.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <rect x="160.0" y="54.0" width="84.0" height="12.0" rx="4" fill="#8b97a8" opacity="1.0"/>
@@ -2004,7 +2064,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Presse à épaules (machine)</span>
     <span class="ligne-dose">4 × 10<span class="sep">·</span>repos 2 min</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="elevations_poulie" data-g="epaules"
+</button></li><li class="row-li"><button class="row" type="button" data-id="elevations_poulie"
+      data-g="epaules" data-m="poulie"
       aria-haspopup="dialog" data-nom="élévations latérales à la poulie">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="24.0" x2="330.0" y2="24.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <line x1="306.0" y1="24.0" x2="306.0" y2="120.0" stroke="#8b97a8" stroke-width="6" stroke-linecap="round" opacity="1.0"/>
@@ -2043,7 +2104,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Élévations latérales à la poulie</span>
     <span class="ligne-dose">4 × 12 à 15 par bras<span class="sep">·</span>repos 45 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="elevations_frontales" data-g="epaules"
+</button></li><li class="row-li"><button class="row" type="button" data-id="elevations_frontales"
+      data-g="epaules" data-m="halteres"
       aria-haspopup="dialog" data-nom="élévations frontales au disque">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="26.0" x2="330.0" y2="26.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <line x1="160.0" y1="84.0" x2="160.0" y2="120.0" stroke="#b6bec9" stroke-width="7" stroke-linecap="round" opacity="0.45"/>
@@ -2068,7 +2130,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Élévations frontales au disque</span>
     <span class="ligne-dose">3 × 12<span class="sep">·</span>repos 60 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="oiseau_poulie" data-g="epaules"
+</button></li><li class="row-li"><button class="row" type="button" data-id="oiseau_poulie"
+      data-g="epaules" data-m="poulie"
       aria-haspopup="dialog" data-nom="oiseau à la poulie, câbles croisés">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="24.0" x2="330.0" y2="24.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <line x1="26.0" y1="24.0" x2="26.0" y2="170.0" stroke="#8b97a8" stroke-width="6" stroke-linecap="round" opacity="1.0"/>
@@ -2122,7 +2185,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Oiseau à la poulie, câbles croisés</span>
     <span class="ligne-dose">3 × 15<span class="sep">·</span>repos 60 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="face_pull" data-g="epaules"
+</button></li><li class="row-li"><button class="row" type="button" data-id="face_pull"
+      data-g="epaules" data-m="poulie"
       aria-haspopup="dialog" data-nom="face pull à la poulie">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="24.0" x2="330.0" y2="24.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <line x1="54.0" y1="24.0" x2="54.0" y2="200.0" stroke="#8b97a8" stroke-width="6" stroke-linecap="round" opacity="1.0"/>
@@ -2156,7 +2220,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Face pull à la poulie</span>
     <span class="ligne-dose">3 × 15<span class="sep">·</span>repos 45 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="shrugs_barre" data-g="epaules"
+</button></li><li class="row-li"><button class="row" type="button" data-id="shrugs_barre"
+      data-g="epaules" data-m="barre"
       aria-haspopup="dialog" data-nom="shrugs à la barre">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="24.0" x2="330.0" y2="24.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <polygon points="155.0,128.0 185.0,128.0 179.0,78.0 161.0,78.0" fill="none" stroke="#b6bec9" stroke-width="6" opacity="0.45"/>
@@ -2188,7 +2253,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Shrugs à la barre</span>
     <span class="ligne-dose">3 × 12 à 15<span class="sep">·</span>repos 60 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="sous-tete"><span>Abdominaux</span><span class="sous-tete-note">force · bloc C</span></li><li class="row-li"><button class="row" type="button" data-id="dragon_flag" data-g="abdos"
+</button></li><li class="sous-tete"><span>Abdominaux</span><span class="sous-tete-note">force · bloc C</span></li><li class="row-li"><button class="row" type="button" data-id="dragon_flag"
+      data-g="abdos" data-m="corps"
       aria-haspopup="dialog" data-nom="dragon flag (négatif)">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="26.0" x2="330.0" y2="26.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <line x1="92.0" y1="74.0" x2="248.0" y2="74.0" stroke="#8b97a8" stroke-width="11" stroke-linecap="butt" opacity="1.0"/>
@@ -2214,7 +2280,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Dragon flag (négatif)</span>
     <span class="ligne-dose">3 × 6 à 8<span class="sep">·</span>repos 90 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="v_ups" data-g="abdos"
+</button></li><li class="row-li"><button class="row" type="button" data-id="v_ups"
+      data-g="abdos" data-m="corps"
       aria-haspopup="dialog" data-nom="v-ups">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="34.0" x2="330.0" y2="34.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <rect x="40.0" y="34.0" width="262.0" height="8.0" rx="4" fill="#e2e7ee" opacity="1.0"/>
@@ -2239,7 +2306,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">V-ups</span>
     <span class="ligne-dose">3 × 12 à 15<span class="sep">·</span>repos 45 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="crunch_poulie" data-g="abdos"
+</button></li><li class="row-li"><button class="row" type="button" data-id="crunch_poulie"
+      data-g="abdos" data-m="poulie"
       aria-haspopup="dialog" data-nom="crunch à la poulie haute">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="26.0" x2="330.0" y2="26.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <line x1="58.0" y1="26.0" x2="58.0" y2="210.0" stroke="#8b97a8" stroke-width="6" stroke-linecap="round" opacity="1.0"/>
@@ -2272,7 +2340,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Crunch à la poulie haute</span>
     <span class="ligne-dose">3 × 15<span class="sep">·</span>repos 45 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="sous-tete"><span>Gainage</span><span class="sous-tete-note">2 à 3 min · pour finir</span></li><li class="row-li"><button class="row" type="button" data-id="planche_laterale" data-g="abdos"
+</button></li><li class="sous-tete"><span>Gainage</span><span class="sous-tete-note">2 à 3 min · pour finir</span></li><li class="row-li"><button class="row" type="button" data-id="planche_laterale"
+      data-g="abdos" data-m="corps"
       aria-haspopup="dialog" data-nom="planche latérale">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="40.0" x2="330.0" y2="40.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <rect x="60.0" y="40.0" width="220.0" height="8.0" rx="4" fill="#e2e7ee" opacity="1.0"/>
@@ -2294,7 +2363,8 @@ html { scroll-behavior:smooth; }
     <div><h2>Haut du corps + abdos</h2>
       <p class="carte-sous">Vendredi · 60 à 70 min</p></div>
   </header>
-  <ol class="rows"><li class="row-li"><button class="row" type="button" data-id="presse_pectoraux" data-g="pect"
+  <ol class="rows"><li class="row-li"><button class="row" type="button" data-id="presse_pectoraux"
+      data-g="pect" data-m="machine"
       aria-haspopup="dialog" data-nom="presse à pectoraux">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="24.0" x2="330.0" y2="24.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <rect x="180.0" y="54.0" width="84.0" height="12.0" rx="4" fill="#8b97a8" opacity="1.0"/>
@@ -2330,7 +2400,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Presse à pectoraux</span>
     <span class="ligne-dose">3 × 10<span class="sep">·</span>repos 90 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="rowing_machine" data-g="dos"
+</button></li><li class="row-li"><button class="row" type="button" data-id="rowing_machine"
+      data-g="dos" data-m="machine"
       aria-haspopup="dialog" data-nom="rowing machine">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="24.0" x2="330.0" y2="24.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <rect x="182.0" y="52.0" width="86.0" height="12.0" rx="4" fill="#8b97a8" opacity="1.0"/>
@@ -2366,7 +2437,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Rowing machine</span>
     <span class="ligne-dose">3 × 10<span class="sep">·</span>repos 90 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="presse_epaules" data-g="epaules"
+</button></li><li class="row-li"><button class="row" type="button" data-id="presse_epaules"
+      data-g="epaules" data-m="machine"
       aria-haspopup="dialog" data-nom="presse à épaules">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="24.0" x2="330.0" y2="24.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <rect x="160.0" y="54.0" width="84.0" height="12.0" rx="4" fill="#8b97a8" opacity="1.0"/>
@@ -2402,7 +2474,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Presse à épaules</span>
     <span class="ligne-dose">3 × 10 à 12<span class="sep">·</span>repos 90 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="pullover_haltere" data-g="dos"
+</button></li><li class="row-li"><button class="row" type="button" data-id="pullover_haltere"
+      data-g="dos" data-m="halteres"
       aria-haspopup="dialog" data-nom="pull-over à l'haltère">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="26.0" x2="330.0" y2="26.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <line x1="140.0" y1="72.0" x2="206.0" y2="72.0" stroke="#8b97a8" stroke-width="12" stroke-linecap="butt" opacity="1.0"/>
@@ -2432,7 +2505,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Pull-over à l'haltère</span>
     <span class="ligne-dose">3 × 12<span class="sep">·</span>repos 60 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="elevations_poulie" data-g="epaules"
+</button></li><li class="row-li"><button class="row" type="button" data-id="elevations_poulie"
+      data-g="epaules" data-m="poulie"
       aria-haspopup="dialog" data-nom="élévations latérales poulie">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="24.0" x2="330.0" y2="24.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <line x1="306.0" y1="24.0" x2="306.0" y2="120.0" stroke="#8b97a8" stroke-width="6" stroke-linecap="round" opacity="1.0"/>
@@ -2471,7 +2545,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Élévations latérales poulie</span>
     <span class="ligne-dose">3 × 15 par bras<span class="sep">·</span>repos 30 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="ecarte_poulie_basse" data-g="pect"
+</button></li><li class="row-li"><button class="row" type="button" data-id="ecarte_poulie_basse"
+      data-g="pect" data-m="poulie"
       aria-haspopup="dialog" data-nom="écarté poulie basse">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="24.0" x2="330.0" y2="24.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <line x1="26.0" y1="24.0" x2="26.0" y2="120.0" stroke="#8b97a8" stroke-width="6" stroke-linecap="round" opacity="1.0"/>
@@ -2527,7 +2602,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Écarté poulie basse</span>
     <span class="ligne-dose">3 × 15<span class="sep">·</span>repos 60 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="sous-tete"><span>Abdominaux</span><span class="sous-tete-note">suspension · bloc A</span></li><li class="row-li"><button class="row" type="button" data-id="releves_jambes" data-g="abdos"
+</button></li><li class="sous-tete"><span>Abdominaux</span><span class="sous-tete-note">suspension · bloc A</span></li><li class="row-li"><button class="row" type="button" data-id="releves_jambes"
+      data-g="abdos" data-m="corps"
       aria-haspopup="dialog" data-nom="relevés de jambes suspendu">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="18.0" x2="330.0" y2="18.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <line x1="100.0" y1="212.0" x2="240.0" y2="212.0" stroke="#8b97a8" stroke-width="7" stroke-linecap="round" opacity="1.0"/>
@@ -2553,7 +2629,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Relevés de jambes suspendu</span>
     <span class="ligne-dose">4 × 10 à 15<span class="sep">·</span>repos 60 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="ab_wheel" data-g="abdos"
+</button></li><li class="row-li"><button class="row" type="button" data-id="ab_wheel"
+      data-g="abdos" data-m="corps"
       aria-haspopup="dialog" data-nom="roue abdominale">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="34.0" x2="330.0" y2="34.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <rect x="46.0" y="26.0" width="250.0" height="8.0" rx="4" fill="#e2e7ee" opacity="1.0"/>
@@ -2576,7 +2653,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Roue abdominale</span>
     <span class="ligne-dose">3 × 8 à 12<span class="sep">·</span>repos 60 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="row-li"><button class="row" type="button" data-id="russian_twist" data-g="abdos"
+</button></li><li class="row-li"><button class="row" type="button" data-id="russian_twist"
+      data-g="abdos" data-m="halteres"
       aria-haspopup="dialog" data-nom="russian twist (avec disque)">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="34.0" x2="330.0" y2="34.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <rect x="46.0" y="34.0" width="250.0" height="8.0" rx="4" fill="#e2e7ee" opacity="1.0"/>
@@ -2599,7 +2677,8 @@ html { scroll-behavior:smooth; }
   <span class="ligne-txt"><span class="ligne-nom">Russian twist (avec disque)</span>
     <span class="ligne-dose">3 × 20 (10 par côté)<span class="sep">·</span>repos 45 s</span></span>
   <span class="chev" aria-hidden="true">›</span>
-</button></li><li class="sous-tete"><span>Gainage</span><span class="sous-tete-note">2 à 3 min · pour finir</span></li><li class="row-li"><button class="row" type="button" data-id="hollow" data-g="abdos"
+</button></li><li class="sous-tete"><span>Gainage</span><span class="sous-tete-note">2 à 3 min · pour finir</span></li><li class="row-li"><button class="row" type="button" data-id="hollow"
+      data-g="abdos" data-m="corps"
       aria-haspopup="dialog" data-nom="hollow body hold">
   <span class="vign"><svg viewBox="0 0 340 240" width="100%" xmlns="http://www.w3.org/2000/svg" role="img"><g transform="translate(0,240) scale(1,-1)"><line x1="10.0" y1="34.0" x2="330.0" y2="34.0" stroke="#c7ced8" stroke-width="4" stroke-linecap="round" opacity="1.0"/>
 <rect x="46.0" y="34.0" width="250.0" height="8.0" rx="4" fill="#e2e7ee" opacity="1.0"/>
@@ -2765,16 +2844,15 @@ html { scroll-behavior:smooth; }
   });
 
   function filtrer() {
-    var t = champ.value.trim().toLowerCase(), n = 0;
+    var v = champ.value, cle = v.slice(2), par = v.slice(0, 1), n = 0;
     document.querySelectorAll('.row').forEach(function (r) {
-      var ex = D[r.dataset.id];
-      var foin = r.dataset.nom + ' ' + ex.groupe.toLowerCase() + ' ' + ex.machine.toLowerCase();
-      var ok = !t || foin.indexOf(t) !== -1;
+      var ok = !v || (par === 'g' ? r.dataset.g === cle : r.dataset.m === cle);
       r.parentElement.hidden = !ok; if (ok) n++;
     });
     document.querySelectorAll('.sous-tete').forEach(function (st) {
       var reste = false;
-      for (var n = st.nextElementSibling; n; n = n.nextElementSibling) {
+      for (var n = st.nextElementSibling;
+           n && !n.classList.contains('sous-tete'); n = n.nextElementSibling) {
         if (!n.hidden) { reste = true; break; }
       }
       st.hidden = !reste;
@@ -2784,6 +2862,6 @@ html { scroll-behavior:smooth; }
     });
     el('vide').hidden = n > 0;
   }
-  champ.addEventListener('input', filtrer);
+  champ.addEventListener('change', filtrer);
 })();
 </script>
