@@ -233,8 +233,8 @@ Deux exercices, trois séries chacun : 5 à 6 min en fin de séance.
   l'endormissement.
 - **Rotation des programmes** : 4 à 5 semaines de programme A, puis 4 à 5 semaines de
   programme B. Le calendrier de la carte interactive calcule la semaine en cours à partir
-  de la date de départ, coche les séances faites et ouvre le bon programme ; le PDF a la
-  même grille, à remplir à la main. Ne pas alterner chaque semaine : répéter le même exercice plusieurs
+  de la date de départ, affiche la séance du soir et ouvre le bon programme, sans rien à
+  cocher ; le PDF a une grille équivalente, à remplir à la main. Ne pas alterner chaque semaine : répéter le même exercice plusieurs
   séances de suite est ce qui permet d'augmenter les charges.
 - **Volume** : environ 21 séries hebdomadaires pour les pectoraux, 19 pour le dos,
   18 pour les épaules, 24 d'abdominaux et 8 de gainage. Si les charges stagnent deux

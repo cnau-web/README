@@ -73,6 +73,24 @@ UI = {
     "cal_5": ("5 semaines", "5 weeks", "5 semanas"),
     "cal_sem": ("S", "W", "S"),
     "cal_jours": ("L M J V", "Mo Tu Th Fr", "L M J V"),
+    "cote_titre": ("Réglages et calendrier", "Settings and calendar",
+                   "Ajustes y calendario"),
+    "aujourdhui": ("Aujourd'hui", "Today", "Hoy"),
+    "jour_repos": ("repos, pas de séance ce soir", "rest, no session tonight",
+                   "descanso, hoy no hay sesión"),
+    "jour_prochaine": ("Prochaine séance : %J%", "Next session: %J%",
+                       "Próxima sesión: %J%"),
+    "ouvrir_seance": ("Voir la séance du jour", "Open today's session",
+                      "Ver la sesión de hoy"),
+    "bloc_progression": ("Bloc %B% · semaine %N% sur %T%", "Block %B% · week %N% of %T%",
+                         "Bloque %B% · semana %N% de %T%"),
+    "cal_legende": ("Les points indiquent les séances passées, celle du jour et celles à venir : "
+                    "rien à cocher, le calendrier se met à jour tout seul.",
+                    "The dots show past sessions, today's and the ones still to come: nothing to "
+                    "tick, the calendar updates itself.",
+                    "Los puntos indican las sesiones pasadas, la de hoy y las que faltan: nada que "
+                    "marcar, el calendario se actualiza solo."),
+    "apropos": ("Comment ça marche", "How it works", "Cómo funciona"),
     "cal_ici": ("cette semaine", "this week", "esta semana"),
     "cal_etat": ("Semaine %N% du programme %P%", "Week %N% of programme %P%",
                  "Semana %N% del programa %P%"),
@@ -87,19 +105,18 @@ UI = {
     "cal_sans_date": ("Choisis la date du lundi où tu commences le programme A.",
                       "Pick the Monday you start programme A.",
                       "Elige el lunes en que empiezas el programa A."),
-    "cal_aide": ("Coche chaque séance faite : le calendrier retient tes coches et ouvre "
-                 "automatiquement le bon programme à chaque visite.",
-                 "Tick each session you complete: the calendar remembers your ticks and opens the "
-                 "right programme every time you come back.",
-                 "Marca cada sesión hecha: el calendario recuerda tus marcas y abre el programa "
-                 "correcto cada vez que vuelves."),
-    "cal_en_ligne": ("Coches enregistrées en ligne : tu les retrouves sur tous tes appareils.",
-                     "Ticks saved online: they follow you across devices.",
-                     "Marcas guardadas en línea: las tienes en todos tus dispositivos."),
-    "cal_local": ("Coches enregistrées dans ce navigateur uniquement.",
-                  "Ticks saved in this browser only.",
-                  "Marcas guardadas solo en este navegador."),
-    "cal_total": ("%N% séances cochées", "%N% sessions ticked", "%N% sesiones marcadas"),
+    "cal_aide": ("Le calendrier déduit tout de la date de départ : la semaine en cours, le "
+                 "programme à suivre et la séance du soir.",
+                 "The calendar works everything out from the start date: the current week, which "
+                 "programme to follow and tonight's session.",
+                 "El calendario lo deduce todo de la fecha de inicio: la semana actual, el "
+                 "programa a seguir y la sesión de la tarde."),
+    "cal_en_ligne": ("Date de départ enregistrée en ligne : identique sur tous tes appareils.",
+                     "Start date saved online: the same on all your devices.",
+                     "Fecha de inicio guardada en línea: igual en todos tus dispositivos."),
+    "cal_local": ("Date de départ enregistrée dans ce navigateur uniquement.",
+                  "Start date saved in this browser only.",
+                  "Fecha de inicio guardada solo en este navegador."),
     "rotation": (
         "Suis le programme A pendant 4 à 5 semaines, puis passe au programme B pour 4 à 5 semaines. "
         "Répéter le même exercice plusieurs semaines de suite est ce qui permet d'augmenter les "

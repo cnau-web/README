@@ -206,7 +206,7 @@ def carte_seance(titre, soustitre, lignes, d, prog):
 </section>"""
 
 
-CAL_JS = '\n<script>\n/* Calendrier de suivi : quel programme cette semaine, et quelles séances faites.\n   L\'état vit dans le stockage « db » de l\'artefact (donc il survit aux\n   republications de la page) et retombe sur localStorage si db est indisponible. */\n(function () {\n  var U = JSON.parse(document.getElementById(\'ui\').textContent);\n  var LANGS = [\'fr\', \'en\', \'es\'];\n  var JOURS_SEM = [0, 1, 3, 4];          // lundi, mardi, jeudi, vendredi\n  var NB = 20;                           // deux cycles complets affichés\n  var etat = { debut: null, duree: 5, coches: {} };\n  var db = null, pret = false, enCours = Promise.resolve();\n\n  function lang() {\n    var l = document.documentElement.lang;\n    return LANGS.indexOf(l) === -1 ? \'fr\' : l;\n  }\n  function t(cle) { return U[cle][LANGS.indexOf(lang())]; }\n  function el(id) { return document.getElementById(id); }\n\n  function jourUTC(d) { return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())); }\n  function iso(d) { return d.toISOString().slice(0, 10); }\n  function parse(v) { var p = String(v).split(\'-\'); return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2])); }\n  function plus(d, n) { var r = new Date(d.getTime()); r.setUTCDate(r.getUTCDate() + n); return r; }\n  function lundiDe(d) { var x = jourUTC(d); return plus(x, -((x.getUTCDay() + 6) % 7)); }\n  function aujourdhui() {\n    var n = new Date();\n    return new Date(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate()));\n  }\n  function fdate(d, avecAnnee) {\n    var o = { day: \'numeric\', month: \'short\', timeZone: \'UTC\' };\n    if (avecAnnee) o.year = \'numeric\';\n    try { return d.toLocaleDateString(lang(), o); } catch (e) { return iso(d); }\n  }\n  function progDe(sem) { return (Math.floor(sem / etat.duree) % 2 === 0) ? \'A\' : \'B\'; }\n\n  /* ---------- stockage ---------- */\n  function localLire() {\n    try {\n      var c = JSON.parse(localStorage.getItem(\'cal\') || \'{}\');\n      if (c.debut) etat.debut = c.debut;\n      if (c.duree) etat.duree = +c.duree;\n      if (c.coches) etat.coches = c.coches;\n    } catch (e) {}\n  }\n  function localEcrire() {\n    try { localStorage.setItem(\'cal\', JSON.stringify(etat)); } catch (e) {}\n  }\n  function ecrire(quoi) {\n    localEcrire();\n    if (!db) return;\n    enCours = enCours.then(function () {\n      if (quoi === \'config\') {\n        return db.doc(\'suivi/config\').set({ debut: etat.debut, duree: etat.duree });\n      }\n      return db.doc(\'suivi/coches\').set({ coches: etat.coches });\n    }).catch(function () { db = null; majStockage(); });\n  }\n\n  function majStockage() {\n    var n = Object.keys(etat.coches).filter(function (k) { return etat.coches[k]; }).length;\n    el(\'cal-stockage\').textContent = (db ? t(\'cal_en_ligne\') : t(\'cal_local\'))\n      + \' · \' + t(\'cal_total\').replace(\'%N%\', n);\n  }\n\n  /* ---------- rendu ---------- */\n  function rendre() {\n    var corps = el(\'cal-corps\');\n    corps.textContent = \'\';\n    if (!etat.debut) {\n      el(\'cal-etat\').textContent = t(\'cal_sans_date\');\n      majStockage();\n      return;\n    }\n    var debut = parse(etat.debut), ajd = aujourdhui();\n    var semCourante = Math.floor((lundiDe(ajd) - debut) / 604800000);\n\n    for (var i = 0; i < NB; i++) {\n      var lundi = plus(debut, i * 7), prog = progDe(i);\n      var tr = document.createElement(\'tr\');\n      tr.className = \'cal-ligne\' + (i === semCourante ? \' ici\' : \'\')\n        + (progDe(i) !== progDe(i - 1) && i > 0 ? \' bloc\' : \'\');\n      var th = document.createElement(\'th\');\n      th.scope = \'row\';\n      th.textContent = t(\'cal_sem\') + (i + 1);\n      tr.appendChild(th);\n\n      var tdP = document.createElement(\'td\');\n      var b = document.createElement(\'span\');\n      b.className = \'cal-prog p\' + prog; b.textContent = prog;\n      tdP.appendChild(b);\n      if (i === semCourante) {\n        var ici = document.createElement(\'span\');\n        ici.className = \'cal-ici\'; ici.textContent = t(\'cal_ici\');\n        tdP.appendChild(ici);\n      }\n      tr.appendChild(tdP);\n\n      var tdD = document.createElement(\'td\');\n      tdD.className = \'cal-dates\';\n      tdD.textContent = fdate(lundi) + \' – \' + fdate(plus(lundi, 4));\n      tr.appendChild(tdD);\n\n      var tdC = document.createElement(\'td\');\n      tdC.className = \'cal-cases\';\n      JOURS_SEM.forEach(function (dj, k) {\n        var jour = plus(lundi, dj), cle = iso(jour);\n        var lab = document.createElement(\'label\');\n        lab.className = \'case\';\n        var inp = document.createElement(\'input\');\n        inp.type = \'checkbox\'; inp.id = \'c-\' + cle; inp.dataset.d = cle;\n        inp.checked = !!etat.coches[cle];\n        var sp = document.createElement(\'span\');\n        sp.textContent = t(\'cal_jours\').split(\' \')[k];\n        sp.title = fdate(jour, true);\n        lab.appendChild(inp); lab.appendChild(sp);\n        tdC.appendChild(lab);\n      });\n      tr.appendChild(tdC);\n      corps.appendChild(tr);\n    }\n\n    var msg;\n    if (semCourante < 0) {\n      msg = t(\'cal_avant\').replace(\'%D%\', fdate(debut, true));\n    } else {\n      var dansBloc = semCourante % etat.duree;\n      var reste = etat.duree - dansBloc - 1;\n      var suivant = progDe(semCourante) === \'A\' ? \'B\' : \'A\';\n      msg = t(\'cal_etat\').replace(\'%N%\', dansBloc + 1).replace(\'%P%\', progDe(semCourante));\n      msg += \' · \' + (reste === 0\n        ? t(\'cal_reste_un\').replace(\'%Q%\', suivant)\n        : t(\'cal_reste\').replace(\'%R%\', reste).replace(\'%Q%\', suivant));\n    }\n    el(\'cal-etat\').textContent = msg;\n    majStockage();\n\n    if (semCourante >= 0 && !rendre.bascule) {\n      rendre.bascule = true;\n      var onglet = document.querySelector(\'.onglet[data-prog="\' + progDe(semCourante) + \'"]\');\n      if (onglet && onglet.getAttribute(\'aria-selected\') !== \'true\') onglet.click();\n    }\n  }\n\n  /* ---------- écoute ---------- */\n  el(\'cal-debut\').addEventListener(\'change\', function () {\n    if (!this.value) return;\n    etat.debut = iso(lundiDe(parse(this.value)));\n    this.value = etat.debut;\n    ecrire(\'config\'); rendre();\n  });\n  el(\'cal-duree\').addEventListener(\'change\', function () {\n    etat.duree = +this.value; ecrire(\'config\'); rendre();\n  });\n  el(\'cal-corps\').addEventListener(\'change\', function (e) {\n    var inp = e.target.closest(\'input[type="checkbox"]\');\n    if (!inp) return;\n    if (inp.checked) etat.coches[inp.dataset.d] = true;\n    else delete etat.coches[inp.dataset.d];\n    ecrire(\'coches\'); majStockage();\n  });\n  document.addEventListener(\'langue\', function () { if (pret) rendre(); });\n\n  /* ---------- démarrage ---------- */\n  localLire();\n  if (!etat.debut) etat.debut = iso(lundiDe(aujourdhui()));\n  el(\'cal-debut\').value = etat.debut;\n  el(\'cal-duree\').value = String(etat.duree);\n  pret = true;\n  rendre();\n\n  (async function () {\n    try { db = window.claude && await window.claude.use(\'db\'); } catch (e) { db = null; }\n    if (!db) { majStockage(); return; }\n    try {\n      var c = await db.doc(\'suivi/config\').get();\n      if (c.exists) {\n        var d = c.data();\n        if (d.debut) etat.debut = d.debut;\n        if (d.duree) etat.duree = +d.duree;\n      }\n      var k = await db.doc(\'suivi/coches\').get();\n      if (k.exists && k.data().coches) etat.coches = k.data().coches;\n    } catch (e) { db = null; }\n    el(\'cal-debut\').value = etat.debut;\n    el(\'cal-duree\').value = String(etat.duree);\n    localEcrire();\n    rendre();\n  })();\n})();\n</script>\n'
+CAL_JS = '\n<script>\n/* Calendrier automatique : tout se déduit de la date de départ — la semaine en\n   cours, le programme du bloc et la séance du soir. Rien à cocher.\n   Seule la date de départ est stockée (db de l\'artefact, sinon localStorage). */\n(function () {\n  var U = JSON.parse(document.getElementById(\'ui\').textContent);\n  var P = JSON.parse(document.getElementById(\'planning\').textContent);\n  var LANGS = [\'fr\', \'en\', \'es\'];\n  var DECALAGE = [0, 1, 3, 4];           // lundi, mardi, jeudi, vendredi\n  var etat = { debut: null, duree: 5 };\n  var db = null, enCours = Promise.resolve(), bascule = false;\n\n  function lang() {\n    var l = document.documentElement.lang;\n    return LANGS.indexOf(l) === -1 ? \'fr\' : l;\n  }\n  function t(cle) { return U[cle][LANGS.indexOf(lang())]; }\n  function el(id) { return document.getElementById(id); }\n\n  function jourUTC(d) { return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())); }\n  function iso(d) { return d.toISOString().slice(0, 10); }\n  function parse(v) { var p = String(v).split(\'-\'); return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2])); }\n  function plus(d, n) { var r = new Date(d.getTime()); r.setUTCDate(r.getUTCDate() + n); return r; }\n  function lundiDe(d) { var x = jourUTC(d); return plus(x, -((x.getUTCDay() + 6) % 7)); }\n  function ajd() {\n    var n = new Date();\n    return new Date(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate()));\n  }\n  function fdate(d, annee) {\n    var o = { day: \'numeric\', month: \'short\', timeZone: \'UTC\' };\n    if (annee) o.year = \'numeric\';\n    try { return d.toLocaleDateString(lang(), o); } catch (e) { return iso(d); }\n  }\n  function progDe(sem) { return (Math.floor(sem / etat.duree) % 2 === 0) ? \'A\' : \'B\'; }\n  function nomJour(n) { return P.noms[n][LANGS.indexOf(lang())]; }\n  function seanceDe(n) { return P.jours[n] || null; }\n\n  /* ---------- stockage de la date de départ ---------- */\n  function localLire() {\n    try {\n      var c = JSON.parse(localStorage.getItem(\'cal\') || \'{}\');\n      if (c.debut) etat.debut = c.debut;\n      if (c.duree) etat.duree = +c.duree;\n    } catch (e) {}\n  }\n  function enregistrer() {\n    try { localStorage.setItem(\'cal\', JSON.stringify(etat)); } catch (e) {}\n    if (!db) return;\n    enCours = enCours\n      .then(function () { return db.doc(\'suivi/config\').set({ debut: etat.debut, duree: etat.duree }); })\n      .catch(function () { db = null; majStockage(); });\n  }\n  function majStockage() {\n    el(\'cal-stockage\').textContent = db ? t(\'cal_en_ligne\') : t(\'cal_local\');\n  }\n\n  /* ---------- bandeau du jour ---------- */\n  function rendreJour(semCourante) {\n    var b = el(\'jour-etat\');\n    b.textContent = \'\';\n    var n = new Date().getDay(); n = n === 0 ? 7 : n;      // 1 = lundi … 7 = dimanche\n    var s = seanceDe(n), txt;\n\n    if (s) {\n      txt = t(\'aujourdhui\') + \' · \' + nomJour(n) + \' — \' + t(\'seance\') + \' \' + s.l\n        + \' : \' + s.g[LANGS.indexOf(lang())];\n    } else {\n      var suiv = null, decal = 1;\n      for (; decal <= 7; decal++) {\n        var m = ((n - 1 + decal) % 7) + 1;\n        if (seanceDe(m)) { suiv = m; break; }\n      }\n      txt = t(\'aujourdhui\') + \' · \' + nomJour(n) + \' — \' + t(\'jour_repos\');\n      if (suiv) {\n        txt += \' · \' + t(\'jour_prochaine\').replace(\'%J%\', nomJour(suiv) + \' (\'\n          + t(\'seance\') + \' \' + seanceDe(suiv).l + \')\');\n      }\n    }\n    if (semCourante >= 0) txt += \' · \' + t(\'programme\') + \' \' + progDe(semCourante);\n    var sp = document.createElement(\'span\');\n    sp.textContent = txt;\n    b.appendChild(sp);\n\n    if (s) {\n      var bt = document.createElement(\'button\');\n      bt.type = \'button\'; bt.className = \'btn-jour\'; bt.textContent = t(\'ouvrir_seance\');\n      bt.addEventListener(\'click\', function () {\n        var chip = document.querySelector(\'a.jour[data-seance="\' + s.l.toLowerCase() + \'"]\');\n        if (chip) chip.click();\n      });\n      b.appendChild(bt);\n    }\n  }\n\n  /* ---------- calendrier ---------- */\n  function rendre() {\n    var corps = el(\'cal-corps\');\n    corps.textContent = \'\';\n    if (!etat.debut) {\n      el(\'cal-etat\').textContent = t(\'cal_sans_date\');\n      el(\'cal-prog-txt\').textContent = \'\';\n      el(\'cal-jauge\').style.width = \'0\';\n      rendreJour(-1);\n      majStockage();\n      return;\n    }\n\n    var debut = parse(etat.debut), today = ajd();\n    var semCourante = Math.round((lundiDe(today) - debut) / 604800000);\n    var premiere = semCourante < 0 ? 0 : Math.floor(semCourante / etat.duree) * etat.duree;\n    var lignes = etat.duree * 2;\n\n    for (var i = premiere; i < premiere + lignes; i++) {\n      var lundi = plus(debut, i * 7), prog = progDe(i);\n      var tr = document.createElement(\'tr\');\n      tr.className = \'cal-ligne\' + (i === semCourante ? \' ici\' : \'\')\n        + (i < semCourante ? \' passee\' : \'\')\n        + (i > premiere && progDe(i) !== progDe(i - 1) ? \' bloc\' : \'\');\n\n      var th = document.createElement(\'th\');\n      th.scope = \'row\'; th.textContent = t(\'cal_sem\') + (i + 1);\n      tr.appendChild(th);\n\n      var tdP = document.createElement(\'td\');\n      var pas = document.createElement(\'span\');\n      pas.className = \'cal-prog p\' + prog; pas.textContent = prog;\n      tdP.appendChild(pas);\n      tr.appendChild(tdP);\n\n      var tdD = document.createElement(\'td\');\n      tdD.className = \'cal-dates\';\n      tdD.textContent = fdate(lundi) + \' – \' + fdate(plus(lundi, 4));\n      tr.appendChild(tdD);\n\n      var tdC = document.createElement(\'td\');\n      var pts = document.createElement(\'span\');\n      pts.className = \'pts\';\n      DECALAGE.forEach(function (dj) {\n        var jour = plus(lundi, dj);\n        var pt = document.createElement(\'i\');\n        pt.className = \'pt\' + (jour < today ? \' fait\' : (+jour === +today ? \' ajd\' : \'\'));\n        pt.title = fdate(jour, true);\n        pts.appendChild(pt);\n      });\n      tdC.appendChild(pts);\n      tr.appendChild(tdC);\n\n      corps.appendChild(tr);\n    }\n\n    var msg, dansBloc = 0;\n    if (semCourante < 0) {\n      msg = t(\'cal_avant\').replace(\'%D%\', fdate(debut, true));\n      el(\'cal-jauge\').style.width = \'0\';\n      el(\'cal-prog-txt\').textContent = \'\';\n    } else {\n      dansBloc = semCourante % etat.duree;\n      var reste = etat.duree - dansBloc - 1;\n      var suivant = progDe(semCourante) === \'A\' ? \'B\' : \'A\';\n      msg = t(\'cal_etat\').replace(\'%N%\', dansBloc + 1).replace(\'%P%\', progDe(semCourante))\n        + \' · \' + (reste === 0\n          ? t(\'cal_reste_un\').replace(\'%Q%\', suivant)\n          : t(\'cal_reste\').replace(\'%R%\', reste).replace(\'%Q%\', suivant));\n      el(\'cal-jauge\').style.width = Math.round((dansBloc + 1) / etat.duree * 100) + \'%\';\n      el(\'cal-prog-txt\').textContent = t(\'bloc_progression\')\n        .replace(\'%B%\', Math.floor(semCourante / etat.duree) + 1)\n        .replace(\'%N%\', dansBloc + 1).replace(\'%T%\', etat.duree);\n    }\n    el(\'cal-etat\').textContent = msg;\n    rendreJour(semCourante);\n    majStockage();\n\n    if (semCourante >= 0 && !bascule) {\n      bascule = true;\n      var onglet = document.querySelector(\'.onglet[data-prog="\' + progDe(semCourante) + \'"]\');\n      if (onglet && onglet.getAttribute(\'aria-selected\') !== \'true\') onglet.click();\n    }\n  }\n\n  /* ---------- écoute ---------- */\n  el(\'cal-debut\').addEventListener(\'change\', function () {\n    if (!this.value) return;\n    etat.debut = iso(lundiDe(parse(this.value)));\n    this.value = etat.debut;\n    enregistrer(); rendre();\n  });\n  el(\'cal-duree\').addEventListener(\'change\', function () {\n    etat.duree = +this.value; enregistrer(); rendre();\n  });\n  document.addEventListener(\'langue\', rendre);\n\n  /* ---------- démarrage ---------- */\n  try { el(\'panneau\').open = window.matchMedia(\'(min-width: 900px)\').matches; } catch (e) {}\n  localLire();\n  if (!etat.debut) etat.debut = iso(lundiDe(ajd()));\n  el(\'cal-debut\').value = etat.debut;\n  el(\'cal-duree\').value = String(etat.duree);\n  rendre();\n\n  (async function () {\n    try { db = window.claude && await window.claude.use(\'db\'); } catch (e) { db = null; }\n    if (!db) { majStockage(); return; }\n    try {\n      var c = await db.doc(\'suivi/config\').get();\n      if (c.exists) {\n        var d = c.data();\n        if (d.debut) etat.debut = d.debut;\n        if (d.duree) etat.duree = +d.duree;\n      }\n    } catch (e) { db = null; }\n    el(\'cal-debut\').value = etat.debut;\n    el(\'cal-duree\').value = String(etat.duree);\n    try { localStorage.setItem(\'cal\', JSON.stringify(etat)); } catch (e) {}\n    rendre();\n  })();\n})();\n</script>\n'
 
 
 def main():
@@ -243,6 +243,17 @@ def main():
 
     langues = "".join(f'<option value="{c}">{esc(n)}</option>' for c, n in LANGUES)
     ui_json = json.dumps({k: list(v) for k, v in UI.items()}, ensure_ascii=False)
+
+    # Quel jour de la semaine porte quelle séance (1 = lundi … 7 = dimanche).
+    plan = {"jours": {}, "noms": {}}
+    for i, (jour, txt, _) in enumerate(SEMAINE, start=1):
+        plan["noms"][i] = list(JOURS[jour])
+        if txt.startswith("Repos"):
+            continue
+        lettre = txt.split(" — ")[0].replace("Séance ", "").strip()
+        groupe = txt.split(" — ")[1].split(" + ")[0]
+        plan["jours"][i] = {"l": lettre, "g": list(SEANCE_GROUPE[groupe])}
+    plan_json = json.dumps(plan, ensure_ascii=False)
     cal_js = CAL_JS
 
     grilles, onglets = "", ""
@@ -290,16 +301,57 @@ def main():
 body {{ margin:0; background:var(--bg); color:var(--ink);
   font-family:"Source Sans 3",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
   font-size:16px; line-height:1.5; }}
-.wrap {{ max-width:1180px; margin:0 auto; padding-inline:16px; padding-block:0 40px; }}
+.wrap {{ max-width:1240px; margin:0 auto; padding-inline:16px; padding-block:0 40px; }}
+.corps {{ display:grid; grid-template-columns:1fr; gap:18px; margin-top:14px; }}
+.principal {{ min-width:0; }}
+@media (min-width:900px) {{
+  .corps {{ grid-template-columns:320px minmax(0,1fr); gap:24px; align-items:start; }}
+  .cote {{ position:sticky; top:calc(env(safe-area-inset-top, 0px) + 12px);
+    max-height:calc(100dvh - 28px); overflow-y:auto; }}
+}}
+.panneau {{ background:var(--surface); border:1px solid var(--line); border-radius:14px;
+  box-shadow:var(--ombre); overflow:hidden; }}
+.panneau > summary {{ cursor:pointer; padding:12px 16px; font-family:"Barlow Condensed",sans-serif;
+  font-size:18px; font-weight:600; text-transform:uppercase; letter-spacing:.04em;
+  list-style:none; display:flex; align-items:center; gap:8px; }}
+.panneau > summary::-webkit-details-marker {{ display:none; }}
+.panneau > summary::after {{ content:"›"; margin-left:auto; font-size:22px; line-height:1;
+  color:var(--muted); transition:transform .15s; }}
+.panneau[open] > summary::after {{ transform:rotate(90deg); }}
+.panneau > summary:hover {{ background:var(--surface-2); }}
+.panneau-corps {{ padding:2px 16px 14px; }}
+.bloc-cote {{ padding:12px 0; border-top:1px solid var(--line); }}
+.bloc-cote:first-child {{ border-top:0; padding-top:4px; }}
+.bloc-cote .champ + .champ {{ margin-top:8px; }}
+.bloc-cote .onglets {{ margin:0 0 8px; flex-direction:column; }}
+.bloc-cote .onglet {{ flex:1 1 auto; font-size:17px; padding:9px 12px; }}
+.bandeau {{ margin:14px 0 0; background:var(--surface); border:1px solid var(--line);
+  border-left:4px solid var(--accent); border-radius:11px; padding:11px 14px;
+  font-family:"Barlow Condensed","Source Sans 3",sans-serif; font-size:19px; font-weight:600;
+  line-height:1.3; display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px; }}
+.bandeau .btn-jour {{ font-family:"Source Sans 3",sans-serif; font-size:13.5px; font-weight:600;
+  background:var(--accent); color:var(--on-accent); border:0; border-radius:8px;
+  padding:7px 12px; cursor:pointer; }}
+.bandeau .btn-jour:focus-visible {{ outline:2px solid var(--accent); outline-offset:2px; }}
+.jauge {{ height:6px; border-radius:3px; background:var(--surface-2); overflow:hidden;
+  margin:8px 0 5px; }}
+.jauge span {{ display:block; height:100%; width:0; background:var(--accent); }}
+.cal-prog-txt {{ margin:0 0 8px; font-size:13px; color:var(--muted);
+  font-variant-numeric:tabular-nums; }}
+.pts {{ display:inline-flex; gap:5px; }}
+.pt {{ width:9px; height:9px; border-radius:50%; border:1.5px solid var(--line);
+  display:inline-block; }}
+.pt.fait {{ background:var(--muted); border-color:var(--muted); }}
+.pt.ajd {{ border-color:var(--accent); box-shadow:0 0 0 2.5px color-mix(in srgb, var(--accent) 28%, transparent); }}
 h1,h2,h3,.pastille,.eyebrow {{ font-family:"Barlow Condensed","Source Sans 3",sans-serif; }}
 h1 {{ font-size:clamp(30px,6vw,44px); font-weight:700; letter-spacing:-.01em;
      margin:0; text-wrap:balance; text-transform:uppercase; }}
 .eyebrow {{ font-size:13px; font-weight:600; letter-spacing:.14em; text-transform:uppercase;
      color:var(--muted); margin:0 0 4px; }}
-.tete {{ padding-block:28px 18px; border-bottom:1px solid var(--line); margin-bottom:22px; }}
+.tete {{ padding-block:24px 14px; }}
 .tete p.intro {{ margin:8px 0 0; color:var(--muted); max-width:62ch; }}
 
-.semaine {{ display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-top:18px; }}
+.semaine {{ display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin:0 0 14px; }}
 .jour {{ background:var(--surface); border:1px solid var(--line); border-radius:8px;
   padding:7px 4px 6px; text-align:center; display:block; text-decoration:none;
   color:inherit; transition:border-color .15s, transform .15s; }}
@@ -315,23 +367,20 @@ a.jour:focus-visible {{ outline:2px solid var(--accent); outline-offset:2px; }}
 .jour.off {{ background:transparent; }}
 .jour.off .jour-val {{ color:var(--muted); }}
 
-.cal {{ background:var(--surface); border:1px solid var(--line); border-radius:14px;
-  box-shadow:var(--ombre); padding:14px 16px 12px; margin-top:20px; }}
-.cal .eyebrow {{ margin-bottom:6px; }}
-.cal .reglages {{ margin:10px 0 12px; }}
 .cal-etat {{ margin:0; font-family:"Barlow Condensed","Source Sans 3",sans-serif;
   font-size:19px; font-weight:600; line-height:1.25; }}
-.cal input[type="date"] {{ flex:1; min-width:0; font:inherit; color:var(--ink);
+input[type="date"] {{ flex:1; min-width:0; font:inherit; color:var(--ink);
   background:var(--surface); border:1px solid var(--line); border-radius:9px; padding:10px 12px; }}
-.cal-defil {{ overflow-x:auto; }}
+.cal-defil {{ overflow-x:auto; margin-bottom:8px; }}
 .cal-table {{ width:100%; border-collapse:collapse; font-size:14px; }}
-.cal-table th, .cal-table td {{ padding:5px 8px 5px 0; text-align:left; vertical-align:middle;
+.cal-table th, .cal-table td {{ padding:4px 7px 4px 0; text-align:left; vertical-align:middle;
   border-top:1px solid var(--line); }}
+.cal-table tr.passee th, .cal-table tr.passee td {{ opacity:.55; }}
 .cal-table th {{ font-weight:600; color:var(--muted); font-variant-numeric:tabular-nums;
   white-space:nowrap; }}
 .cal-ligne.bloc th, .cal-ligne.bloc td {{ border-top:2px solid var(--ink); }}
 .cal-ligne.ici {{ background:var(--surface-2); }}
-.cal-ligne.ici th {{ color:var(--ink); }}
+.cal-ligne.ici th {{ color:var(--ink); box-shadow:inset 3px 0 var(--accent); padding-left:6px; }}
 .cal-prog {{ display:inline-grid; place-items:center; width:24px; height:24px; border-radius:7px;
   font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px;
   background:var(--ink); color:var(--surface); }}
@@ -339,13 +388,7 @@ a.jour:focus-visible {{ outline:2px solid var(--accent); outline-offset:2px; }}
 .cal-ici {{ margin-left:7px; font-size:11.5px; letter-spacing:.06em; text-transform:uppercase;
   color:var(--accent); }}
 .cal-dates {{ color:var(--muted); white-space:nowrap; }}
-.cal-cases {{ display:flex; gap:6px; padding-top:4px; padding-bottom:4px; }}
-.case {{ display:inline-flex; align-items:center; gap:4px; cursor:pointer;
-  border:1px solid var(--line); border-radius:7px; padding:4px 7px; font-size:12.5px;
-  font-weight:600; color:var(--muted); }}
-.case:has(input:checked) {{ border-color:var(--accent); color:var(--accent);
-  background:var(--surface-2); }}
-.case input {{ margin:0; accent-color:var(--accent); }}
+
 .onglets {{ display:flex; gap:8px; margin:22px 0 0; flex-wrap:wrap; }}
 .onglet {{ flex:1 1 200px; text-align:left; font:inherit; cursor:pointer;
   background:var(--surface); color:var(--muted); border:1px solid var(--line);
@@ -485,38 +528,63 @@ html {{ scroll-behavior:smooth; }}
   <header class="tete">
     <p class="eyebrow" {A["sur_titre"]}>{esc(UI["sur_titre"][0])}</p>
     <h1 {A["titre"]}>{esc(UI["titre"][0])}</h1>
-    <p class="intro" {A["intro"]}>{esc(UI["intro"][0])}</p>
-    <div class="semaine">{semaine}</div>
   </header>
 
-  <section class="cal" aria-labelledby="cal-h">
-    <h2 class="eyebrow" id="cal-h" {A["cal_titre"]}>{esc(UI["cal_titre"][0])}</h2>
-    <p class="cal-etat" id="cal-etat"></p>
-    <div class="reglages">
-      <div class="champ"><label for="cal-debut" {A["cal_debut"]}>{esc(UI["cal_debut"][0])}</label>
-        <input type="date" id="cal-debut"></div>
-      <div class="champ"><label for="cal-duree" {A["cal_duree"]}>{esc(UI["cal_duree"][0])}</label>
-        <select id="cal-duree">
-          <option value="4" {A["cal_4"]}>{esc(UI["cal_4"][0])}</option>
-          <option value="5" {A["cal_5"]}>{esc(UI["cal_5"][0])}</option>
-        </select></div>
-    </div>
-    <div class="cal-defil"><table class="cal-table"><tbody id="cal-corps"></tbody></table></div>
-    <p class="note" id="cal-stockage"></p>
-    <p class="note" {A["cal_aide"]}>{esc(UI["cal_aide"][0])}</p>
-  </section>
+  <p class="bandeau" id="jour-etat"></p>
 
-  <div class="reglages">
-    <div class="champ"><label for="langue" {A["langue"]}>{esc(UI["langue"][0])}</label>
-      <select id="langue">{langues}</select></div>
-    <div class="champ"><label for="q" {A["filtrer"]}>{esc(UI["filtrer"][0])}</label>
-      <select id="q">{options}</select></div>
+  <div class="corps">
+    <aside class="cote">
+      <details class="panneau" id="panneau">
+        <summary {A["cote_titre"]}>{esc(UI["cote_titre"][0])}</summary>
+        <div class="panneau-corps">
+
+          <div class="bloc-cote">
+            <p class="cal-etat" id="cal-etat"></p>
+            <div class="jauge"><span id="cal-jauge"></span></div>
+            <p class="cal-prog-txt" id="cal-prog-txt"></p>
+            <div class="cal-defil"><table class="cal-table"><tbody id="cal-corps"></tbody></table></div>
+            <p class="note" {A["cal_legende"]}>{esc(UI["cal_legende"][0])}</p>
+          </div>
+
+          <div class="bloc-cote">
+            <div class="champ"><label for="cal-debut" {A["cal_debut"]}>{esc(UI["cal_debut"][0])}</label>
+              <input type="date" id="cal-debut"></div>
+            <div class="champ"><label for="cal-duree" {A["cal_duree"]}>{esc(UI["cal_duree"][0])}</label>
+              <select id="cal-duree">
+                <option value="4" {A["cal_4"]}>{esc(UI["cal_4"][0])}</option>
+                <option value="5" {A["cal_5"]}>{esc(UI["cal_5"][0])}</option>
+              </select></div>
+            <p class="note" id="cal-stockage"></p>
+          </div>
+
+          <div class="bloc-cote">
+            <div class="champ"><label for="langue" {A["langue"]}>{esc(UI["langue"][0])}</label>
+              <select id="langue">{langues}</select></div>
+            <div class="champ"><label for="q" {A["filtrer"]}>{esc(UI["filtrer"][0])}</label>
+              <select id="q">{options}</select></div>
+          </div>
+
+          <div class="bloc-cote">
+            <div class="onglets" role="tablist" aria-label="Choix du programme">{onglets}</div>
+            <p class="note" {A["rotation"]}>{esc(UI["rotation"][0])}</p>
+          </div>
+
+          <div class="bloc-cote">
+            <p class="eyebrow" {A["apropos"]}>{esc(UI["apropos"][0])}</p>
+            <p class="note" {A["intro"]}>{esc(UI["intro"][0])}</p>
+            <p class="note" {A["cal_aide"]}>{esc(UI["cal_aide"][0])}</p>
+          </div>
+
+        </div>
+      </details>
+    </aside>
+
+    <main class="principal">
+      <div class="semaine">{semaine}</div>
+      <p class="vide" id="vide" hidden {A["vide"]}>{esc(UI["vide"][0])}</p>
+      {grilles}
+    </main>
   </div>
-  <p class="vide" id="vide" hidden {A["vide"]}>{esc(UI["vide"][0])}</p>
-
-  <div class="onglets" role="tablist" aria-label="Choix du programme">{onglets}</div>
-  <p class="note rotation" {A["rotation"]}>{esc(UI["rotation"][0])}</p>
-  {grilles}
 
   <footer>
     <p class="note" {A["note_video"]}>{esc(UI["note_video"][0])}</p>
@@ -557,6 +625,7 @@ html {{ scroll-behavior:smooth; }}
 
 <script id="donnees" type="application/json">{json.dumps(d, ensure_ascii=False)}</script>
 <script id="ui" type="application/json">{ui_json}</script>
+<script id="planning" type="application/json">{plan_json}</script>
 <script>
 (function () {{
   var D = JSON.parse(document.getElementById('donnees').textContent);
