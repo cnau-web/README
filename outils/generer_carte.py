@@ -75,8 +75,7 @@ def construire_donnees():
                           g=CLE_GROUPE[f["groupe"]], machine=f["machine"],
                           reglage=f["reglage"], etapes=f["etapes"],
                           erreurs=f["erreurs"], seances=[],
-                          video=q(VIDEO[f["id"]]),
-                          videoErr=q(VIDEO[f["id"]] + " erreurs à éviter"))
+                          video=q(VIDEO[f["id"]]))
     for titre, _, lignes in SEANCES:
         for fid, _, series, reps, repos, _ in lignes:
             d[fid]["seances"].append(dict(s=titre.split(" — ")[0], v=f"{series} × {reps}", r=repos))
@@ -303,6 +302,8 @@ dialog::backdrop {{ background:rgba(8,12,18,.55); }}
   font-weight:600; text-decoration:none; border:1px solid var(--line); color:var(--ink);
   background:var(--surface-2); }}
 .btn.primaire {{ background:var(--accent); color:var(--on-accent); border-color:transparent; }}
+button.btn {{ font:inherit; font-weight:600; cursor:pointer; }}
+button.btn:disabled {{ opacity:.45; cursor:default; }}
 .btn:hover {{ filter:brightness(.97); }}
 .btn:focus-visible {{ outline:2px solid var(--accent); outline-offset:2px; }}
 .note {{ font-size:13.5px; color:var(--muted); margin:0; }}
@@ -327,8 +328,8 @@ html {{ scroll-behavior:smooth; }}
     <p class="eyebrow">Musculation du soir · lundi à vendredi</p>
     <h1>Carte des exercices</h1>
     <p class="intro">Épaules, dos, pectoraux, abdominaux. Touche un exercice pour ouvrir sa fiche :
-      schéma du mouvement, machine à chercher dans la salle, réglages, exécution, erreurs à éviter,
-      et deux liens vidéo.</p>
+      schéma du mouvement, machine à chercher dans la salle, réglages, exécution, erreurs à éviter
+      et lien vidéo. Le bouton « exercice suivant » enchaîne les fiches dans l'ordre de la séance.</p>
     <div class="semaine">{semaine}</div>
   </header>
 
@@ -341,7 +342,7 @@ html {{ scroll-behavior:smooth; }}
   <div class="grille" id="grille">{cartes}</div>
 
   <footer>
-    <p class="note">Les boutons vidéo ouvrent une <b>recherche YouTube</b> sur le nom de l'exercice :
+    <p class="note">Le bouton vidéo ouvre une <b>recherche YouTube</b> sur le nom de l'exercice :
     les résultats changent avec le temps, choisis une démonstration récente et complète plutôt que
     la première miniature. Les schémas et les fiches reprennent le PDF du programme.</p>
   </footer>
@@ -370,7 +371,7 @@ html {{ scroll-behavior:smooth; }}
         <div class="bloc err"><h3>Erreurs à éviter</h3><ol id="dlg-erreurs"></ol></div>
         <div class="actions">
           <a class="btn primaire" id="dlg-video" href="#" target="_blank" rel="noopener">▶ Voir la démonstration</a>
-          <a class="btn" id="dlg-video-err" href="#" target="_blank" rel="noopener">Erreurs fréquentes</a>
+          <button class="btn" type="button" id="dlg-suivant">Exercice suivant →</button>
         </div>
       </div>
     </div>
@@ -392,9 +393,19 @@ html {{ scroll-behavior:smooth; }}
     }});
   }}
 
+  var courant = null;
+
+  function suivantDe(btn) {{
+    for (var n = btn.parentElement.nextElementSibling; n; n = n.nextElementSibling) {{
+      if (n.classList.contains('row-li') && !n.hidden) return n.querySelector('.row');
+    }}
+    return null;                                   // dernier exercice de la séance
+  }}
+
   function ouvrir(btn) {{
     var ex = D[btn.dataset.id];
     if (!ex) return;
+    courant = btn;
     var svg = btn.querySelector('svg');
     el('dlg-fig').textContent = '';
     if (svg) el('dlg-fig').appendChild(svg.cloneNode(true));
@@ -415,7 +426,10 @@ html {{ scroll-behavior:smooth; }}
     liste(el('dlg-etapes'), ex.etapes);
     liste(el('dlg-erreurs'), ex.erreurs);
     el('dlg-video').href = ex.video;
-    el('dlg-video-err').href = ex.videoErr;
+    var suiv = suivantDe(btn), bs = el('dlg-suivant');
+    bs.disabled = !suiv;
+    bs.textContent = suiv ? 'Exercice suivant →' : 'Fin de la séance';
+    bs.title = suiv ? 'Suivant : ' + D[suiv.dataset.id].nom : '';
     if (typeof dlg.showModal === 'function') dlg.showModal(); else dlg.setAttribute('open', '');
     dlg.querySelector('.sheet').scrollTop = 0;
   }}
@@ -440,6 +454,11 @@ html {{ scroll-behavior:smooth; }}
     var btn = e.target.closest('.row');
     if (btn) {{ ouvrir(btn); return; }}
     if (e.target.id === 'dlg-fermer') {{ dlg.close(); return; }}
+    if (e.target.id === 'dlg-suivant') {{
+      var suiv = courant && suivantDe(courant);
+      if (suiv) ouvrir(suiv);
+      return;
+    }}
     if (e.target === dlg || e.target.classList.contains('dlg-pos')) dlg.close();
   }});
 
