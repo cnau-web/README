@@ -13,6 +13,8 @@ Le tableau ci‑dessous ne concerne que la séance du soir.
 > **Carte interactive :** [`carte-exercices.html`](carte-exercices.html) — les 4 séances
 > cliquables ; chaque exercice ouvre sa fiche avec le schéma, les réglages et deux liens de
 > recherche vidéo. Se régénère avec `python3 outils/generer_carte.py`.
+> Disponible en français, anglais et espagnol (sélecteur en haut de page) ;
+> les traductions sont dans `outils/traductions.py`. Le PDF reste en français.
 
 ## Organisation de la semaine
 

@@ -13,6 +13,8 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from contenu import FICHES, IDX, SEMAINE, PROGRAMMES
+import traductions as TR
+from traductions import UI, GROUPES, MATERIELS, JOURS, SEANCE_GROUPE, BLOCS_NOM, LANGUES
 from illustrations import ILLUS
 
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -102,6 +104,16 @@ def esc(t):
     return H.escape(t, quote=False)
 
 
+def tri(fr, en, es):
+    """Attributs de traduction posés sur l'élément qui porte le texte."""
+    return (f'data-t-fr="{H.escape(fr, quote=True)}" '
+            f'data-t-en="{H.escape(en, quote=True)}" '
+            f'data-t-es="{H.escape(es, quote=True)}"')
+
+
+A = {cle: tri(*v) for cle, v in UI.items()}
+
+
 def q(texte):
     from urllib.parse import quote_plus
     return YT + quote_plus(texte)
@@ -111,14 +123,18 @@ def construire_donnees():
     """Fiche + seances (des deux programmes) dans lesquelles l'exercice apparait."""
     d = {}
     for f in FICHES:
-        d[f["id"]] = dict(n=IDX[f["id"]], nom=f["nom"], groupe=f["groupe"],
-                          g=CLE_GROUPE[f["groupe"]], machine=f["machine"],
-                          reglage=f["reglage"], etapes=f["etapes"],
-                          erreurs=f["erreurs"], seances=[],
-                          video=q(VIDEO[f["id"]]))
+        fid, t = f["id"], {}
+        for i, (code, _) in enumerate(LANGUES):
+            src = f if i == 0 else (TR.FICHES_EN if i == 1 else TR.FICHES_ES)[fid]
+            t[code] = dict(nom=src["nom"], machine=src["machine"], reglage=src["reglage"],
+                           etapes=list(src["etapes"]), erreurs=list(src["erreurs"]),
+                           groupe=GROUPES[f["groupe"]][i],
+                           video=q(VIDEO[fid] if i == 0
+                                   else src["nom"] + " " + TR.SUFFIXE_VIDEO[i]))
+        d[fid] = dict(n=IDX[fid], g=CLE_GROUPE[f["groupe"]], seances=[], t=t)
 
     def dose(fid, prog, lettre, valeur, repos):
-        e = dict(p=prog, s=f"Séance {lettre}", v=valeur, r=repos)
+        e = dict(p=prog, l=lettre, v=[TR.dose(valeur, i) for i in range(3)], r=repos)
         if e not in d[fid]["seances"]:
             d[fid]["seances"].append(e)
 
@@ -141,13 +157,13 @@ ILLU = {f["id"]: f.get("illu", f["id"]) for f in FICHES}
 
 
 def ligne(fid, nom, dose, repos, d):
-    ex = d[fid]
+    noms = tuple(d[fid]["t"][c]["nom"] for c, _ in LANGUES)
+    doses = tuple(f"{TR.dose(dose, i)} · {UI['repos'][i]} {TR.dose(repos, i)}" for i in range(3))
     return f"""<li class="row-li"><button class="row" type="button" data-id="{fid}"
-      data-g="{ex['g']}" data-m="{MAT_DE[fid]}"
-      aria-haspopup="dialog" data-nom="{esc(nom.lower())}">
+      data-g="{d[fid]['g']}" data-m="{MAT_DE[fid]}" aria-haspopup="dialog">
   <span class="vign">{ILLUS[ILLU[fid]]().svg()}</span>
-  <span class="ligne-txt"><span class="ligne-nom">{esc(nom)}</span>
-    <span class="ligne-dose">{esc(dose)}<span class="sep">·</span>repos {esc(repos)}</span></span>
+  <span class="ligne-txt"><span class="ligne-nom" {tri(*noms)}>{esc(noms[0])}</span>
+    <span class="ligne-dose" {tri(*doses)}>{esc(doses[0])}</span></span>
   <span class="chev" aria-hidden="true">›</span>
 </button></li>"""
 
@@ -157,29 +173,34 @@ def carte_seance(titre, soustitre, lignes, d, prog):
     blocs, gainage, cle = prog["blocs"], prog["gainage"], prog["cle"]
     lettre = titre.split("Séance ")[-1][0]
     jour, duree = soustitre.split(" · ")[0], soustitre.split(" · ")[1]
-    groupe = titre.split(" — ")[-1].replace("Haut du corps complet", "Haut du corps")
+    groupe = titre.split(" — ")[-1]
     items = "".join(ligne(fid, nom, f"{series} × {reps}", repos, d)
                     for fid, nom, series, reps, repos, _ in lignes)
 
     bloc_lettre = SEANCE_BLOC[lettre]
     btitre, _, blignes = next(b for b in blocs if b[0].split("abdos ")[-1][0] == bloc_lettre)
-    items += (f'<li class="sous-tete"><span>Abdominaux</span>'
-              f'<span class="sous-tete-note">{esc(btitre.split(" — ")[-1])} '
-              f'· bloc {bloc_lettre}</span></li>')
+    bn = BLOCS_NOM[btitre.split(" — ")[-1]]
+    notes = tuple(f"{bn[i]} · {('bloc', 'block', 'bloque')[i]} {bloc_lettre}" for i in range(3))
+    items += (f'<li class="sous-tete"><span {A["abdominaux"]}>{esc(UI["abdominaux"][0])}</span>'
+              f'<span class="sous-tete-note" {tri(*notes)}>{esc(notes[0])}</span></li>')
     items += "".join(ligne(fid, nom, f"{series} × {reps}", repos, d)
                      for fid, nom, series, reps, repos in blignes)
 
+    titres = tuple(f"{SEANCE_GROUPE[groupe][i]} {UI['plus_abdos'][i]}" for i in range(3))
+    sous = tuple(f"{JOURS[jour][i]} · {TR.duree(duree, i)}" for i in range(3))
+
     gfid, gnom, gser, gduree, grepos = gainage[lettre]
-    items += ('<li class="sous-tete"><span>Gainage</span>'
-              '<span class="sous-tete-note">2 à 3 min · pour finir</span></li>')
+    items += (f'<li class="sous-tete"><span {A["gainage"]}>{esc(UI["gainage"][0])}</span>'
+              f'<span class="sous-tete-note" {A["gainage_note"]}>'
+              f'{esc(UI["gainage_note"][0])}</span></li>')
     items += ligne(gfid, gnom, f"{gser} × {gduree}", grepos, d)
 
     return f"""<section class="carte" id="p{cle}-seance-{lettre.lower()}"
   data-seance="{lettre.lower()}" tabindex="-1">
   <header class="carte-tete">
     <span class="pastille">{esc(lettre)}</span>
-    <div><h2>{esc(groupe)} + abdos</h2>
-      <p class="carte-sous">{esc(jour)} · {esc(duree)}</p></div>
+    <div><h2 {tri(*titres)}>{esc(titres[0])}</h2>
+      <p class="carte-sous" {tri(*sous)}>{esc(sous[0])}</p></div>
   </header>
   <ol class="rows">{items}</ol>
 </section>"""
@@ -188,38 +209,48 @@ def carte_seance(titre, soustitre, lignes, d, prog):
 def main():
     d = construire_donnees()
     jours = []
-    for j, s, _ in SEMAINE:
-        if s.startswith("Repos"):
-            jours.append(f'<div class="jour off"><span class="jour-nom">{j[:3]}</span>'
+    for j, txt, _ in SEMAINE:
+        abrev = tuple(JOURS[j][i][:3].upper() for i in range(3))
+        if txt.startswith("Repos"):
+            jours.append(f'<div class="jour off"><span class="jour-nom" {tri(*abrev)}>{abrev[0]}</span>'
                          f'<span class="jour-val">—</span>'
-                         f'<span class="jour-quoi">repos</span></div>')
+                         f'<span class="jour-quoi" {A["repos_jour"]}>{esc(UI["repos_jour"][0])}</span></div>')
             continue
-        lettre = s.split(" — ")[0].replace("Séance ", "").strip()
-        groupe = s.split(" — ")[1].split(" + ")[0].replace("Haut du corps complet", "Haut du corps")
+        lettre = txt.split(" — ")[0].replace("Séance ", "").strip()
+        groupe = txt.split(" — ")[1].split(" + ")[0]
+        gr = SEANCE_GROUPE[groupe]
         jours.append(
             f'<a class="jour" href="#pA-seance-{lettre.lower()}" data-seance="{lettre.lower()}" '
-            f'aria-label="Aller aux exercices de {j.lower()} : séance {lettre}, {esc(groupe.lower())}">'
-            f'<span class="jour-nom">{j[:3]}</span>'
+            f'aria-label="{esc(JOURS[j][0])} — {esc(groupe)}">'
+            f'<span class="jour-nom" {tri(*abrev)}>{abrev[0]}</span>'
             f'<span class="jour-val">{esc(lettre)}</span>'
-            f'<span class="jour-quoi">{esc(groupe)}</span></a>')
+            f'<span class="jour-quoi" {tri(*gr)}>{esc(gr[0])}</span></a>')
     semaine = "".join(jours)
-    options = '<option value="">Tous les exercices</option><optgroup label="Groupe musculaire">'
-    options += "".join(f'<option value="g:{c}">{esc(n)}</option>'
-                       for n, c in (("Pectoraux", "pect"), ("Dos", "dos"),
-                                    ("Épaules", "epaules"), ("Abdominaux et gainage", "abdos")))
-    options += '</optgroup><optgroup label="Matériel">'
-    options += "".join(f'<option value="m:{cle}">{esc(nom)}</option>'
-                       for cle, (nom, _) in MATERIEL.items())
+    options = f'<option value="" {A["tous"]}>{esc(UI["tous"][0])}</option>'
+    options += f'<optgroup label="{esc(UI["opt_groupe"][0])}">'
+    for fr, c in (("Pectoraux", "pect"), ("Dos", "dos"), ("Épaules", "epaules"),
+                  ("Abdos", "abdos")):
+        g = GROUPES[fr]
+        options += f'<option value="g:{c}" {tri(*g)}>{esc(g[0])}</option>'
+    options += f'</optgroup><optgroup label="{esc(UI["opt_materiel"][0])}">'
+    for cle in MATERIEL:
+        m = MATERIELS[cle]
+        options += f'<option value="m:{cle}" {tri(*m)}>{esc(m[0])}</option>'
     options += "</optgroup>"
+
+    langues = "".join(f'<option value="{c}">{esc(n)}</option>' for c, n in LANGUES)
+    ui_json = json.dumps({k: list(v) for k, v in UI.items()}, ensure_ascii=False)
 
     grilles, onglets = "", ""
     for i, prog in enumerate(PROGRAMMES):
         cartes = "".join(carte_seance(t, st, l, d, prog) for t, st, l in prog["seances"])
         grilles += (f'<div class="grille" data-prog="{prog["cle"]}"'
                     f'{"" if i == 0 else " hidden"}>{cartes}</div>')
+        nom_p = tuple(f'{UI["programme"][k]} {prog["cle"]}' for k in range(3))
+        sous_p = UI["prog_sous_a"] if i == 0 else UI["prog_sous_b"]
         onglets += (f'<button class="onglet" type="button" role="tab" data-prog="{prog["cle"]}"'
-                    f' aria-selected="{"true" if i == 0 else "false"}">'
-                    f'{esc(prog["titre"])}<span>{esc(prog["sous"])}</span></button>')
+                    f' aria-selected="{"true" if i == 0 else "false"}" {tri(*nom_p)}>'
+                    f'{esc(nom_p[0])}<span {tri(*sous_p)}>{esc(sous_p[0])}</span></button>')
 
     page = f"""<title>Carte des exercices</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -292,13 +323,14 @@ a.jour:focus-visible {{ outline:2px solid var(--accent); outline-offset:2px; }}
   border-color:var(--ink); }}
 .onglet[aria-selected="true"] span {{ color:var(--surface); opacity:.75; }}
 .onglet:focus-visible {{ outline:2px solid var(--accent); outline-offset:2px; }}
-.filtre {{ display:flex; align-items:center; gap:10px; margin:14px 0 6px; }}
-.filtre label {{ font-size:12.5px; font-weight:600; letter-spacing:.1em;
+.reglages {{ display:flex; gap:10px 18px; flex-wrap:wrap; margin:14px 0 6px; }}
+.champ {{ flex:1 1 240px; display:flex; align-items:center; gap:10px; }}
+.champ label {{ font-size:12.5px; font-weight:600; letter-spacing:.1em;
   text-transform:uppercase; color:var(--muted); }}
-.filtre select {{ flex:1; min-width:0; font:inherit; font-weight:600; color:var(--ink);
+.champ select {{ flex:1; min-width:0; font:inherit; font-weight:600; color:var(--ink);
   background:var(--surface); border:1px solid var(--line); border-radius:9px;
   padding:11px 13px; cursor:pointer; }}
-.filtre select:focus-visible {{ outline:2px solid var(--accent); outline-offset:1px; }}
+.champ select:focus-visible {{ outline:2px solid var(--accent); outline-offset:1px; }}
 .vide {{ color:var(--muted); padding:10px 2px; }}
 
 .grille {{ display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(290px,1fr));
@@ -415,29 +447,25 @@ html {{ scroll-behavior:smooth; }}
 
 <div class="wrap">
   <header class="tete">
-    <p class="eyebrow">Musculation du soir · lundi à vendredi</p>
-    <h1>Carte des exercices</h1>
-    <p class="intro">Épaules, dos, pectoraux, abdominaux. Touche un exercice pour ouvrir sa fiche :
-      schéma du mouvement, machine à chercher dans la salle, réglages, exécution, erreurs à éviter
-      et lien vidéo. Le bouton « exercice suivant » enchaîne les fiches dans l'ordre de la séance.
-      Les deux programmes alternent d'une semaine sur l'autre : mêmes jours, mêmes muscles,
-      d'autres exercices.</p>
+    <p class="eyebrow" {A["sur_titre"]}>{esc(UI["sur_titre"][0])}</p>
+    <h1 {A["titre"]}>{esc(UI["titre"][0])}</h1>
+    <p class="intro" {A["intro"]}>{esc(UI["intro"][0])}</p>
     <div class="semaine">{semaine}</div>
   </header>
 
-  <div class="filtre">
-    <label for="q">Filtrer</label>
-    <select id="q">{options}</select>
+  <div class="reglages">
+    <div class="champ"><label for="langue" {A["langue"]}>{esc(UI["langue"][0])}</label>
+      <select id="langue">{langues}</select></div>
+    <div class="champ"><label for="q" {A["filtrer"]}>{esc(UI["filtrer"][0])}</label>
+      <select id="q">{options}</select></div>
   </div>
-  <p class="vide" id="vide" hidden>Aucun exercice ne correspond.</p>
+  <p class="vide" id="vide" hidden {A["vide"]}>{esc(UI["vide"][0])}</p>
 
   <div class="onglets" role="tablist" aria-label="Choix du programme">{onglets}</div>
   {grilles}
 
   <footer>
-    <p class="note">Le bouton vidéo ouvre une <b>recherche YouTube</b> sur le nom de l'exercice :
-    les résultats changent avec le temps, choisis une démonstration récente et complète plutôt que
-    la première miniature. Les schémas et les fiches reprennent le PDF du programme.</p>
+    <p class="note" {A["note_video"]}>{esc(UI["note_video"][0])}</p>
   </footer>
 </div>
 
@@ -447,24 +475,26 @@ html {{ scroll-behavior:smooth; }}
       <div class="sheet-tete">
         <span class="num" id="dlg-num"></span>
         <div><h2 id="dlg-nom"></h2><p class="note" id="dlg-groupe"></p></div>
-        <button class="fermer" type="button" id="dlg-fermer">Fermer</button>
+        <button class="fermer" type="button" id="dlg-fermer" {A["fermer"]}>{esc(UI["fermer"][0])}</button>
       </div>
       <div class="sheet-corps">
         <div>
           <div class="fig" id="dlg-fig"></div>
           <div class="legende">
-            <span><i></i>Départ</span><span><i class="clair"></i>Arrivée</span>
-            <span><i class="rouge"></i>Sens du mouvement</span>
+            <span><i></i><span {A["depart"]}>{esc(UI["depart"][0])}</span></span>
+            <span><i class="clair"></i><span {A["arrivee"]}>{esc(UI["arrivee"][0])}</span></span>
+            <span><i class="rouge"></i><span {A["sens"]}>{esc(UI["sens"][0])}</span></span>
           </div>
         </div>
         <div class="doses" id="dlg-doses"></div>
-        <div class="bloc"><h3>Quelle machine</h3><p id="dlg-machine"></p></div>
-        <div class="bloc"><h3>Réglages avant de commencer</h3><p id="dlg-reglage"></p></div>
-        <div class="bloc"><h3>Exécution</h3><ol id="dlg-etapes"></ol></div>
-        <div class="bloc err"><h3>Erreurs à éviter</h3><ol id="dlg-erreurs"></ol></div>
+        <div class="bloc"><h3 {A["machine"]}>{esc(UI["machine"][0])}</h3><p id="dlg-machine"></p></div>
+        <div class="bloc"><h3 {A["reglage"]}>{esc(UI["reglage"][0])}</h3><p id="dlg-reglage"></p></div>
+        <div class="bloc"><h3 {A["execution"]}>{esc(UI["execution"][0])}</h3><ol id="dlg-etapes"></ol></div>
+        <div class="bloc err"><h3 {A["erreurs"]}>{esc(UI["erreurs"][0])}</h3><ol id="dlg-erreurs"></ol></div>
         <div class="actions">
-          <a class="btn primaire" id="dlg-video" href="#" target="_blank" rel="noopener">▶ Voir la démonstration</a>
-          <button class="btn" type="button" id="dlg-suivant">Exercice suivant →</button>
+          <a class="btn primaire" id="dlg-video" href="#" target="_blank" rel="noopener"
+             {A["video"]}>{esc(UI["video"][0])}</a>
+          <button class="btn" type="button" id="dlg-suivant">{esc(UI["suivant"][0])}</button>
         </div>
       </div>
     </div>
@@ -472,10 +502,15 @@ html {{ scroll-behavior:smooth; }}
 </dialog>
 
 <script id="donnees" type="application/json">{json.dumps(d, ensure_ascii=False)}</script>
+<script id="ui" type="application/json">{ui_json}</script>
 <script>
 (function () {{
   var D = JSON.parse(document.getElementById('donnees').textContent);
+  var U = JSON.parse(document.getElementById('ui').textContent);
+  var LANGS = ['fr', 'en', 'es'];
+  var LANG = 'fr';
   var dlg = document.getElementById('dlg');
+  function t(cle) {{ return U[cle][LANGS.indexOf(LANG)]; }}
   var el = function (id) {{ return document.getElementById(id); }};
   var champ = el('q');
 
@@ -504,30 +539,52 @@ html {{ scroll-behavior:smooth; }}
     if (svg) el('dlg-fig').appendChild(svg.cloneNode(true));
     el('dlg-num').textContent = ex.n;
     el('dlg-num').style.setProperty('--g', 'var(--' + ex.g + ')');
-    el('dlg-nom').textContent = ex.nom;
-    el('dlg-groupe').textContent = ex.groupe + ' · fiche n° ' + ex.n + ' du PDF';
+    var i = LANGS.indexOf(LANG), f = ex.t[LANG];
+    el('dlg-nom').textContent = f.nom;
+    el('dlg-groupe').textContent = f.groupe + ' · ' + t('fiche_no') + ' ' + ex.n;
     var doses = el('dlg-doses'); doses.textContent = '';
     ex.seances.forEach(function (s) {{
       var d = document.createElement('span'); d.className = 'dose';
       d.innerHTML = '<b></b> <span></span>';
-      d.querySelector('b').textContent = s.p + ' · ' + s.s;
-      d.querySelector('span').textContent = s.v + ' — repos ' + s.r;
+      d.querySelector('b').textContent = s.p + ' · ' + t('seance') + ' ' + s.l;
+      d.querySelector('span').textContent = s.v[i] + ' — ' + t('repos') + ' ' + s.r;
       doses.appendChild(d);
     }});
-    el('dlg-machine').textContent = ex.machine;
-    el('dlg-reglage').textContent = ex.reglage;
-    liste(el('dlg-etapes'), ex.etapes);
-    liste(el('dlg-erreurs'), ex.erreurs);
-    el('dlg-video').href = ex.video;
+    el('dlg-machine').textContent = f.machine;
+    el('dlg-reglage').textContent = f.reglage;
+    liste(el('dlg-etapes'), f.etapes);
+    liste(el('dlg-erreurs'), f.erreurs);
+    el('dlg-video').href = f.video;
     var suiv = suivantDe(btn), bs = el('dlg-suivant');
     bs.disabled = !suiv;
-    bs.textContent = suiv ? 'Exercice suivant →' : 'Fin de la séance';
-    bs.title = suiv ? 'Suivant : ' + D[suiv.dataset.id].nom : '';
+    bs.textContent = suiv ? t('suivant') : t('fin');
+    bs.title = suiv ? D[suiv.dataset.id].t[LANG].nom : '';
     if (typeof dlg.showModal === 'function') dlg.showModal(); else dlg.setAttribute('open', '');
     dlg.querySelector('.sheet').scrollTop = 0;
   }}
 
   var doux = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var selLangue = el('langue');
+
+  function traduire(l) {{
+    if (LANGS.indexOf(l) === -1) return;
+    LANG = l;
+    selLangue.value = l;
+    document.documentElement.lang = l;
+    document.title = t('titre');
+    document.querySelectorAll('[data-t-fr]').forEach(function (n) {{
+      var v = n.getAttribute('data-t-' + l);
+      if (v !== null) n.textContent = v;
+    }});
+    try {{ localStorage.setItem('langue', l); }} catch (e) {{}}
+    if (dlg.open && courant) ouvrir(courant);
+  }}
+
+  selLangue.addEventListener('change', function () {{ traduire(selLangue.value); }});
+  try {{
+    var lm = localStorage.getItem('langue');
+    if (lm) traduire(lm);
+  }} catch (e) {{}}
 
   function choisirProg(cle, defiler) {{
     var connu = false;
