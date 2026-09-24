@@ -8,6 +8,10 @@ Le tableau ci‑dessous ne concerne que la séance du soir.
 > une fiche par exercice avec un schéma du mouvement, la machine à chercher dans la salle,
 > les réglages, l'exécution pas à pas et les erreurs à éviter. Le PDF se régénère avec
 > `python3 outils/generer_pdf.py`.
+>
+> **Carte interactive :** [`carte-exercices.html`](carte-exercices.html) — les 4 séances
+> cliquables ; chaque exercice ouvre sa fiche avec le schéma, les réglages et deux liens de
+> recherche vidéo. Se régénère avec `python3 outils/generer_carte.py`.
 
 ## Organisation de la semaine
 
