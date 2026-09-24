@@ -81,13 +81,13 @@ d'épaules, élastique (rotations externes, tirage face) 2 × 15.
 
 ## Blocs abdominaux (5–10 min en fin de séance)
 
-### Bloc A — Gainage
+### Bloc A — Force
 
 | Exercice | Séries | Durée / Répétitions | Repos |
 |---|---|---|---|
-| Planche ventrale | 3 | 45–60 s | 45 s |
-| Planche latérale | 3 | 30–45 s / côté | 30 s |
-| Hollow body hold | 3 | 30 s | 45 s |
+| Dragon flag (négatif) | 3 | 6–8 | 90 s |
+| Crunch décliné lesté (disque sur la poitrine) | 4 | 10–12 | 60 s |
+| V-ups | 3 | 12–15 | 45 s |
 
 ### Bloc B — Grand droit
 

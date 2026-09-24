@@ -306,34 +306,44 @@ def _():
 
 # ============================= ABDOS ======================================
 
-@illu("planche")
+@illu("dragon_flag")
 def _():
-    s = S(W, H); s.floor(40)
-    s.rect(60, 40, 220, 8, MAT, rx=4)
-    b = side(s, (176, 66), 10, (-90, 0), (195, 195), BODY, ls=1.05)
-    side_foot(s, b["ankle"], 60, BODY, l=14)
-    s.line((116, 50), (214, 74), LINE_OK, 3, dash="8 7")
+    s = S(W, H); s.floor(26)
+    bench(s, (170, 74), 0, 78, legs=True, y_floor=26)       # banc plat
+    for op, col, hip, trunk, leg in ((0.45, GHOST, (185, 89), 195, (15, 15)),
+                                     (1, BODY, (176, 105), 225, (45, 45))):
+        b = side(s, hip, trunk, (180, 180), leg, col, op=op)
+        side_foot(s, b["ankle"], leg[0] - 70, col, op=op, l=13)
+        s.circle(b["hand"], 4, "none", col, 4, op)          # prise sur le bord du banc
+    s.arc_arrow((150, 80), 92, 44, 16)
     return s
 
 
-@illu("planche_laterale")
+@illu("crunch_decline")
 def _():
-    s = S(W, H); s.floor(40)
-    s.rect(60, 40, 220, 8, MAT, rx=4)
-    b = side(s, (176, 66), 10, (-90, 0), (195, 195), BODY, ls=1.05)
-    s.line(b["sh"], P(b["sh"], 96, 46), BODY, 5)           # bras libre vers le haut
-    s.line((116, 50), (214, 74), LINE_OK, 3, dash="8 7")
+    s = S(W, H); s.floor(24)
+    s.line((104, 62), (246, 112), FRAME, 12, cap="butt")    # banc décliné
+    s.line((150, 70), (150, 24), FRAME, 5)
+    s.line((232, 106), (232, 24), FRAME, 5)
+    s.line((244, 122), (244, 146), FRAME, 10)               # boudins pour les pieds
+    for op, col, trunk in ((0.38, GHOST, 152), (1, BODY, 200)):
+        b = side(s, (208, 104), trunk, (trunk - 55, trunk - 118), (22, 112), col, op=op)
+        side_foot(s, b["ankle"], 80, col, op=op, l=12)
+        plate(s, P(b["sh"], trunk - 90, 17), 13, g(op), op)   # disque sur la poitrine
+    s.arc_arrow((208, 104), 46, 196, 154)
     return s
 
 
-@illu("hollow")
+@illu("v_ups")
 def _():
     s = S(W, H); s.floor(34)
-    s.rect(46, 34, 250, 8, MAT, rx=4)
-    b = side(s, (170, 46), 150, (145, 148), (28, 32), BODY)
-    side_foot(s, b["ankle"], -60, BODY, l=13)
-    s.circle((170, 45), 5, "none", LINE_OK, 3)
-    s.arrow((132, 74), (132, 92)); s.arrow((236, 74), (236, 92))
+    s.rect(40, 34, 262, 8, MAT, rx=4)
+    for op, col, trunk, arm, leg in ((0.45, GHOST, 180, (180, 180), (4, 4)),
+                                     (1, BODY, 140, (20, 14), (40, 40))):
+        b = side(s, (170, 44), trunk, arm, leg, col, op=op)
+        side_foot(s, b["ankle"], leg[0] - 80, col, op=op, l=12)
+    s.arc_arrow((170, 44), 58, 176, 138)
+    s.arc_arrow((170, 44), 58, 6, 42)
     return s
 
 

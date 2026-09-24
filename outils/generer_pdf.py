@@ -227,13 +227,13 @@ def page_seances():
 <div class="page"><h2>Les quatre séances</h2>{t}</div>
 <div class="page"><h2>Les quatre séances (suite)</h2>{t2}</div>
 <div class="page"><h2>Les blocs abdominaux</h2>
-<p class="sub">À enchaîner en fin de séance, dans l'ordre. Le bloc A revient deux fois
-par semaine : c'est celui qui structure le gainage.</p>{b}
+<p class="sub">À enchaîner en fin de séance, dans l'ordre. Le bloc A revient deux fois par
+semaine : c'est le plus dur des trois, et le seul où la charge augmente au fil des semaines.</p>{b}
 <div class="enc" style="margin-top:6mm"><b>Comment choisir son niveau</b>
-Sur les exercices au poids du corps, la bonne version est celle où tu tiens la durée
-ou les répétitions demandées en gardant la position décrite. Si les hanches
-s'affaissent ou si le bas du dos se creuse, passe à la version facile indiquée sur la
-fiche : c'est une régression normale, pas un échec.</div>
+La bonne version d'un exercice est celle où tu tiens les répétitions demandées sans que
+le bas du dos se creuse. Dès que la position se dégrade, la série est finie : passe à la
+régression indiquée sur la fiche (genoux fléchis, amplitude réduite, moins de charge).
+C'est une étape normale de la progression, pas un échec.</div>
 </div>"""
 
 

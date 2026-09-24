@@ -288,42 +288,56 @@ FICHES = [
                   "Pencher la tête en avant."]),
 
     # --------------------------------- ABDOS ---------------------------------
-    dict(id="planche", nom="Planche ventrale (gainage)", groupe="Abdos",
-         machine="Un simple tapis de sol. Coudes sous les épaules, avant-bras à plat.",
-         reglage="Aucun matériel. Si c'est trop dur : pose les genoux au sol, la ligne épaules-hanches-genoux "
-                 "reste droite.",
-         etapes=["Coudes à la verticale sous les épaules, avant-bras parallèles.",
-                 "Pieds écartés de la largeur des hanches, corps en ligne droite.",
-                 "Rentre légèrement le bassin (comme si tu rentrais le nombril).",
-                 "Serre fessiers et abdominaux, respire normalement.",
-                 "Tiens 45 à 60 s, ou arrête dès que les hanches s'affaissent."],
-         erreurs=["Fesses trop hautes (position de repos) ou trop basses (mal de dos).",
-                  "Bloquer sa respiration.",
-                  "Regarder devant : la nuque doit rester dans le prolongement du dos."]),
+    dict(id="dragon_flag", nom="Dragon flag (version négative)", groupe="Abdos",
+         machine="Un banc plat, dont tu attrapes le bord derrière ta tête. C'est l'exercice "
+                 "d'abdominaux le plus exigeant du programme : tout le corps reste une planche "
+                 "rigide, seuls les abdominaux empêchent le bassin de tomber.",
+         reglage="Rien à régler, mais place-toi de façon à pouvoir agripper solidement le banc à "
+                 "deux mains, juste au-dessus des épaules. Un tapis au sol si le banc est dur.",
+         etapes=["Allongé sur le dos, mains agrippées au bord du banc derrière la tête.",
+                 "Décolle le bassin et monte les jambes jusqu'à ce que le corps soit presque "
+                 "vertical, en appui sur le haut du dos — pas sur la nuque.",
+                 "Serre fessiers et abdominaux : le corps forme une ligne droite, tendue.",
+                 "Descends cette ligne le plus lentement possible, sur 4 à 5 secondes.",
+                 "Arrête la descente dès que le bas du dos se décolle, puis remonte les genoux "
+                 "repliés pour repartir.",
+                 "Trop dur ? Fais la même descente genoux fléchis contre la poitrine, puis "
+                 "jambes à mi-course, avant de passer aux jambes tendues."],
+         erreurs=["Laisser le bas du dos se creuser : c'est lui qui encaisse, pas les abdos.",
+                  "Prendre appui sur la nuque au lieu du haut du dos.",
+                  "Descendre en chute libre : toute la valeur de l'exercice est dans la lenteur."]),
 
-    dict(id="planche_laterale", nom="Planche latérale", groupe="Abdos",
-         machine="Tapis de sol. Tu es sur le côté, en appui sur un seul avant-bras.",
-         reglage="Coude sous l'épaule, pieds superposés (ou décalés l'un devant l'autre pour plus de stabilité).",
-         etapes=["Allongé sur le côté, coude à la verticale sous l'épaule.",
-                 "Décolle les hanches : épaule, hanche et cheville forment une ligne.",
-                 "Bras libre tendu vers le plafond ou posé sur la hanche.",
-                 "Tiens 30 à 45 s, puis change de côté.",
-                 "Version facile : genoux fléchis au sol."],
-         erreurs=["Hanches qui redescendent vers le sol.",
-                  "Basculer le buste vers l'avant ou l'arrière.",
-                  "Tête qui tombe vers l'épaule."]),
+    dict(id="crunch_decline", nom="Crunch décliné lesté", groupe="Abdos",
+         machine="Le banc à abdominaux incliné, avec deux boudins en haut pour caler les pieds "
+                 "(tête en bas). Ajoute un disque de 5 à 15 kg tenu sur la poitrine : c'est ce "
+                 "qui fait de cet exercice un vrai mouvement de force, avec charge progressive.",
+         reglage="Incline le banc de 20 à 30° pour commencer. Cale les pieds sous les boudins, "
+                 "genoux fléchis. Prends le disque une fois installé, croisé sur la poitrine.",
+         etapes=["Allongé tête en bas, disque serré contre la poitrine, menton légèrement rentré.",
+                 "Enroule le buste vers les cuisses en décollant d'abord les omoplates.",
+                 "Monte jusqu'à environ 30° au-dessus du banc : inutile d'aller chercher les genoux.",
+                 "Souffle à fond en haut, pause 1 s.",
+                 "Redescends en 3 s sans laisser la tête retomber en arrière.",
+                 "Quand 12 répétitions passent proprement, monte de 2,5 kg."],
+         erreurs=["Tirer sur la nuque avec les mains pour se lancer.",
+                  "Se relever complètement en poussant avec les fléchisseurs de hanche.",
+                  "Prendre un disque trop lourd et raccourcir l'amplitude."]),
 
-    dict(id="hollow", nom="Hollow body hold", groupe="Abdos",
-         machine="Tapis de sol. Exercice au poids du corps, très efficace sur le gainage profond.",
-         reglage="Rien à régler. Le point clé : le bas du dos reste collé au sol (repère vert sur le schéma).",
-         etapes=["Allongé sur le dos, plaque le bas du dos au sol en rentrant le nombril.",
-                 "Décolle les épaules et la tête de quelques centimètres.",
-                 "Tends les jambes et décolle-les à 20-30 cm du sol.",
-                 "Bras tendus vers l'arrière ou le long du corps (plus facile).",
-                 "Tiens 30 s en gardant le bas du dos plaqué."],
-         erreurs=["Laisser le bas du dos se décoller : remonte les jambes plus haut.",
-                  "Tirer sur la nuque avec les mains.",
-                  "Retenir sa respiration."]),
+    dict(id="v_ups", nom="V-ups (relevés simultanés)", groupe="Abdos",
+         machine="Un tapis de sol. Le corps part tendu et se referme en V : haut et bas des "
+                 "abdominaux travaillent ensemble, ce qui en fait un excellent exercice de fin "
+                 "de bloc, quand la charge n'est plus tenable.",
+         reglage="Rien à régler. Version plus facile : plie les genoux et touche les tibias "
+                 "(tuck-ups) ; version plus dure : un haltère léger tenu à bout de bras.",
+         etapes=["Allongé sur le dos, bras tendus derrière la tête, jambes tendues au sol.",
+                 "Décolle simultanément le buste et les jambes en pliant à la hanche.",
+                 "Va chercher les pieds avec les mains, corps en V, en équilibre sur les fesses.",
+                 "Souffle en montant, pause brève en haut.",
+                 "Redescends en 3 s sans laisser les talons ni les épaules toucher le sol.",
+                 "Enchaîne sans repos au sol : la tension reste continue sur toute la série."],
+         erreurs=["Prendre de l'élan en balançant les bras.",
+                  "Laisser le bas du dos se décoller en position basse : réduis l'amplitude.",
+                  "Plier les genoux sans le vouloir en fin de série : arrête-toi là."]),
 
     dict(id="releves_jambes", nom="Relevés de jambes suspendu", groupe="Abdos",
          machine="Barre de traction, ou la chaise romaine (le cadre vertical avec deux coudières et un "
@@ -441,10 +455,10 @@ SEANCES = [
 ]
 
 BLOCS = [
-    ("Bloc abdos A — gainage", "5 à 8 min, en fin de séance A et D", [
-        ("planche", "Planche ventrale", "3", "45 à 60 s", "45 s"),
-        ("planche_laterale", "Planche latérale", "3", "30 à 45 s par côté", "30 s"),
-        ("hollow", "Hollow body hold", "3", "30 s", "45 s"),
+    ("Bloc abdos A — force", "8 à 10 min, en fin de séance A et D", [
+        ("dragon_flag", "Dragon flag (négatif)", "3", "6 à 8", "90 s"),
+        ("crunch_decline", "Crunch décliné lesté", "4", "10 à 12", "60 s"),
+        ("v_ups", "V-ups", "3", "12 à 15", "45 s"),
     ]),
     ("Bloc abdos B — grand droit", "6 à 9 min, en fin de séance B", [
         ("releves_jambes", "Relevés de jambes suspendu", "4", "10 à 15", "60 s"),
