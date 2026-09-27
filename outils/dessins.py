@@ -17,6 +17,7 @@ GEAR_G = "#93b4f5"
 FRAME = "#8b97a8"
 ARROW = "#dc2626"
 FLOOR = "#c7ced8"
+HALO = "#f5f7fa"       # liseré de détourage : sépare un membre de ce qu'il recouvre
 
 
 def P(o, ang, l):
@@ -109,6 +110,32 @@ class S:
 # Bonhommes
 # --------------------------------------------------------------------------
 
+def _membre(s, a, b, e1, e2, color, op, halo=True):
+    """Segment de membre a epaisseur variable (epais pres du tronc).
+
+    Le liseré clair permet de distinguer un bras qui passe devant le torse.
+    """
+    if halo and op > 0.8:
+        s.line(a, b, HALO, e1 + 5, 1.0)
+        s.line(mid(a, b), b, HALO, e2 + 5, 1.0)
+    s.line(a, b, color, e1, op)
+    s.line(mid(a, b), b, color, e2, op)
+
+
+def _tete(s, centre, ang, color, op, r=HEAD_R):
+    """Tete ovale + menton, pour qu'on voie de quel cote regarde le bonhomme."""
+    if op > 0.8:
+        s.o.append(
+            f'<ellipse cx="{centre[0]:.1f}" cy="{centre[1]:.1f}" rx="{r * .92 + 2.5:.1f}"'
+            f' ry="{r + 2.5:.1f}" fill="{HALO}"'
+            f' transform="rotate({90 - ang:.1f} {centre[0]:.1f} {centre[1]:.1f})"/>')
+    s.o.append(
+        f'<ellipse cx="{centre[0]:.1f}" cy="{centre[1]:.1f}" rx="{r * .92:.1f}"'
+        f' ry="{r:.1f}" fill="{color}" opacity="{op}"'
+        f' transform="rotate({90 - ang:.1f} {centre[0]:.1f} {centre[1]:.1f})"/>')
+    s.line(centre, P(centre, ang - 90, r * 1.15), color, r * 0.55, op)
+
+
 def side(s, hip, trunk=90, arm=(-90, -90), leg=(-90, -90), color=BODY, w=6, op=1.0,
          head=True, both_arms=False, arm2=None, ls=1.0):
     """Vue de profil. Angles absolus en degres (0 = vers la droite, 90 = vers le haut)."""
@@ -117,22 +144,51 @@ def side(s, hip, trunk=90, arm=(-90, -90), leg=(-90, -90), color=BODY, w=6, op=1
     hand = P(elb, arm[1], FARM)
     knee = P(hip, leg[0], THIGH * ls)
     ankle = P(knee, leg[1], SHIN * ls)
-    if both_arms:
+    ech = w / 6.0                      # les appels historiques passent w=6
+
+    if both_arms:                                          # bras arriere, en retrait
         a2 = arm2 or arm
         e2 = P(sh, a2[0], UARM)
         h2 = P(e2, a2[1], FARM)
-        s.poly([sh, e2, h2], color=GHOST if op == 1 else color, width=w - 1, op=op * 0.75)
-    s.line(hip, sh, color, w + 1, op)
+        _membre(s, sh, e2, 9 * ech, 7 * ech, color, op * 0.4)
+        _membre(s, e2, h2, 7 * ech, 6 * ech, color, op * 0.4)
+
+    # jambe
+    _membre(s, hip, knee, 13 * ech, 10 * ech, color, op)
+    _membre(s, knee, ankle, 9.5 * ech, 7 * ech, color, op)
+
+    # tronc : epaules plus larges que le bassin
+    n = (trunk + 90) % 360
+    epaule_g, epaule_d = P(sh, n, 9 * ech), P(sh, n - 180, 9 * ech)
+    hanche_g, hanche_d = P(hip, n, 7 * ech), P(hip, n - 180, 7 * ech)
+    if op > 0.8:
+        s.shape([epaule_g, epaule_d, hanche_d, hanche_g], fill=HALO, stroke=HALO, width=5)
+        s.circle(sh, 8.5 * ech + 2.5, fill=HALO, stroke="none", width=0)
+        s.circle(hip, 6.5 * ech + 2.5, fill=HALO, stroke="none", width=0)
+    s.shape([epaule_g, epaule_d, hanche_d, hanche_g], fill=color, op=op)
+    s.circle(sh, 8.5 * ech, fill=color, stroke="none", width=0, op=op)
+    s.circle(hip, 6.5 * ech, fill=color, stroke="none", width=0, op=op)
+
     if head:
-        s.circle(P(sh, trunk, NECK + HEAD_R - 2), HEAD_R, fill="none", stroke=color, width=w - 1.5, op=op)
-        s.line(sh, P(sh, trunk, NECK), color, w - 1, op)
-    s.poly([sh, elb, hand], color=color, width=w - 1, op=op)
-    s.poly([hip, knee, ankle], color=color, width=w - 1, op=op)
+        s.line(sh, P(sh, trunk, NECK), color, 7 * ech, op)
+        _tete(s, P(sh, trunk, NECK + HEAD_R - 2), trunk, color, op)
+
+    # bras avant + main
+    _membre(s, sh, elb, 9.5 * ech, 7.5 * ech, color, op)
+    _membre(s, elb, hand, 7.5 * ech, 6 * ech, color, op)
+    if op > 0.8:
+        s.circle(hand, 3.6 * ech + 2, fill=HALO, stroke="none", width=0)
+    s.circle(hand, 3.6 * ech, fill=color, stroke="none", width=0, op=op)
     return dict(sh=sh, elb=elb, hand=hand, knee=knee, ankle=ankle, hip=hip)
 
 
 def side_foot(s, ankle, ang=0, color=BODY, w=5, op=1.0, l=FOOT):
-    s.line(ankle, P(ankle, ang, l), color, w, op)
+    """Pied : coup de pied plus epais que les orteils."""
+    bout = P(ankle, ang, l)
+    if op > 0.8:
+        s.line(ankle, bout, HALO, 13, 1.0)
+    s.line(ankle, mid(ankle, bout), color, 8, op)
+    s.line(mid(ankle, bout), bout, color, 5.5, op)
 
 
 def front(s, hip, armL=(210, 250), armR=(-30, -70), color=BODY, w=6, op=1.0,
@@ -143,19 +199,38 @@ def front(s, hip, armL=(210, 250), armR=(-30, -70), color=BODY, w=6, op=1.0,
     shR = (shc[0] + sw / 2.0, shc[1] + shrug)
     hipL = (hip[0] - hw / 2.0, hip[1])
     hipR = (hip[0] + hw / 2.0, hip[1])
-    s.shape([shL, shR, hipR, hipL], fill="none", stroke=color, width=w, op=op)
-    s.line(shL, shR, color, w, op)
+    ech = w / 6.0
+
+    kL = (hipL[0] - leg_spread * 0.4, hipL[1] - THIGH * ls)
+    fL = (kL[0] - leg_spread * 0.6, kL[1] - SHIN * ls)
+    kR = (hipR[0] + leg_spread * 0.4, hipR[1] - THIGH * ls)
+    fR = (kR[0] + leg_spread * 0.6, kR[1] - SHIN * ls)
+    for h, k, f in ((hipL, kL, fL), (hipR, kR, fR)):
+        _membre(s, h, k, 12 * ech, 9.5 * ech, color, op)
+        _membre(s, k, f, 9 * ech, 6.5 * ech, color, op)
+
+    # buste : trapeze epaules -> bassin
+    if op > 0.8:
+        s.shape([shL, shR, hipR, hipL], fill=HALO, stroke=HALO, width=5)
+        s.circle(shL, 7 * ech + 2.5, fill=HALO, stroke="none", width=0)
+        s.circle(shR, 7 * ech + 2.5, fill=HALO, stroke="none", width=0)
+    s.shape([shL, shR, hipR, hipL], fill=color, op=op)
+    s.circle(shL, 7 * ech, fill=color, stroke="none", width=0, op=op)
+    s.circle(shR, 7 * ech, fill=color, stroke="none", width=0, op=op)
+
     if head:
-        s.circle((shc[0], shc[1] + NECK + HEAD_R - 1 + shrug), HEAD_R, "none", color, w - 1.5, op)
-        s.line((shc[0], shc[1] + shrug), (shc[0], shc[1] + NECK + shrug), color, w - 1, op)
+        s.line((shc[0], shc[1] + shrug), (shc[0], shc[1] + NECK + shrug), color, 7 * ech, op)
+        s.circle((shc[0], shc[1] + NECK + HEAD_R - 1 + shrug), HEAD_R, fill=color,
+                 stroke="none", width=0, op=op)
+
     eL = P(shL, armL[0], UARM); hL = P(eL, armL[1], FARM)
     eR = P(shR, armR[0], UARM); hR = P(eR, armR[1], FARM)
-    s.poly([shL, eL, hL], color=color, width=w - 1, op=op)
-    s.poly([shR, eR, hR], color=color, width=w - 1, op=op)
-    kL = (hipL[0] - leg_spread * 0.4, hipL[1] - THIGH * ls); fL = (kL[0] - leg_spread * 0.6, kL[1] - SHIN * ls)
-    kR = (hipR[0] + leg_spread * 0.4, hipR[1] - THIGH * ls); fR = (kR[0] + leg_spread * 0.6, kR[1] - SHIN * ls)
-    s.poly([hipL, kL, fL], color=color, width=w - 1, op=op)
-    s.poly([hipR, kR, fR], color=color, width=w - 1, op=op)
+    for sh_, e_, h_ in ((shL, eL, hL), (shR, eR, hR)):
+        _membre(s, sh_, e_, 9 * ech, 7 * ech, color, op)
+        _membre(s, e_, h_, 7 * ech, 5.5 * ech, color, op)
+        if op > 0.8:
+            s.circle(h_, 3.6 * ech + 2, fill=HALO, stroke="none", width=0)
+        s.circle(h_, 3.6 * ech, fill=color, stroke="none", width=0, op=op)
     return dict(shL=shL, shR=shR, hL=hL, hR=hR, eL=eL, eR=eR, fL=fL, fR=fR, shc=shc)
 
 

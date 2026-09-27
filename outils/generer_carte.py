@@ -71,6 +71,9 @@ VIDEO = {
     "shrugs_barre": "shrugs barre trapèzes technique",
 }
 
+# Nom donné à la page depuis l'artefact ; il ne suit pas la langue.
+TITRE_PAGE = "Gym"
+
 CLE_GROUPE = {"Pectoraux": "pect", "Dos": "dos", "Épaules": "epaules", "Abdos": "abdos"}
 
 # Materiel principal de chaque exercice, pour le menu de filtrage.
@@ -285,7 +288,7 @@ def main():
                     f' aria-selected="{"true" if i == 0 else "false"}" {tri(*nom_p)}>'
                     f'{esc(nom_p[0])}<span {tri(*sous_p)}>{esc(sous_p[0])}</span></button>')
 
-    page = f"""<title>Carte des exercices</title>
+    page = f"""<title>{TITRE_PAGE}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600&display=swap">
@@ -776,7 +779,6 @@ html {{ scroll-behavior:smooth; }}
     LANG = l;
     selLangue.value = l;
     document.documentElement.lang = l;
-    document.title = t('titre');
     document.querySelectorAll('[data-t-fr]').forEach(function (n) {{
       var v = n.getAttribute('data-t-' + l);
       if (v !== null) n.textContent = v;
@@ -893,8 +895,8 @@ html {{ scroll-behavior:smooth; }}
 # Version installable (PWA) publiée par GitHub Pages depuis docs/
 # ---------------------------------------------------------------------------
 MANIFESTE = {
-    "name": "Carte des exercices — musculation du soir",
-    "short_name": "Muscu",
+    "name": "Gym — musculation du soir",
+    "short_name": "Gym",
     "description": "Les séances du soir : schémas, réglages, exécution et calendrier.",
     "lang": "fr",
     "start_url": "./",

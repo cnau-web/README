@@ -32,11 +32,11 @@ def handle(s, c, ang=0, half=9, op=1.0):
 def _():
     s = S(W, H); s.floor(26)
     bench(s, (166, 74), 0, 74, legs=True, y_floor=26)
-    for op, col, arm in ((0.45, GHOST, (72, 72)), (1, BODY, (0, 100))):
+    for op, col, arm in ((0.45, GHOST, (80, 85)), (1, BODY, (10, 95))):
         b = side(s, (196, 86), 180, arm, (-35, -85), col, op=op)
         side_foot(s, b["ankle"], -80, col, op=op, l=20)
         plate(s, b["hand"], 13, g(op), op)
-    s.arrow((210, 108), (210, 136))
+    s.arrow((212, 112), (212, 138))
     return s
 
 
@@ -90,13 +90,14 @@ def _():
 @illu("dips")
 def _():
     s = S(W, H); s.floor(20)
-    s.line((126, 120), (200, 120), FRAME, 7)               # barres paralleles
-    s.line((194, 120), (194, 20), FRAME, 5)
-    for op, col, sh_y, arm, hip_y in ((0.45, GHOST, 164, (-90, -90), 128),
-                                      (1, BODY, 150, (-137, -43), 114)):
-        b = side(s, (160, hip_y), 90, arm, (-120, -30), col, op=op)
-        side_foot(s, b["ankle"], 10, col, op=op, l=13)
-    s.circle((160, 120), 5, "#ffffff", GEAR, 4)
+    s.line((112, 126), (196, 126), FRAME, 6)               # barre arrière
+    s.line((120, 120), (204, 120), FRAME, 7)               # barre avant
+    s.line((198, 120), (198, 20), FRAME, 5)
+    for op, col, hip, arm in ((0.45, GHOST, (152, 129), (-89, -89)),
+                              (1, BODY, (152, 115), (-137, -43))):
+        b = side(s, hip, 78, arm, (-125, -35), col, op=op)
+        side_foot(s, b["ankle"], 20, col, op=op, l=13)
+    s.circle((160, 120), 5.5, "#ffffff", GEAR, 4)
     s.arrow((246, 92), (246, 126))
     return s
 

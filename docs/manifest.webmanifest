@@ -1,6 +1,6 @@
 {
-  "name": "Carte des exercices — musculation du soir",
-  "short_name": "Muscu",
+  "name": "Gym — musculation du soir",
+  "short_name": "Gym",
   "description": "Les séances du soir : schémas, réglages, exécution et calendrier.",
   "lang": "fr",
   "start_url": "./",

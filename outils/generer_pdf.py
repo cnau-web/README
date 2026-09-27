@@ -61,7 +61,7 @@ li { margin-bottom:1mm; }
 .fiche { border:1px solid #d1d5db; border-radius:2mm; padding:3.5mm;
          margin-bottom:4mm; font-size:8.8pt; line-height:1.4; break-inside:avoid; page-break-inside:avoid;
          display:flex; gap:4mm; }
-.fiche .img { width:56mm; flex:0 0 56mm; }
+.fiche .img { width:66mm; flex:0 0 66mm; }
 .fiche .img svg { width:100%; height:auto; background:#f8fafc;
                   border:1px solid #e5e7eb; border-radius:1.5mm; }
 .fiche .txt { flex:1; }
