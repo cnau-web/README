@@ -48,6 +48,8 @@ UI = {
     "arrivee": ("Arrivée", "End", "Final"),
     "sens": ("Sens du mouvement", "Direction of movement", "Sentido del movimiento"),
     "video": ("▶ Voir la démonstration", "▶ Watch a demonstration", "▶ Ver una demostración"),
+    "precedent": ("← Exercice précédent", "← Previous exercise", "← Ejercicio anterior"),
+    "debut_seance": ("Début de la séance", "Start of the session", "Inicio de la sesión"),
     "suivant": ("Exercice suivant →", "Next exercise →", "Siguiente ejercicio →"),
     "fin": ("Fin de la séance", "End of the session", "Fin de la sesión"),
     "fermer": ("Fermer", "Close", "Cerrar"),

@@ -653,6 +653,7 @@ html {{ scroll-behavior:smooth; }}
              {A["video"]}>{esc(UI["video"][0])}</a>
           <button class="btn" type="button" id="dlg-alt-btn"
             aria-expanded="false" aria-controls="dlg-alts" {A["alternatives"]}>{esc(UI["alternatives"][0])}</button>
+          <button class="btn" type="button" id="dlg-precedent">{esc(UI["precedent"][0])}</button>
           <button class="btn" type="button" id="dlg-suivant">{esc(UI["suivant"][0])}</button>
         </div>
       </div>
@@ -682,6 +683,13 @@ html {{ scroll-behavior:smooth; }}
   }}
 
   var courant = null;
+
+  function precedentDe(btn) {{
+    for (var n = btn.parentElement.previousElementSibling; n; n = n.previousElementSibling) {{
+      if (n.classList.contains('row-li') && !n.hidden) return n.querySelector('.row');
+    }}
+    return null;                                   // premier exercice de la séance
+  }}
 
   function suivantDe(btn) {{
     for (var n = btn.parentElement.nextElementSibling; n; n = n.nextElementSibling) {{
@@ -745,6 +753,10 @@ html {{ scroll-behavior:smooth; }}
     }});
     el('dlg-alts').hidden = true;
     el('dlg-alt-btn').setAttribute('aria-expanded', 'false');
+    var prec = precedentDe(btn), bp = el('dlg-precedent');
+    bp.disabled = !prec;
+    bp.textContent = prec ? t('precedent') : t('debut_seance');
+    bp.title = prec ? D[prec.dataset.id].t[LANG].nom : '';
     var suiv = suivantDe(btn), bs = el('dlg-suivant');
     bs.disabled = !suiv;
     bs.textContent = suiv ? t('suivant') : t('fin');
@@ -823,6 +835,11 @@ html {{ scroll-behavior:smooth; }}
       pan.hidden = !ouvert;
       e.target.setAttribute('aria-expanded', ouvert ? 'true' : 'false');
       if (ouvert) pan.scrollIntoView({{ block: 'nearest' }});
+      return;
+    }}
+    if (e.target.id === 'dlg-precedent') {{
+      var prec = courant && precedentDe(courant);
+      if (prec) ouvrir(prec);
       return;
     }}
     if (e.target.id === 'dlg-suivant') {{
