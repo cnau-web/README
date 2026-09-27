@@ -686,3 +686,158 @@ def _(t=0.0):
     barbell(s, (170, y), 0, 72, 15, g(op), op)
     s.arrow((252, 96), (252, 126)); s.arrow((88, 96), (88, 126))
     return s
+
+
+# ============ SCHÉMAS DES EXERCICES DE REMPLACEMENT ========================
+
+@illu("pullover_machine")
+def _(t=0.0):
+    s = S(W, H); s.floor(24)
+    s.rect(160, 54, 86, 12, FRAME, rx=4)                    # assise
+    s.line((236, 60), (244, 148), FRAME, 11, cap="butt")    # dossier
+    s.line((196, 54), (196, 24), FRAME, 6)
+    tower(s, 140, 24, 176); stack(s, 128, 30)
+    arm = ip((128, 132), (186, 188), t)
+    b = side(s, (206, 66), 96, arm, (176, -88), BODY)
+    side_foot(s, b["ankle"], -6, BODY, l=15)
+    s.line((146, 170), b["hand"], FRAME, 3)                 # bras de la machine
+    handle(s, b["hand"], 90, 9)
+    s.arc_arrow((202, 102), 52, 146, 190)
+    return s
+
+
+@illu("lombaires_machine")
+def _(t=0.0):
+    s = S(W, H); s.floor(24)
+    s.rect(150, 52, 92, 12, FRAME, rx=4)                    # assise
+    s.line((180, 70), (176, 138), FRAME, 12, cap="butt")    # dossier arrière
+    s.line((196, 52), (196, 24), FRAME, 6)
+    s.line((236, 66), (236, 94), FRAME, 10)                 # cale-cuisses
+    trunk = ip(64, 104, t)
+    b = side(s, (196, 64), trunk, (trunk - 158, trunk - 96), (-6, -86), BODY)
+    side_foot(s, b["ankle"], -6, BODY, l=15)
+    s.arc_arrow((196, 64), 52, 66, 102)
+    return s
+
+
+@illu("superman")
+def _(t=0.0):
+    s = S(W, H); s.floor(34)
+    s.rect(46, 26, 250, 8, MAT, rx=4)
+    arm = ip((176, 176), (156, 156), t)
+    leg = ip((2, 2), (24, 24), t)
+    b = side(s, (176, 42), 174, arm, leg, BODY)
+    side_foot(s, b["ankle"], leg[0] - 40, BODY, l=12)
+    s.arrow((120, 60), (120, 78)); s.arrow((236, 56), (236, 74))
+    return s
+
+
+@illu("machine_laterale")
+def _(t=0.0):
+    s = S(W, H); s.floor(24)
+    s.rect(128, 52, 86, 12, FRAME, rx=4)                    # assise
+    s.line((168, 52), (168, 24), FRAME, 6)
+    tower(s, 246, 24, 150); stack(s, 234, 30)
+    for x in (120, 216):                                    # coussins des bras
+        s.line((x, 104), (x, 132), FRAME, 9)
+    aL = ip((256, 262), (182, 178), t)
+    aR = ip((-76, -82), (-2, 2), t)
+    b = front(s, (168, 64), aL, aR, BODY, ls=0.6)
+    for h in (b["hL"], b["hR"]):
+        handle(s, h, 90, 8)
+    s.arc_arrow((153, 100), 46, 258, 186)
+    s.arc_arrow((183, 100), 46, -78, -6)
+    return s
+
+
+@illu("pec_deck_inverse")
+def _(t=0.0):
+    s = S(W, H); s.floor(24)
+    s.rect(158, 62, 24, 74, "#dde3ea", rx=4)                # dossier : poitrine appuyée
+    s.rect(122, 50, 96, 12, FRAME, rx=4)
+    s.line((170, 52), (170, 24), FRAME, 7)
+    for x in (104, 236):
+        s.line((x, 104), (x, 156), FRAME, 5)
+    aL = ip((-24, -6), (176, 178), t)
+    aR = ip((204, 186), (4, 2), t)
+    b = front(s, (170, 62), aL, aR, BODY, ls=0.6)
+    handle(s, b["hL"], 90, 10); handle(s, b["hR"], 90, 10)
+    s.arrow((150, 150), (108, 150)); s.arrow((190, 150), (232, 150))
+    return s
+
+
+@illu("rotations_externes")
+def _(t=0.0):
+    s = S(W, H); s.floor(24)
+    tower(s, 306, 24, 150); pulley(s, (306, 112)); stack(s, 293, 30)
+    aL = ip((270, 4), (270, 176), t)
+    b = front(s, (164, 78), aL, (-76, -82), BODY)
+    cable(s, (306, 112), b["hL"], FRAME)
+    handle(s, b["hL"], 90, 7)
+    s.arc_arrow((149, 92), 30, 4, 176)
+    return s
+
+
+@illu("crunch_machine")
+def _(t=0.0):
+    s = S(W, H); s.floor(24)
+    s.rect(156, 50, 90, 12, FRAME, rx=4)                    # assise
+    s.line((242, 58), (246, 132), FRAME, 11, cap="butt")    # dossier
+    s.line((196, 50), (196, 24), FRAME, 6)
+    tower(s, 140, 24, 150); stack(s, 128, 28)
+    s.line((160, 122), (192, 122), FRAME, 9, cap="butt")    # coussin de poitrine
+    trunk = ip(98, 124, t)
+    b = side(s, (204, 62), trunk, (trunk - 64, trunk - 116), (176, -86), BODY, ls=0.9)
+    side_foot(s, b["ankle"], -6, BODY, l=14)
+    s.arc_arrow((204, 62), 50, 102, 126)
+    return s
+
+
+@illu("releves_banc")
+def _(t=0.0):
+    s = S(W, H); s.floor(26)
+    bench(s, (170, 74), 0, 74, legs=True, y_floor=26)
+    leg = ip((-58, -58), (76, 76), t)
+    b = side(s, (196, 86), 180, (180, 180), leg, BODY)
+    side_foot(s, b["ankle"], leg[0] - 60, BODY, l=12)
+    s.circle(b["hand"], 4.5, "none", GEAR, 4)               # prise sur le banc
+    s.arc_arrow((196, 86), 60, -56, 74)
+    return s
+
+
+@illu("rotations_machine")
+def _(t=0.0):
+    s = S(W, H); s.floor(24)
+    s.rect(126, 52, 92, 12, FRAME, rx=4)                    # assise
+    s.line((172, 52), (172, 24), FRAME, 6)
+    dec = ip(-20, 20, t)
+    aL = ip((196, 178), (186, 170), t)
+    aR = ip((-16, 2), (-6, 10), t)
+    b = front(s, (172 + dec, 64), aL, aR, BODY, ls=0.6, trunk_tilt=dec * 0.35)
+    for h in (b["hL"], b["hR"]):                            # coussins solidaires du buste
+        s.line((h[0], h[1] - 26), (h[0], h[1] + 26), FRAME, 9)
+        handle(s, h, 90, 8)
+    s.arrow((214, 150), (150, 150))
+    return s
+
+
+@illu("planche_haute")
+def _(t=0.0):
+    s = S(W, H); s.floor(40)
+    s.rect(60, 40, 220, 8, MAT, rx=4)
+    b = side(s, (176, 76), 10, (-92, -88), (195, 195), BODY, ls=1.05)
+    side_foot(s, b["ankle"], 60, BODY, l=14)
+    s.line((128, 58), (236, 86), LINE_OK, 3, dash="8 7")
+    return s
+
+
+@illu("flexion_poulie")
+def _(t=0.0):
+    s = S(W, H); s.floor(24)
+    tower(s, 98, 24, 116); pulley(s, (102, 40)); stack(s, 84, 30)
+    dec = ip(0, 20, t)
+    b = front(s, (196, 78), (256, 262), (-74, -80), BODY, trunk_tilt=dec)
+    cable(s, (102, 40), b["hL"], FRAME)
+    handle(s, b["hL"], 90, 7)
+    s.arc_arrow((196, 112), 54, 94, 118)
+    return s

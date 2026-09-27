@@ -69,6 +69,35 @@ VIDEO = {
     "elevations_frontales": "élévations frontales disque épaules technique",
     "oiseau_poulie": "oiseau poulie câbles croisés arrière épaule technique",
     "shrugs_barre": "shrugs barre trapèzes technique",
+    "smith_couche": "développé couché barre guidée smith machine technique",
+    "presse_incline": "presse à pectoraux inclinée machine technique",
+    "smith_incline": "développé incliné barre guidée smith technique",
+    "ecarte_banc": "écarté haltères banc plat pectoraux technique",
+    "dips_machine": "machine à dips assistés technique débutant",
+    "presse_decline": "presse à pectoraux déclinée machine technique",
+    "pompes_smith": "pompes sur barre guidée smith machine technique",
+    "tractions_machine": "machine tractions assistées technique débutant",
+    "tirage_v": "tirage vertical prise serrée poignée en V technique dos",
+    "tirage_un_bras": "tirage horizontal un bras poulie technique dos",
+    "pullover_poulie_v": "pull over poulie haute barre bras tendus dorsaux technique",
+    "pullover_machine": "machine pull over assise dorsaux technique",
+    "lombaires_machine": "machine extensions lombaires assise technique",
+    "superman": "superman au sol lombaires exercice technique",
+    "smith_militaire": "développé militaire barre guidée smith épaules technique",
+    "arnold": "développé arnold haltères épaules technique",
+    "machine_laterale": "machine élévations latérales épaules technique",
+    "pec_deck_inverse": "pec deck inversé arrière épaules technique",
+    "rotations_externes": "rotations externes poulie coiffe des rotateurs technique",
+    "shrugs_machine": "shrugs machine trapèzes technique",
+    "frontales_poulie": "élévations frontales poulie basse épaules technique",
+    "frontales_un_bras": "élévations frontales un bras haltère technique",
+    "crunch_machine": "machine à crunch assise abdos technique",
+    "chaise_romaine": "chaise romaine relevés de genoux abdos technique",
+    "releves_banc": "relevés de jambes banc décliné abdos technique",
+    "rotations_machine": "machine rotation du buste obliques technique",
+    "planche_haute": "planche haute sur les mains gainage technique",
+    "flexion_poulie": "flexion latérale poulie obliques technique",
+    "planche_genoux": "planche latérale genoux au sol technique",
 }
 
 # Nom donné à la page depuis l'artefact ; il ne suit pas la langue.
@@ -85,17 +114,26 @@ MATERIEL = {
         "developpe_incline", "ecarte_incline", "developpe_couche_halteres",
         "rowing_haltere", "pullover_haltere", "developpe_haltere_assis",
         "elevations_laterales", "oiseau", "shrugs", "elevations_frontales",
-        "crunch_decline", "russian_twist"]),
+        "crunch_decline", "russian_twist",
+        "ecarte_banc", "arnold", "frontales_un_bras"]),
     "poulie": ("Poulie et câbles", [
         "ecarte_poulie", "ecarte_poulie_basse", "tirage_vertical", "tirage_horizontal",
         "pullover_poulie", "tirage_menton", "face_pull", "elevations_poulie",
-        "oiseau_poulie", "crunch_poulie", "woodchopper"]),
+        "oiseau_poulie", "crunch_poulie", "woodchopper",
+        "tirage_un_bras", "pullover_poulie_v", "rotations_externes", "frontales_poulie",
+        "flexion_poulie"]),
     "machine": ("Machine guidée", [
-        "pec_deck", "presse_pectoraux", "rowing_machine", "presse_epaules"]),
+        "pec_deck", "presse_pectoraux", "rowing_machine", "presse_epaules",
+        "smith_couche", "presse_incline", "smith_incline", "dips_machine",
+        "presse_decline", "pompes_smith", "tractions_machine", "tirage_v",
+        "pullover_machine", "lombaires_machine", "smith_militaire", "machine_laterale",
+        "pec_deck_inverse", "shrugs_machine", "crunch_machine", "chaise_romaine",
+        "rotations_machine"]),
     "corps": ("Poids du corps", [
         "dips", "pompes", "tractions", "tractions_supination", "extensions_lombaires",
         "dragon_flag", "v_ups", "releves_jambes", "crunch_inverse", "ab_wheel",
-        "planche", "planche_laterale", "hollow"]),
+        "planche", "planche_laterale", "hollow",
+        "superman", "releves_banc", "planche_haute", "planche_genoux"]),
 }
 MAT_DE = {fid: cle for cle, (_, ids) in MATERIEL.items() for fid in ids}
 # Quelle seance utilise quel bloc abdominal (le bloc A revient en A et en D).
@@ -534,6 +572,7 @@ dialog::backdrop {{ background:rgba(8,12,18,.55); }}
 .dose {{ background:var(--surface-2); border:1px solid var(--line); border-radius:8px;
   padding:6px 10px; font-size:14px; font-variant-numeric:tabular-nums; }}
 .dose b {{ font-weight:600; }}
+.dose.hors {{ background:transparent; border-style:dashed; color:var(--muted); }}
 .bloc h3 {{ margin:0 0 4px; font-size:13px; font-weight:600; letter-spacing:.1em;
   text-transform:uppercase; color:var(--muted); }}
 .bloc p {{ margin:0; }}
@@ -733,7 +772,13 @@ html {{ scroll-behavior:smooth; }}
     }});
   }}
 
-  var courant = null;
+  var courant = null;                              // ligne cliquée, si elle existe
+  var idCourant = null;
+  var retourVers = null;                           // fiche d'origine (ouverte via alternative)
+
+  function ligneDe(id) {{
+    return document.querySelector('.row[data-id="' + id + '"]');
+  }}
 
   function precedentDe(btn) {{
     for (var n = btn.parentElement.previousElementSibling; n; n = n.previousElementSibling) {{
@@ -749,10 +794,12 @@ html {{ scroll-behavior:smooth; }}
     return null;                                   // dernier exercice de la séance
   }}
 
-  function ouvrir(btn) {{
-    var ex = D[btn.dataset.id];
+  function ouvrir(id, btn, retour) {{
+    var ex = D[id];
     if (!ex) return;
-    courant = btn;
+    courant = btn || null;
+    idCourant = id;
+    retourVers = retour || null;
     var zone = el('dlg-fig'), points = el('dlg-points');
     zone.textContent = ''; points.textContent = '';
     var c = cadres(ex.illu), noms = ['phase_debut', 'phase_milieu', 'phase_fin'];
@@ -779,6 +826,13 @@ html {{ scroll-behavior:smooth; }}
     el('dlg-nom').textContent = f.nom;
     el('dlg-groupe').textContent = f.groupe + ' · ' + t('fiche_no') + ' ' + ex.n;
     var doses = el('dlg-doses'); doses.textContent = '';
+    if (!ex.seances.length) {{
+      var r = document.createElement('span'); r.className = 'dose hors';
+      r.innerHTML = '<b></b> <span></span>';
+      r.querySelector('b').textContent = t('remplacement');
+      r.querySelector('span').textContent = t('remplacement_note');
+      doses.appendChild(r);
+    }}
     ex.seances.forEach(function (s) {{
       var d = document.createElement('span'); d.className = 'dose';
       d.innerHTML = '<b></b> <span></span>';
@@ -808,27 +862,36 @@ html {{ scroll-behavior:smooth; }}
       lien.textContent = '▶ ' + t('alt_video');
       li.appendChild(lien);
       if (alt.f) {{
-        var autre = document.querySelector('.row[data-id="' + alt.f + '"]');
-        if (autre) {{
-          var b = document.createElement('button');
-          b.type = 'button'; b.className = 'alt-lien';
-          b.textContent = t('alt_ouvrir');
-          b.addEventListener('click', function () {{ ouvrir(autre); }});
-          li.appendChild(b);
-        }}
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'alt-lien';
+        b.textContent = t('alt_ouvrir');
+        var vers = alt.f, depuis = id;
+        b.addEventListener('click', function () {{
+          ouvrir(vers, ligneDe(vers), depuis);
+        }});
+        li.appendChild(b);
       }}
       listeAlts.appendChild(li);
     }});
     el('dlg-alts').hidden = true;
     el('dlg-alt-btn').setAttribute('aria-expanded', 'false');
-    var prec = precedentDe(btn), bp = el('dlg-precedent');
-    bp.disabled = !prec;
-    bp.textContent = prec ? t('precedent') : t('debut_seance');
-    bp.title = prec ? D[prec.dataset.id].t[LANG].nom : '';
-    var suiv = suivantDe(btn), bs = el('dlg-suivant');
-    bs.disabled = !suiv;
-    bs.textContent = suiv ? t('suivant') : t('fin');
-    bs.title = suiv ? D[suiv.dataset.id].t[LANG].nom : '';
+    var bp = el('dlg-precedent'), bs = el('dlg-suivant');
+    if (btn) {{
+      var prec = precedentDe(btn), suiv = suivantDe(btn);
+      bp.hidden = false; bs.hidden = false;
+      bp.disabled = !prec;
+      bp.textContent = prec ? t('precedent') : t('debut_seance');
+      bp.title = prec ? D[prec.dataset.id].t[LANG].nom : '';
+      bs.disabled = !suiv;
+      bs.textContent = suiv ? t('suivant') : t('fin');
+      bs.title = suiv ? D[suiv.dataset.id].t[LANG].nom : '';
+    }} else {{                                        // fiche ouverte depuis les alternatives
+      bs.hidden = true;
+      bp.hidden = false;
+      bp.disabled = !retourVers;
+      bp.textContent = retourVers ? t('retour') : t('hors_seance');
+      bp.title = retourVers ? D[retourVers].t[LANG].nom : '';
+    }}
     if (typeof dlg.showModal === 'function') dlg.showModal(); else dlg.setAttribute('open', '');
     dlg.querySelector('.sheet').scrollTop = 0;
   }}
@@ -847,7 +910,7 @@ html {{ scroll-behavior:smooth; }}
     }});
     try {{ localStorage.setItem('langue', l); }} catch (e) {{}}
     document.dispatchEvent(new Event('langue'));
-    if (dlg.open && courant) ouvrir(courant);
+    if (dlg.open && idCourant) ouvrir(idCourant, courant, retourVers);
   }}
 
   selLangue.addEventListener('change', function () {{ traduire(selLangue.value); }});
@@ -895,7 +958,7 @@ html {{ scroll-behavior:smooth; }}
     var jour = e.target.closest('a.jour');
     if (jour) {{ e.preventDefault(); allerA(jour.dataset.seance); return; }}
     var btn = e.target.closest('.row');
-    if (btn) {{ ouvrir(btn); return; }}
+    if (btn) {{ ouvrir(btn.dataset.id, btn); return; }}
     if (e.target.id === 'dlg-fermer') {{ dlg.close(); return; }}
     if (e.target.id === 'dlg-alt-btn') {{
       var pan = el('dlg-alts'), ouvert = pan.hidden;
@@ -910,13 +973,17 @@ html {{ scroll-behavior:smooth; }}
       return;
     }}
     if (e.target.id === 'dlg-precedent') {{
-      var prec = courant && precedentDe(courant);
-      if (prec) ouvrir(prec);
+      if (!courant) {{                               // retour vers la fiche d'origine
+        if (retourVers) ouvrir(retourVers, ligneDe(retourVers));
+        return;
+      }}
+      var prec = precedentDe(courant);
+      if (prec) ouvrir(prec.dataset.id, prec);
       return;
     }}
     if (e.target.id === 'dlg-suivant') {{
       var suiv = courant && suivantDe(courant);
-      if (suiv) ouvrir(suiv);
+      if (suiv) ouvrir(suiv.dataset.id, suiv);
       return;
     }}
     if (e.target === dlg || e.target.classList.contains('dlg-pos')) dlg.close();

@@ -301,13 +301,19 @@ C'est une étape normale de la progression, pas un échec.</div>
 
 
 def page_fiches():
-    out, groupe = [], None
+    out, tete = [], None
     for f in FICHES:
-        if f["groupe"] != groupe:
-            if groupe is not None:
+        r = f.get("remplacement")
+        titre = (f"Fiches des remplacements — {f['groupe']}" if r
+                 else f"Fiches — {f['groupe']}")
+        if titre != tete:
+            if tete is not None:
                 out.append("</div>")
-            groupe = f["groupe"]
-            out.append(f'<div class="page"><h2>Fiches — {esc(groupe)}</h2>')
+            tete = titre
+            rappel = ("<p class='intro'>Ces exercices ne sont dans aucune séance : "
+                      "ce sont les remplacements proposés en bas de chaque fiche. "
+                      "Sers-t'en quand la machine prévue est prise.</p>" if r else "")
+            out.append(f'<div class="page"><h2>{esc(titre)}</h2>{rappel}')
         out.append(fiche_html(f, IDX[f["id"]]))
     out.append("</div>")
     return "".join(out)

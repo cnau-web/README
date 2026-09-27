@@ -1,7 +1,7 @@
 /* Service worker : la carte reste disponible sans réseau.
    Le nom du cache change à chaque modification du contenu, ce qui déclenche
    la bannière « nouvelle version » au lieu de servir une page périmée. */
-const VERSION = '24210906c079';
+const VERSION = '4eda3dbfc991';
 const CACHE = 'carte-' + VERSION;
 const FICHIERS = ['./', './index.html', './manifest.webmanifest',
                   './icone-192.png', './icone-512.png', './icone-180.png'];
