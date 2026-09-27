@@ -92,6 +92,13 @@ UI = {
                     "tick, the calendar updates itself.",
                     "Los puntos indican las sesiones pasadas, la de hoy y las que faltan: nada que "
                     "marcar, el calendario se actualiza solo."),
+    "maj_dispo": ("Nouvelle version disponible", "New version available",
+                  "Nueva versión disponible"),
+    "maj_bouton": ("Recharger", "Reload", "Recargar"),
+    "hors_ligne": ("Application installable : ajoute-la à ton écran d'accueil, elle fonctionne "
+                   "ensuite sans réseau.",
+                   "Installable app: add it to your home screen and it works without a network.",
+                   "Aplicación instalable: añádela a tu pantalla de inicio y funciona sin red."),
     "apropos": ("Comment ça marche", "How it works", "Cómo funciona"),
     "alternatives": ("Alternatives", "Alternatives", "Alternativas"),
     "alt_intro": ("Si la machine est prise, ou si le mouvement ne te convient pas :",

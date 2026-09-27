@@ -885,7 +885,150 @@ html {{ scroll-behavior:smooth; }}
     with open(SORTIE, "w", encoding="utf-8") as fh:
         fh.write(page)
     print("Carte ecrite :", SORTIE, f"({len(page)//1024} Ko)")
+    ecrire_pwa(page)
 
+
+
+# ---------------------------------------------------------------------------
+# Version installable (PWA) publiée par GitHub Pages depuis docs/
+# ---------------------------------------------------------------------------
+MANIFESTE = {
+    "name": "Carte des exercices — musculation du soir",
+    "short_name": "Muscu",
+    "description": "Les séances du soir : schémas, réglages, exécution et calendrier.",
+    "lang": "fr",
+    "start_url": "./",
+    "scope": "./",
+    "display": "standalone",
+    "orientation": "portrait",
+    "background_color": "#eef2f6",
+    "theme_color": "#111827",
+    "icons": [
+        {"src": "icone-192.png", "sizes": "192x192", "type": "image/png"},
+        {"src": "icone-512.png", "sizes": "512x512", "type": "image/png"},
+        {"src": "icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
+    ],
+}
+
+SW = """/* Service worker : la carte reste disponible sans réseau.
+   Le nom du cache change à chaque modification du contenu, ce qui déclenche
+   la bannière « nouvelle version » au lieu de servir une page périmée. */
+const VERSION = '%%VERSION%%';
+const CACHE = 'carte-' + VERSION;
+const FICHIERS = ['./', './index.html', './manifest.webmanifest',
+                  './icone-192.png', './icone-512.png', './icone-180.png'];
+
+self.addEventListener('install', (e) => {
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FICHIERS)));
+});
+
+self.addEventListener('activate', (e) => {
+  e.waitUntil(caches.keys()
+    .then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+    .then(() => self.clients.claim()));
+});
+
+self.addEventListener('message', (e) => { if (e.data === 'passe') self.skipWaiting(); });
+
+self.addEventListener('fetch', (e) => {
+  const req = e.request;
+  if (req.method !== 'GET') return;
+  if (new URL(req.url).origin !== location.origin) return;   // polices : réseau seul
+  if (req.mode === 'navigate') {
+    e.respondWith(fetch(req)
+      .then((r) => { const copie = r.clone();
+                     caches.open(CACHE).then((c) => c.put('./index.html', copie)); return r; })
+      .catch(() => caches.match('./index.html')));
+    return;
+  }
+  e.respondWith(caches.match(req).then((r) => r || fetch(req)));
+});
+"""
+
+ENREGISTREMENT = """
+<script>
+/* Enregistrement du service worker et bannière de mise à jour. */
+(function () {
+  if (!('serviceWorker' in navigator)) return;
+  function proposer(reg) {
+    var b = document.getElementById('maj');
+    if (!b) return;
+    b.hidden = false;
+    b.querySelector('button').onclick = function () {
+      if (reg.waiting) reg.waiting.postMessage('passe');
+    };
+  }
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('./sw.js').then(function (reg) {
+      if (reg.waiting && navigator.serviceWorker.controller) proposer(reg);
+      reg.addEventListener('updatefound', function () {
+        var neuf = reg.installing;
+        if (!neuf) return;
+        neuf.addEventListener('statechange', function () {
+          if (neuf.state === 'installed' && navigator.serviceWorker.controller) proposer(reg);
+        });
+      });
+    }).catch(function () {});
+    var recharge = false;
+    navigator.serviceWorker.addEventListener('controllerchange', function () {
+      if (recharge) return;
+      recharge = true;
+      location.reload();
+    });
+  });
+})();
+</script>
+"""
+
+
+def ecrire_pwa(page):
+    """Emballe la carte dans un document autonome, avec manifeste et cache."""
+    import hashlib
+    dossier = os.path.join(RACINE, "docs")
+    os.makedirs(dossier, exist_ok=True)
+
+    tete, corps = page.split('<div class="wrap">', 1)
+    corps = '<div class="wrap">' + corps
+    banniere = (f'<div class="maj" id="maj" hidden>'
+                f'<span {tri(*UI["maj_dispo"])}>{esc(UI["maj_dispo"][0])}</span>'
+                f'<button type="button" {tri(*UI["maj_bouton"])}>{esc(UI["maj_bouton"][0])}</button>'
+                f'</div>')
+    style_pwa = """
+<style>
+:root { color-scheme:light; padding-top:env(safe-area-inset-top, 0px);
+  padding-bottom:env(safe-area-inset-bottom, 0px); }
+img { max-width:100%; }
+[hidden] { display:none !important; }
+.maj { position:fixed; left:12px; right:12px; bottom:calc(12px + env(safe-area-inset-bottom, 0px));
+  z-index:50; display:flex; align-items:center; gap:12px; justify-content:space-between;
+  background:#111827; color:#fff; border-radius:12px; padding:11px 14px; font-size:14.5px;
+  box-shadow:0 8px 28px rgba(0,0,0,.28); }
+.maj button { font:inherit; font-weight:600; background:#fff; color:#111827; border:0;
+  border-radius:8px; padding:7px 13px; cursor:pointer; }
+</style>"""
+
+    doc = (f'<!doctype html>\n<html lang="fr">\n<head>\n'
+           f'<meta charset="utf-8">\n'
+           f'<meta name="viewport" content="width=device-width, initial-scale=1, '
+           f'viewport-fit=cover">\n'
+           f'<meta name="theme-color" content="#111827">\n'
+           f'<meta name="description" content="{esc(MANIFESTE["description"])}">\n'
+           f'<link rel="manifest" href="manifest.webmanifest">\n'
+           f'<link rel="icon" href="icone-192.png">\n'
+           f'<link rel="apple-touch-icon" href="icone-180.png">\n'
+           f'<meta name="apple-mobile-web-app-capable" content="yes">\n'
+           f'<meta name="apple-mobile-web-app-title" content="{esc(MANIFESTE["short_name"])}">\n'
+           f'{tete}{style_pwa}\n</head>\n<body>\n{banniere}\n{corps}\n{ENREGISTREMENT}\n'
+           f'</body>\n</html>\n')
+
+    with open(os.path.join(dossier, "index.html"), "w", encoding="utf-8") as fh:
+        fh.write(doc)
+    with open(os.path.join(dossier, "manifest.webmanifest"), "w", encoding="utf-8") as fh:
+        json.dump(MANIFESTE, fh, ensure_ascii=False, indent=2)
+    version = hashlib.sha1(doc.encode("utf-8")).hexdigest()[:12]
+    with open(os.path.join(dossier, "sw.js"), "w", encoding="utf-8") as fh:
+        fh.write(SW.replace("%%VERSION%%", version))
+    print("PWA ecrite  :", dossier, f"(version {version})")
 
 if __name__ == "__main__":
     main()

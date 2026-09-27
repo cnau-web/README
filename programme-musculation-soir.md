@@ -13,6 +13,13 @@ Le tableau ci‑dessous ne concerne que la séance du soir.
 > **Carte interactive :** [`carte-exercices.html`](carte-exercices.html) — les 4 séances
 > cliquables ; chaque exercice ouvre sa fiche avec le schéma, les réglages et deux liens de
 > recherche vidéo. Se régénère avec `python3 outils/generer_carte.py`.
+> **Version installable (PWA) :** le dossier `docs/` contient la même carte en application
+> autonome — manifeste, icônes et service worker — publiée par GitHub Pages sur
+> <https://cnau-web.github.io/README/>. Elle s'ajoute à l'écran d'accueil et fonctionne
+> sans réseau. `python3 outils/generer_carte.py` régénère la carte **et** la PWA ;
+> le numéro de version du cache change à chaque modification, ce qui déclenche la
+> bannière « nouvelle version » dans l'app.
+>
 > Disponible en français, anglais et espagnol (sélecteur en haut de page) ;
 > les traductions sont dans `outils/traductions.py`. Le PDF reste en français.
 >

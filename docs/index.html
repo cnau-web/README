@@ -1,3 +1,15 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#111827">
+<meta name="description" content="Les séances du soir : schémas, réglages, exécution et calendrier.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icone-192.png">
+<link rel="apple-touch-icon" href="icone-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Muscu">
 <title>Carte des exercices</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -270,6 +282,22 @@ html { scroll-behavior:smooth; }
 }
 </style>
 
+
+<style>
+:root { color-scheme:light; padding-top:env(safe-area-inset-top, 0px);
+  padding-bottom:env(safe-area-inset-bottom, 0px); }
+img { max-width:100%; }
+[hidden] { display:none !important; }
+.maj { position:fixed; left:12px; right:12px; bottom:calc(12px + env(safe-area-inset-bottom, 0px));
+  z-index:50; display:flex; align-items:center; gap:12px; justify-content:space-between;
+  background:#111827; color:#fff; border-radius:12px; padding:11px 14px; font-size:14.5px;
+  box-shadow:0 8px 28px rgba(0,0,0,.28); }
+.maj button { font:inherit; font-weight:600; background:#fff; color:#111827; border:0;
+  border-radius:8px; padding:7px 13px; cursor:pointer; }
+</style>
+</head>
+<body>
+<div class="maj" id="maj" hidden><span data-t-fr="Nouvelle version disponible" data-t-en="New version available" data-t-es="Nueva versión disponible">Nouvelle version disponible</span><button type="button" data-t-fr="Recharger" data-t-en="Reload" data-t-es="Recargar">Recharger</button></div>
 <div class="wrap">
   <header class="tete">
     <p class="eyebrow" data-t-fr="Musculation du soir · lundi à vendredi" data-t-en="Evening strength training · Monday to Friday" data-t-es="Musculación por la tarde · de lunes a viernes">Musculation du soir · lundi à vendredi</p>
@@ -2748,3 +2776,40 @@ html { scroll-behavior:smooth; }
 })();
 </script>
 
+
+
+<script>
+/* Enregistrement du service worker et bannière de mise à jour. */
+(function () {
+  if (!('serviceWorker' in navigator)) return;
+  function proposer(reg) {
+    var b = document.getElementById('maj');
+    if (!b) return;
+    b.hidden = false;
+    b.querySelector('button').onclick = function () {
+      if (reg.waiting) reg.waiting.postMessage('passe');
+    };
+  }
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('./sw.js').then(function (reg) {
+      if (reg.waiting && navigator.serviceWorker.controller) proposer(reg);
+      reg.addEventListener('updatefound', function () {
+        var neuf = reg.installing;
+        if (!neuf) return;
+        neuf.addEventListener('statechange', function () {
+          if (neuf.state === 'installed' && navigator.serviceWorker.controller) proposer(reg);
+        });
+      });
+    }).catch(function () {});
+    var recharge = false;
+    navigator.serviceWorker.addEventListener('controllerchange', function () {
+      if (recharge) return;
+      recharge = true;
+      location.reload();
+    });
+  });
+})();
+</script>
+
+</body>
+</html>
