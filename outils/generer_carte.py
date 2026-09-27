@@ -1,0 +1,1036 @@
+# -*- coding: utf-8 -*-
+"""Genere carte-exercices.html : la carte interactive du programme.
+
+    python3 outils/generer_carte.py
+
+Chaque exercice est cliquable et ouvre sa fiche (schema, machine, reglages,
+execution, erreurs) avec deux liens de recherche video YouTube.
+"""
+import html as H
+import json
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from contenu import FICHES, IDX, SEMAINE, PROGRAMMES, ALTERNATIVES
+import traductions as TR
+from traductions import (UI, GROUPES, MATERIELS, JOURS, SEANCE_GROUPE, BLOCS_NOM,
+                         LANGUES, ALT, PRECISION)
+from illustrations import ILLUS
+
+RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SORTIE = os.path.join(RACINE, "carte-exercices.html")
+
+# Requete de recherche video, par exercice (le lien ouvre une recherche YouTube).
+VIDEO = {
+    "developpe_couche": "développé couché barre technique musculation",
+    "developpe_incline": "développé incliné haltères technique musculation",
+    "ecarte_poulie": "écarté poulie vis à vis pectoraux technique",
+    "pec_deck": "pec deck machine écarté technique musculation",
+    "dips": "dips barres parallèles pectoraux technique débutant",
+    "ecarte_incline": "écarté incliné haltères pectoraux technique",
+    "tractions": "tractions technique débutant machine assistée",
+    "tirage_vertical": "tirage vertical poulie haute lat pulldown technique",
+    "rowing_barre": "rowing barre buste penché technique dos",
+    "tirage_horizontal": "tirage horizontal poulie basse technique dos",
+    "rowing_haltere": "rowing haltère un bras banc technique dos",
+    "pullover_poulie": "pull over poulie haute bras tendus dorsaux technique",
+    "extensions_lombaires": "extensions lombaires banc 45 degrés technique",
+    "developpe_militaire": "développé militaire barre debout technique épaules",
+    "developpe_haltere_assis": "développé haltères assis épaules technique",
+    "elevations_laterales": "élévations latérales haltères technique épaules",
+    "tirage_menton": "tirage menton poulie prise large technique épaules",
+    "oiseau": "oiseau haltères arrière épaules technique",
+    "face_pull": "face pull poulie corde technique épaules",
+    "shrugs": "shrugs haltères trapèzes technique",
+    "planche": "gainage planche ventrale technique position",
+    "planche_laterale": "gainage planche latérale technique position",
+    "hollow": "hollow body hold gainage technique",
+    "dragon_flag": "dragon flag progression négative technique abdos",
+    "crunch_decline": "crunch banc décliné lesté disque technique abdos",
+    "v_ups": "v ups exercice abdos technique",
+    "releves_jambes": "relevés de jambes suspendu chaise romaine technique abdos",
+    "crunch_poulie": "crunch poulie haute corde à genoux technique abdos",
+    "crunch_inverse": "crunch inversé au sol technique abdos",
+    "russian_twist": "russian twist disque technique obliques",
+    "woodchopper": "woodchopper poulie technique obliques",
+    "ab_wheel": "roue abdominale ab wheel débutant technique",
+    "developpe_couche_halteres": "développé couché haltères technique musculation",
+    "developpe_decline": "développé décliné barre pectoraux technique",
+    "presse_pectoraux": "presse à pectoraux machine chest press technique",
+    "ecarte_poulie_basse": "écarté poulie basse de bas en haut pectoraux technique",
+    "pompes": "pompes lestées technique exécution",
+    "tractions_supination": "tractions prise supination chin up technique",
+    "rowing_machine": "rowing machine poitrine appuyée technique dos",
+    "rowing_t": "rowing barre en T technique dos",
+    "pullover_haltere": "pull over haltère banc technique dorsaux",
+    "presse_epaules": "presse à épaules machine technique",
+    "elevations_poulie": "élévations latérales à la poulie un bras technique",
+    "elevations_frontales": "élévations frontales disque épaules technique",
+    "oiseau_poulie": "oiseau poulie câbles croisés arrière épaule technique",
+    "shrugs_barre": "shrugs barre trapèzes technique",
+}
+
+# Nom donné à la page depuis l'artefact ; il ne suit pas la langue.
+TITRE_PAGE = "Gym"
+
+CLE_GROUPE = {"Pectoraux": "pect", "Dos": "dos", "Épaules": "epaules", "Abdos": "abdos"}
+
+# Materiel principal de chaque exercice, pour le menu de filtrage.
+MATERIEL = {
+    "barre": ("Barre", [
+        "developpe_couche", "developpe_decline", "rowing_barre", "rowing_t",
+        "developpe_militaire", "shrugs_barre"]),
+    "halteres": ("Haltères et disques", [
+        "developpe_incline", "ecarte_incline", "developpe_couche_halteres",
+        "rowing_haltere", "pullover_haltere", "developpe_haltere_assis",
+        "elevations_laterales", "oiseau", "shrugs", "elevations_frontales",
+        "crunch_decline", "russian_twist"]),
+    "poulie": ("Poulie et câbles", [
+        "ecarte_poulie", "ecarte_poulie_basse", "tirage_vertical", "tirage_horizontal",
+        "pullover_poulie", "tirage_menton", "face_pull", "elevations_poulie",
+        "oiseau_poulie", "crunch_poulie", "woodchopper"]),
+    "machine": ("Machine guidée", [
+        "pec_deck", "presse_pectoraux", "rowing_machine", "presse_epaules"]),
+    "corps": ("Poids du corps", [
+        "dips", "pompes", "tractions", "tractions_supination", "extensions_lombaires",
+        "dragon_flag", "v_ups", "releves_jambes", "crunch_inverse", "ab_wheel",
+        "planche", "planche_laterale", "hollow"]),
+}
+MAT_DE = {fid: cle for cle, (_, ids) in MATERIEL.items() for fid in ids}
+# Quelle seance utilise quel bloc abdominal (le bloc A revient en A et en D).
+SEANCE_BLOC = {"A": "A", "B": "B", "C": "C", "D": "D"}
+BLOC_DE_SEANCE = {"A": ["A"], "B": ["B"], "C": ["C"], "D": ["D"]}
+YT = "https://www.youtube.com/results?search_query="
+
+
+def esc(t):
+    return H.escape(t, quote=False)
+
+
+def tri(fr, en, es):
+    """Attributs de traduction posés sur l'élément qui porte le texte."""
+    return (f'data-t-fr="{H.escape(fr, quote=True)}" '
+            f'data-t-en="{H.escape(en, quote=True)}" '
+            f'data-t-es="{H.escape(es, quote=True)}"')
+
+
+A = {cle: tri(*v) for cle, v in UI.items()}
+
+
+def q(texte):
+    from urllib.parse import quote_plus
+    return YT + quote_plus(texte)
+
+
+def construire_donnees():
+    """Fiche + seances (des deux programmes) dans lesquelles l'exercice apparait."""
+    d = {}
+    for f in FICHES:
+        fid, t = f["id"], {}
+        for i, (code, _) in enumerate(LANGUES):
+            src = f if i == 0 else (TR.FICHES_EN if i == 1 else TR.FICHES_ES)[fid]
+            t[code] = dict(nom=src["nom"], machine=src["machine"], reglage=src["reglage"],
+                           etapes=list(src["etapes"]), erreurs=list(src["erreurs"]),
+                           groupe=GROUPES[f["groupe"]][i],
+                           video=q(VIDEO[fid] if i == 0
+                                   else src["nom"] + " " + TR.SUFFIXE_VIDEO[i]))
+        for i, (code, _) in enumerate(LANGUES):
+            liste = []
+            for entree in ALTERNATIVES[fid]:
+                sorte, cle = entree.split(":", 1)
+                if sorte == "f":
+                    autre = next(x for x in FICHES if x["id"] == cle)
+                    nom = (autre["nom"] if i == 0
+                           else (TR.FICHES_EN if i == 1 else TR.FICHES_ES)[cle]["nom"])
+                    mat = MAT_DE[cle]
+                    requete = VIDEO[cle] if i == 0 else nom + " " + TR.SUFFIXE_VIDEO[i]
+                else:
+                    noms, mat = ALT[cle]
+                    nom = noms[i]
+                    requete = f"{nom} {PRECISION[mat][i]} {TR.SUFFIXE_VIDEO[i]}"
+                liste.append(dict(n=nom, m=MATERIELS[mat][i],
+                                  f=cle if sorte == "f" else None, v=q(requete)))
+            t[code]["alts"] = liste
+        d[fid] = dict(n=IDX[fid], g=CLE_GROUPE[f["groupe"]], seances=[], t=t)
+
+    def dose(fid, prog, lettre, valeur, repos):
+        e = dict(p=prog, l=lettre, v=[TR.dose(valeur, i) for i in range(3)], r=repos)
+        if e not in d[fid]["seances"]:
+            d[fid]["seances"].append(e)
+
+    for prog in PROGRAMMES:
+        for titre, _, lignes in prog["seances"]:
+            lettre = titre.split("Séance ")[-1][0]
+            for fid, _, series, reps, repos, _ in lignes:
+                dose(fid, prog["cle"], lettre, f"{series} × {reps}", repos)
+        for lettre, (fid, _, series, duree, repos) in prog["gainage"].items():
+            dose(fid, prog["cle"], lettre, f"{series} × {duree}", repos)
+        for titre, _, lignes in prog["blocs"]:
+            bl = titre.split("abdos ")[-1][0]
+            for fid, _, series, reps, repos in lignes:
+                for lettre in BLOC_DE_SEANCE[bl]:
+                    dose(fid, prog["cle"], lettre, f"{series} × {reps}", repos)
+    return d
+
+
+ILLU = {f["id"]: f.get("illu", f["id"]) for f in FICHES}
+
+
+def ligne(fid, nom, dose, repos, d):
+    noms = tuple(d[fid]["t"][c]["nom"] for c, _ in LANGUES)
+    doses = tuple(f"{TR.dose(dose, i)} · {UI['repos'][i]} {TR.dose(repos, i)}" for i in range(3))
+    return f"""<li class="row-li"><button class="row" type="button" data-id="{fid}"
+      data-g="{d[fid]['g']}" data-m="{MAT_DE[fid]}" aria-haspopup="dialog">
+  <span class="vign">{ILLUS[ILLU[fid]]().svg()}</span>
+  <span class="ligne-txt"><span class="ligne-nom" {tri(*noms)}>{esc(noms[0])}</span>
+    <span class="ligne-dose" {tri(*doses)}>{esc(doses[0])}</span></span>
+  <span class="chev" aria-hidden="true">›</span>
+</button></li>"""
+
+
+def carte_seance(titre, soustitre, lignes, d, prog):
+    """Une carte par jour : musculation, abdominaux puis gainage, dans une seule liste."""
+    blocs, gainage, cle = prog["blocs"], prog["gainage"], prog["cle"]
+    lettre = titre.split("Séance ")[-1][0]
+    jour, duree = soustitre.split(" · ")[0], soustitre.split(" · ")[1]
+    groupe = titre.split(" — ")[-1]
+    items = "".join(ligne(fid, nom, f"{series} × {reps}", repos, d)
+                    for fid, nom, series, reps, repos, _ in lignes)
+
+    bloc_lettre = SEANCE_BLOC[lettre]
+    btitre, _, blignes = next(b for b in blocs if b[0].split("abdos ")[-1][0] == bloc_lettre)
+    bn = BLOCS_NOM[btitre.split(" — ")[-1]]
+    notes = tuple(f"{bn[i]} · {('bloc', 'block', 'bloque')[i]} {bloc_lettre}" for i in range(3))
+    items += (f'<li class="sous-tete"><span {A["abdominaux"]}>{esc(UI["abdominaux"][0])}</span>'
+              f'<span class="sous-tete-note" {tri(*notes)}>{esc(notes[0])}</span></li>')
+    items += "".join(ligne(fid, nom, f"{series} × {reps}", repos, d)
+                     for fid, nom, series, reps, repos in blignes)
+
+    titres = tuple(f"{SEANCE_GROUPE[groupe][i]} {UI['plus_abdos'][i]}" for i in range(3))
+    sous = tuple(f"{JOURS[jour][i]} · {TR.duree(duree, i)}" for i in range(3))
+
+    gfid, gnom, gser, gduree, grepos = gainage[lettre]
+    items += (f'<li class="sous-tete"><span {A["gainage"]}>{esc(UI["gainage"][0])}</span>'
+              f'<span class="sous-tete-note" {A["gainage_note"]}>'
+              f'{esc(UI["gainage_note"][0])}</span></li>')
+    items += ligne(gfid, gnom, f"{gser} × {gduree}", grepos, d)
+
+    return f"""<section class="carte" id="p{cle}-seance-{lettre.lower()}"
+  data-seance="{lettre.lower()}" tabindex="-1">
+  <header class="carte-tete">
+    <span class="pastille">{esc(lettre)}</span>
+    <div><h2 {tri(*titres)}>{esc(titres[0])}</h2>
+      <p class="carte-sous" {tri(*sous)}>{esc(sous[0])}</p></div>
+  </header>
+  <ol class="rows">{items}</ol>
+</section>"""
+
+
+CAL_JS = '\n<script>\n/* Calendrier automatique : tout se déduit de la date de départ — la semaine en\n   cours, le programme du bloc et la séance du soir. Rien à cocher.\n   Seule la date de départ est stockée (db de l\'artefact, sinon localStorage). */\n(function () {\n  var U = JSON.parse(document.getElementById(\'ui\').textContent);\n  var P = JSON.parse(document.getElementById(\'planning\').textContent);\n  var LANGS = [\'fr\', \'en\', \'es\'];\n  var DECALAGE = [0, 1, 3, 4];           // lundi, mardi, jeudi, vendredi\n  var etat = { debut: null, duree: 5 };\n  var db = null, enCours = Promise.resolve(), bascule = false;\n\n  function lang() {\n    var l = document.documentElement.lang;\n    return LANGS.indexOf(l) === -1 ? \'fr\' : l;\n  }\n  function t(cle) { return U[cle][LANGS.indexOf(lang())]; }\n  function el(id) { return document.getElementById(id); }\n\n  function jourUTC(d) { return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())); }\n  function iso(d) { return d.toISOString().slice(0, 10); }\n  function parse(v) { var p = String(v).split(\'-\'); return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2])); }\n  function plus(d, n) { var r = new Date(d.getTime()); r.setUTCDate(r.getUTCDate() + n); return r; }\n  function lundiDe(d) { var x = jourUTC(d); return plus(x, -((x.getUTCDay() + 6) % 7)); }\n  function ajd() {\n    var n = new Date();\n    return new Date(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate()));\n  }\n  function fdate(d, annee) {\n    var o = { day: \'numeric\', month: \'short\', timeZone: \'UTC\' };\n    if (annee) o.year = \'numeric\';\n    try { return d.toLocaleDateString(lang(), o); } catch (e) { return iso(d); }\n  }\n  function progDe(sem) { return (Math.floor(sem / etat.duree) % 2 === 0) ? \'A\' : \'B\'; }\n  function nomJour(n) { return P.noms[n][LANGS.indexOf(lang())]; }\n  function seanceDe(n) { return P.jours[n] || null; }\n\n  /* ---------- stockage de la date de départ ---------- */\n  function localLire() {\n    try {\n      var c = JSON.parse(localStorage.getItem(\'cal\') || \'{}\');\n      if (c.debut) etat.debut = c.debut;\n      if (c.duree) etat.duree = +c.duree;\n    } catch (e) {}\n  }\n  function enregistrer() {\n    try { localStorage.setItem(\'cal\', JSON.stringify(etat)); } catch (e) {}\n    if (!db) return;\n    enCours = enCours\n      .then(function () { return db.doc(\'suivi/config\').set({ debut: etat.debut, duree: etat.duree }); })\n      .catch(function () { db = null; majStockage(); });\n  }\n  function majStockage() {\n    el(\'cal-stockage\').textContent = db ? t(\'cal_en_ligne\') : t(\'cal_local\');\n  }\n\n  /* ---------- bandeau du jour ---------- */\n  function rendreJour(semCourante) {\n    var b = el(\'jour-etat\');\n    b.textContent = \'\';\n    var n = new Date().getDay(); n = n === 0 ? 7 : n;      // 1 = lundi … 7 = dimanche\n    var s = seanceDe(n), txt;\n\n    if (s) {\n      txt = t(\'aujourdhui\') + \' · \' + nomJour(n) + \' — \' + t(\'seance\') + \' \' + s.l\n        + \' : \' + s.g[LANGS.indexOf(lang())];\n    } else {\n      var suiv = null, decal = 1;\n      for (; decal <= 7; decal++) {\n        var m = ((n - 1 + decal) % 7) + 1;\n        if (seanceDe(m)) { suiv = m; break; }\n      }\n      txt = t(\'aujourdhui\') + \' · \' + nomJour(n) + \' — \' + t(\'jour_repos\');\n      if (suiv) {\n        txt += \' · \' + t(\'jour_prochaine\').replace(\'%J%\', nomJour(suiv) + \' (\'\n          + t(\'seance\') + \' \' + seanceDe(suiv).l + \')\');\n      }\n    }\n    if (semCourante >= 0) txt += \' · \' + t(\'programme\') + \' \' + progDe(semCourante);\n    var sp = document.createElement(\'span\');\n    sp.textContent = txt;\n    b.appendChild(sp);\n\n    if (s) {\n      var bt = document.createElement(\'button\');\n      bt.type = \'button\'; bt.className = \'btn-jour\'; bt.textContent = t(\'ouvrir_seance\');\n      bt.addEventListener(\'click\', function () {\n        var chip = document.querySelector(\'a.jour[data-seance="\' + s.l.toLowerCase() + \'"]\');\n        if (chip) chip.click();\n      });\n      b.appendChild(bt);\n    }\n  }\n\n  /* ---------- calendrier ---------- */\n  function rendre() {\n    var corps = el(\'cal-corps\');\n    corps.textContent = \'\';\n    if (!etat.debut) {\n      el(\'cal-etat\').textContent = t(\'cal_sans_date\');\n      el(\'cal-prog-txt\').textContent = \'\';\n      el(\'cal-jauge\').style.width = \'0\';\n      rendreJour(-1);\n      majStockage();\n      return;\n    }\n\n    var debut = parse(etat.debut), today = ajd();\n    var semCourante = Math.round((lundiDe(today) - debut) / 604800000);\n    var premiere = semCourante < 0 ? 0 : Math.floor(semCourante / etat.duree) * etat.duree;\n    var lignes = etat.duree * 2;\n\n    for (var i = premiere; i < premiere + lignes; i++) {\n      var lundi = plus(debut, i * 7), prog = progDe(i);\n      var tr = document.createElement(\'tr\');\n      tr.className = \'cal-ligne\' + (i === semCourante ? \' ici\' : \'\')\n        + (i < semCourante ? \' passee\' : \'\')\n        + (i > premiere && progDe(i) !== progDe(i - 1) ? \' bloc\' : \'\');\n\n      var th = document.createElement(\'th\');\n      th.scope = \'row\'; th.textContent = t(\'cal_sem\') + (i + 1);\n      tr.appendChild(th);\n\n      var tdP = document.createElement(\'td\');\n      var pas = document.createElement(\'span\');\n      pas.className = \'cal-prog p\' + prog; pas.textContent = prog;\n      tdP.appendChild(pas);\n      tr.appendChild(tdP);\n\n      var tdD = document.createElement(\'td\');\n      tdD.className = \'cal-dates\';\n      tdD.textContent = fdate(lundi) + \' – \' + fdate(plus(lundi, 4));\n      tr.appendChild(tdD);\n\n      var tdC = document.createElement(\'td\');\n      var pts = document.createElement(\'span\');\n      pts.className = \'pts\';\n      DECALAGE.forEach(function (dj) {\n        var jour = plus(lundi, dj);\n        var pt = document.createElement(\'i\');\n        pt.className = \'pt\' + (jour < today ? \' fait\' : (+jour === +today ? \' ajd\' : \'\'));\n        pt.title = fdate(jour, true);\n        pts.appendChild(pt);\n      });\n      tdC.appendChild(pts);\n      tr.appendChild(tdC);\n\n      corps.appendChild(tr);\n    }\n\n    var msg, dansBloc = 0;\n    if (semCourante < 0) {\n      msg = t(\'cal_avant\').replace(\'%D%\', fdate(debut, true));\n      el(\'cal-jauge\').style.width = \'0\';\n      el(\'cal-prog-txt\').textContent = \'\';\n    } else {\n      dansBloc = semCourante % etat.duree;\n      var reste = etat.duree - dansBloc - 1;\n      var suivant = progDe(semCourante) === \'A\' ? \'B\' : \'A\';\n      msg = t(\'cal_etat\').replace(\'%N%\', dansBloc + 1).replace(\'%P%\', progDe(semCourante))\n        + \' · \' + (reste === 0\n          ? t(\'cal_reste_un\').replace(\'%Q%\', suivant)\n          : t(\'cal_reste\').replace(\'%R%\', reste).replace(\'%Q%\', suivant));\n      el(\'cal-jauge\').style.width = Math.round((dansBloc + 1) / etat.duree * 100) + \'%\';\n      el(\'cal-prog-txt\').textContent = t(\'bloc_progression\')\n        .replace(\'%B%\', Math.floor(semCourante / etat.duree) + 1)\n        .replace(\'%N%\', dansBloc + 1).replace(\'%T%\', etat.duree);\n    }\n    el(\'cal-etat\').textContent = msg;\n    rendreJour(semCourante);\n    majStockage();\n\n    if (semCourante >= 0 && !bascule) {\n      bascule = true;\n      var onglet = document.querySelector(\'.onglet[data-prog="\' + progDe(semCourante) + \'"]\');\n      if (onglet && onglet.getAttribute(\'aria-selected\') !== \'true\') onglet.click();\n    }\n  }\n\n  /* ---------- écoute ---------- */\n  el(\'cal-debut\').addEventListener(\'change\', function () {\n    if (!this.value) return;\n    etat.debut = iso(lundiDe(parse(this.value)));\n    this.value = etat.debut;\n    enregistrer(); rendre();\n  });\n  el(\'cal-duree\').addEventListener(\'change\', function () {\n    etat.duree = +this.value; enregistrer(); rendre();\n  });\n  document.addEventListener(\'langue\', rendre);\n\n  /* ---------- démarrage ---------- */\n  try { el(\'panneau\').open = window.matchMedia(\'(min-width: 900px)\').matches; } catch (e) {}\n  localLire();\n  if (!etat.debut) etat.debut = iso(lundiDe(ajd()));\n  el(\'cal-debut\').value = etat.debut;\n  el(\'cal-duree\').value = String(etat.duree);\n  rendre();\n\n  (async function () {\n    try { db = window.claude && await window.claude.use(\'db\'); } catch (e) { db = null; }\n    if (!db) { majStockage(); return; }\n    try {\n      var c = await db.doc(\'suivi/config\').get();\n      if (c.exists) {\n        var d = c.data();\n        if (d.debut) etat.debut = d.debut;\n        if (d.duree) etat.duree = +d.duree;\n      }\n    } catch (e) { db = null; }\n    el(\'cal-debut\').value = etat.debut;\n    el(\'cal-duree\').value = String(etat.duree);\n    try { localStorage.setItem(\'cal\', JSON.stringify(etat)); } catch (e) {}\n    rendre();\n  })();\n})();\n</script>\n'
+
+
+def main():
+    d = construire_donnees()
+    jours = []
+    for j, txt, _ in SEMAINE:
+        abrev = tuple(JOURS[j][i][:3].upper() for i in range(3))
+        if txt.startswith("Repos"):
+            jours.append(f'<div class="jour off"><span class="jour-nom" {tri(*abrev)}>{abrev[0]}</span>'
+                         f'<span class="jour-val">—</span>'
+                         f'<span class="jour-quoi" {A["repos_jour"]}>{esc(UI["repos_jour"][0])}</span></div>')
+            continue
+        lettre = txt.split(" — ")[0].replace("Séance ", "").strip()
+        groupe = txt.split(" — ")[1].split(" + ")[0]
+        gr = SEANCE_GROUPE[groupe]
+        jours.append(
+            f'<a class="jour" href="#pA-seance-{lettre.lower()}" data-seance="{lettre.lower()}" '
+            f'aria-label="{esc(JOURS[j][0])} — {esc(groupe)}">'
+            f'<span class="jour-nom" {tri(*abrev)}>{abrev[0]}</span>'
+            f'<span class="jour-val">{esc(lettre)}</span>'
+            f'<span class="jour-quoi" {tri(*gr)}>{esc(gr[0])}</span></a>')
+    semaine = "".join(jours)
+    options = f'<option value="" {A["tous"]}>{esc(UI["tous"][0])}</option>'
+    options += f'<optgroup label="{esc(UI["opt_groupe"][0])}">'
+    for fr, c in (("Pectoraux", "pect"), ("Dos", "dos"), ("Épaules", "epaules"),
+                  ("Abdos", "abdos")):
+        g = GROUPES[fr]
+        options += f'<option value="g:{c}" {tri(*g)}>{esc(g[0])}</option>'
+    options += f'</optgroup><optgroup label="{esc(UI["opt_materiel"][0])}">'
+    for cle in MATERIEL:
+        m = MATERIELS[cle]
+        options += f'<option value="m:{cle}" {tri(*m)}>{esc(m[0])}</option>'
+    options += "</optgroup>"
+
+    langues = "".join(f'<option value="{c}">{esc(n)}</option>' for c, n in LANGUES)
+    ui_json = json.dumps({k: list(v) for k, v in UI.items()}, ensure_ascii=False)
+
+    # Quel jour de la semaine porte quelle séance (1 = lundi … 7 = dimanche).
+    plan = {"jours": {}, "noms": {}}
+    for i, (jour, txt, _) in enumerate(SEMAINE, start=1):
+        plan["noms"][i] = list(JOURS[jour])
+        if txt.startswith("Repos"):
+            continue
+        lettre = txt.split(" — ")[0].replace("Séance ", "").strip()
+        groupe = txt.split(" — ")[1].split(" + ")[0]
+        plan["jours"][i] = {"l": lettre, "g": list(SEANCE_GROUPE[groupe])}
+    plan_json = json.dumps(plan, ensure_ascii=False)
+    cal_js = CAL_JS
+
+    grilles, onglets = "", ""
+    for i, prog in enumerate(PROGRAMMES):
+        cartes = "".join(carte_seance(t, st, l, d, prog) for t, st, l in prog["seances"])
+        grilles += (f'<div class="grille" data-prog="{prog["cle"]}"'
+                    f'{"" if i == 0 else " hidden"}>{cartes}</div>')
+        nom_p = tuple(f'{UI["programme"][k]} {prog["cle"]}' for k in range(3))
+        sous_p = UI["prog_sous_a"] if i == 0 else UI["prog_sous_b"]
+        onglets += (f'<button class="onglet" type="button" role="tab" data-prog="{prog["cle"]}"'
+                    f' aria-selected="{"true" if i == 0 else "false"}" {tri(*nom_p)}>'
+                    f'{esc(nom_p[0])}<span {tri(*sous_p)}>{esc(sous_p[0])}</span></button>')
+
+    page = f"""<title>{TITRE_PAGE}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600&display=swap">
+<style>
+:root {{
+  color-scheme: light;
+  --bg:#eef2f6; --surface:#ffffff; --surface-2:#f6f8fb; --ink:#0f1720;
+  --muted:#5b6876; --line:#dbe3ec; --accent:#1d4ed8; --on-accent:#ffffff;
+  --pect:#1d4ed8; --dos:#047857; --epaules:#b45309; --abdos:#7c3aed;
+  --plaque:#f5f7fa; --plaque-line:#e3e9f0;
+  --ombre:0 1px 2px rgba(15,23,32,.05), 0 10px 30px rgba(15,23,32,.07);
+}}
+@media (prefers-color-scheme: dark) {{
+  :root:not([data-theme="light"]) {{
+    color-scheme: dark;
+    --bg:#0d1218; --surface:#151d25; --surface-2:#1a232c; --ink:#e7edf4;
+    --muted:#98a5b3; --line:#27313d; --accent:#7ba4ff; --on-accent:#0d1218;
+    --pect:#7ba4ff; --dos:#34d399; --epaules:#f5b73c; --abdos:#c0aefc;
+    --ombre:0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+  }}
+}}
+:root[data-theme="dark"] {{
+  color-scheme: dark;
+  --bg:#0d1218; --surface:#151d25; --surface-2:#1a232c; --ink:#e7edf4;
+  --muted:#98a5b3; --line:#27313d; --accent:#7ba4ff; --on-accent:#0d1218;
+  --pect:#7ba4ff; --dos:#34d399; --epaules:#f5b73c; --abdos:#c0aefc;
+  --ombre:0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+}}
+* {{ box-sizing:border-box; }}
+[hidden] {{ display:none !important; }}
+body {{ margin:0; background:var(--bg); color:var(--ink);
+  font-family:"Source Sans 3",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-size:16px; line-height:1.5; }}
+.wrap {{ max-width:1240px; margin:0 auto; padding-inline:16px; padding-block:0 40px; }}
+.corps {{ display:grid; grid-template-columns:1fr; gap:18px; margin-top:14px; }}
+.principal {{ min-width:0; }}
+@media (min-width:900px) {{
+  .corps {{ grid-template-columns:320px minmax(0,1fr); gap:24px; align-items:start; }}
+  .cote {{ position:sticky; top:calc(env(safe-area-inset-top, 0px) + 12px);
+    max-height:calc(100dvh - 28px); overflow-y:auto; }}
+}}
+.panneau {{ background:var(--surface); border:1px solid var(--line); border-radius:14px;
+  box-shadow:var(--ombre); overflow:hidden; }}
+.panneau > summary {{ cursor:pointer; padding:12px 16px; font-family:"Barlow Condensed",sans-serif;
+  font-size:18px; font-weight:600; text-transform:uppercase; letter-spacing:.04em;
+  list-style:none; display:flex; align-items:center; gap:8px; }}
+.panneau > summary::-webkit-details-marker {{ display:none; }}
+.panneau > summary::after {{ content:"›"; margin-left:auto; font-size:22px; line-height:1;
+  color:var(--muted); transition:transform .15s; }}
+.panneau[open] > summary::after {{ transform:rotate(90deg); }}
+.panneau > summary:hover {{ background:var(--surface-2); }}
+.panneau-corps {{ padding:2px 16px 14px; }}
+.bloc-cote {{ padding:12px 0; border-top:1px solid var(--line); }}
+.bloc-cote:first-child {{ border-top:0; padding-top:4px; }}
+.bloc-cote .champ + .champ {{ margin-top:8px; }}
+.bloc-cote .onglets {{ margin:0 0 8px; flex-direction:column; }}
+.bloc-cote .onglet {{ flex:1 1 auto; font-size:17px; padding:9px 12px; }}
+.bandeau {{ margin:14px 0 0; background:var(--surface); border:1px solid var(--line);
+  border-left:4px solid var(--accent); border-radius:11px; padding:11px 14px;
+  font-family:"Barlow Condensed","Source Sans 3",sans-serif; font-size:19px; font-weight:600;
+  line-height:1.3; display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px; }}
+.bandeau .btn-jour {{ font-family:"Source Sans 3",sans-serif; font-size:13.5px; font-weight:600;
+  background:var(--accent); color:var(--on-accent); border:0; border-radius:8px;
+  padding:7px 12px; cursor:pointer; }}
+.bandeau .btn-jour:focus-visible {{ outline:2px solid var(--accent); outline-offset:2px; }}
+.jauge {{ height:6px; border-radius:3px; background:var(--surface-2); overflow:hidden;
+  margin:8px 0 5px; }}
+.jauge span {{ display:block; height:100%; width:0; background:var(--accent); }}
+.cal-prog-txt {{ margin:0 0 8px; font-size:13px; color:var(--muted);
+  font-variant-numeric:tabular-nums; }}
+.pts {{ display:inline-flex; gap:5px; }}
+.pt {{ width:9px; height:9px; border-radius:50%; border:1.5px solid var(--line);
+  display:inline-block; }}
+.pt.fait {{ background:var(--muted); border-color:var(--muted); }}
+.pt.ajd {{ border-color:var(--accent); box-shadow:0 0 0 2.5px color-mix(in srgb, var(--accent) 28%, transparent); }}
+h1,h2,h3,.pastille,.eyebrow {{ font-family:"Barlow Condensed","Source Sans 3",sans-serif; }}
+h1 {{ font-size:clamp(30px,6vw,44px); font-weight:700; letter-spacing:-.01em;
+     margin:0; text-wrap:balance; text-transform:uppercase; }}
+.eyebrow {{ font-size:13px; font-weight:600; letter-spacing:.14em; text-transform:uppercase;
+     color:var(--muted); margin:0 0 4px; }}
+.tete {{ padding-block:24px 14px; }}
+.tete p.intro {{ margin:8px 0 0; color:var(--muted); max-width:62ch; }}
+
+.semaine {{ display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin:0 0 14px; }}
+.jour {{ background:var(--surface); border:1px solid var(--line); border-radius:8px;
+  padding:7px 4px 6px; text-align:center; display:block; text-decoration:none;
+  color:inherit; transition:border-color .15s, transform .15s; }}
+a.jour {{ cursor:pointer; }}
+a.jour:hover {{ border-color:var(--accent); transform:translateY(-1px); }}
+a.jour:focus-visible {{ outline:2px solid var(--accent); outline-offset:2px; }}
+.jour-quoi {{ display:block; font-size:10.5px; line-height:1.25; color:var(--muted);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
+.jour-nom {{ display:block; font-size:11px; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--muted); }}
+.jour-val {{ display:block; font-family:"Barlow Condensed",sans-serif; font-weight:700;
+  font-size:20px; line-height:1.2; }}
+.jour.off {{ background:transparent; }}
+.jour.off .jour-val {{ color:var(--muted); }}
+
+.cal-etat {{ margin:0; font-family:"Barlow Condensed","Source Sans 3",sans-serif;
+  font-size:19px; font-weight:600; line-height:1.25; }}
+input[type="date"] {{ flex:1; min-width:0; font:inherit; color:var(--ink);
+  background:var(--surface); border:1px solid var(--line); border-radius:9px; padding:10px 12px; }}
+.cal-defil {{ overflow-x:auto; margin-bottom:8px; }}
+.cal-table {{ width:100%; border-collapse:collapse; font-size:14px; }}
+.cal-table th, .cal-table td {{ padding:4px 7px 4px 0; text-align:left; vertical-align:middle;
+  border-top:1px solid var(--line); }}
+.cal-table tr.passee th, .cal-table tr.passee td {{ opacity:.55; }}
+.cal-table th {{ font-weight:600; color:var(--muted); font-variant-numeric:tabular-nums;
+  white-space:nowrap; }}
+.cal-ligne.bloc th, .cal-ligne.bloc td {{ border-top:2px solid var(--ink); }}
+.cal-ligne.ici {{ background:var(--surface-2); }}
+.cal-ligne.ici th {{ color:var(--ink); box-shadow:inset 3px 0 var(--accent); padding-left:6px; }}
+.cal-prog {{ display:inline-grid; place-items:center; width:24px; height:24px; border-radius:7px;
+  font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px;
+  background:var(--ink); color:var(--surface); }}
+.cal-prog.pB {{ background:var(--accent); color:var(--on-accent); }}
+.cal-ici {{ margin-left:7px; font-size:11.5px; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--accent); }}
+.cal-dates {{ color:var(--muted); white-space:nowrap; }}
+
+.onglets {{ display:flex; gap:8px; margin:22px 0 0; flex-wrap:wrap; }}
+.onglet {{ flex:1 1 200px; text-align:left; font:inherit; cursor:pointer;
+  background:var(--surface); color:var(--muted); border:1px solid var(--line);
+  border-radius:11px; padding:10px 14px; font-family:"Barlow Condensed","Source Sans 3",sans-serif;
+  font-size:19px; font-weight:600; text-transform:uppercase; letter-spacing:.02em;
+  transition:border-color .15s, color .15s; }}
+.onglet span {{ display:block; font-family:"Source Sans 3",sans-serif; font-size:12.5px;
+  font-weight:400; text-transform:none; letter-spacing:0; color:var(--muted); margin-top:1px; }}
+.onglet[aria-selected="true"] {{ background:var(--ink); color:var(--surface);
+  border-color:var(--ink); }}
+.onglet[aria-selected="true"] span {{ color:var(--surface); opacity:.75; }}
+.onglet:focus-visible {{ outline:2px solid var(--accent); outline-offset:2px; }}
+.reglages {{ display:flex; gap:10px 18px; flex-wrap:wrap; margin:14px 0 6px; }}
+.champ {{ flex:1 1 240px; display:flex; align-items:center; gap:10px; }}
+.champ label {{ font-size:12.5px; font-weight:600; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--muted); }}
+.champ select {{ flex:1; min-width:0; font:inherit; font-weight:600; color:var(--ink);
+  background:var(--surface); border:1px solid var(--line); border-radius:9px;
+  padding:11px 13px; cursor:pointer; }}
+.champ select:focus-visible {{ outline:2px solid var(--accent); outline-offset:1px; }}
+.vide {{ color:var(--muted); padding:10px 2px; }}
+
+.grille {{ display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(290px,1fr));
+  align-items:start; margin-top:16px; }}
+.carte {{ background:var(--surface); border:1px solid var(--line); border-radius:14px;
+  box-shadow:var(--ombre); overflow:hidden; scroll-margin-top:14px;
+  outline:2px solid transparent; outline-offset:3px; transition:outline-color .4s ease; }}
+.carte:focus {{ outline:none; }}
+.carte.cible {{ outline-color:var(--accent); }}
+.carte-tete {{ display:flex; gap:12px; align-items:center; padding:14px 16px;
+  border-bottom:1px solid var(--line); }}
+.carte-tete h2 {{ margin:0; font-size:20px; font-weight:600; text-transform:uppercase;
+  letter-spacing:.02em; }}
+.carte-sous {{ margin:1px 0 0; font-size:13px; color:var(--muted); }}
+.pastille {{ width:34px; height:34px; flex:0 0 34px; border-radius:9px; display:grid;
+  place-items:center; background:var(--ink); color:var(--surface); font-weight:700;
+  font-size:19px; }}
+.rows {{ list-style:none; margin:0; padding:0; }}
+.rows li + li {{ border-top:1px solid var(--line); }}
+.sous-tete {{ display:flex; flex-wrap:wrap; align-items:baseline; gap:2px 8px;
+  padding:9px 14px; background:var(--surface-2); }}
+.sous-tete > span:first-child {{ font-family:"Barlow Condensed","Source Sans 3",sans-serif;
+  font-weight:600; font-size:15px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--abdos); }}
+.sous-tete-note {{ font-size:13px; color:var(--muted); }}
+
+.row {{ display:flex; align-items:center; gap:12px; width:100%; min-height:62px;
+  padding:9px 12px 9px 0; background:none; border:0; border-left:4px solid var(--g);
+  color:inherit; font:inherit; text-align:left; cursor:pointer; }}
+.row:hover, .row:focus-visible {{ background:var(--surface-2); }}
+.row:focus-visible {{ outline:2px solid var(--accent); outline-offset:-2px; }}
+.row[data-g="pect"] {{ --g:var(--pect); }} .row[data-g="dos"] {{ --g:var(--dos); }}
+.row[data-g="epaules"] {{ --g:var(--epaules); }} .row[data-g="abdos"] {{ --g:var(--abdos); }}
+.vign {{ flex:0 0 76px; width:76px; background:var(--plaque); border:1px solid var(--plaque-line);
+  border-radius:7px; padding:2px; display:block; }}
+.vign svg {{ display:block; width:100%; height:auto; }}
+.ligne-txt {{ flex:1; min-width:0; }}
+.ligne-nom {{ display:block; font-weight:600; line-height:1.25; }}
+.ligne-dose {{ display:block; font-size:13.5px; color:var(--muted);
+  font-variant-numeric:tabular-nums; }}
+.sep {{ padding:0 6px; opacity:.6; }}
+.chev {{ color:var(--muted); font-size:22px; line-height:1; }}
+
+dialog {{ border:0; padding:0; background:transparent; width:100%; height:100%;
+  max-width:100%; max-height:100%; margin:0; color:var(--ink); overflow:hidden; }}
+dialog::backdrop {{ background:rgba(8,12,18,.55); }}
+.sheet {{ background:var(--surface); border-radius:16px; box-shadow:var(--ombre);
+  width:100%; max-width:680px; max-height:calc(100dvh - 32px);
+  overflow-y:auto; overflow-x:hidden; margin:auto; position:relative; }}
+.sheet p, .sheet li, .sheet h2 {{ overflow-wrap:break-word; }}
+.dlg-pos {{ display:grid; place-items:center; min-height:100%; width:100%;
+  padding:12px; }}
+.sheet-tete {{ position:sticky; top:0; background:var(--surface); z-index:2;
+  display:flex; flex-wrap:wrap; align-items:flex-start; gap:10px 12px;
+  padding:16px 16px 12px; border-bottom:1px solid var(--line); }}
+.sheet-tete > div {{ flex:1 1 170px; min-width:0; }}
+.sheet-tete h2 {{ margin:2px 0 0; font-size:24px; font-weight:600; line-height:1.15;
+  text-wrap:balance; }}
+.num {{ flex:0 0 30px; width:30px; height:30px; border-radius:50%; display:grid;
+  place-items:center; background:var(--g,var(--accent)); color:var(--on-accent);
+  font-weight:700; font-size:15px; font-family:"Barlow Condensed",sans-serif; }}
+.fermer {{ margin-left:auto; flex:0 0 auto; background:var(--surface-2); color:var(--ink);
+  border:1px solid var(--line); border-radius:8px; padding:7px 12px; font:inherit;
+  cursor:pointer; }}
+.fermer:hover {{ background:var(--bg); }}
+.sheet-corps {{ padding:16px; display:grid; gap:16px; }}
+.fig {{ background:var(--plaque); border:1px solid var(--plaque-line); border-radius:12px;
+  padding:6px; }}
+.fig svg {{ display:block; width:100%; height:auto; }}
+.legende {{ display:flex; flex-wrap:wrap; gap:14px; font-size:13px; color:var(--muted);
+  margin-top:6px; }}
+.legende i {{ display:inline-block; width:22px; height:0; border-top:3px solid #1f2937;
+  vertical-align:middle; margin-right:6px; }}
+.legende i.clair {{ border-top-color:#b6bec9; }} .legende i.rouge {{ border-top-color:#dc2626; }}
+.doses {{ display:flex; flex-wrap:wrap; gap:8px; }}
+.dose {{ background:var(--surface-2); border:1px solid var(--line); border-radius:8px;
+  padding:6px 10px; font-size:14px; font-variant-numeric:tabular-nums; }}
+.dose b {{ font-weight:600; }}
+.bloc h3 {{ margin:0 0 4px; font-size:13px; font-weight:600; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--muted); }}
+.bloc p {{ margin:0; }}
+.bloc ol {{ margin:0; padding-left:20px; }}
+.bloc ol li {{ margin-bottom:3px; }}
+.bloc.err li {{ color:#b91c1c; }}
+@media (prefers-color-scheme: dark) {{ :root:not([data-theme="light"]) .bloc.err li {{ color:#fca5a5; }} }}
+:root[data-theme="dark"] .bloc.err li {{ color:#fca5a5; }}
+.actions {{ display:flex; flex-wrap:wrap; gap:10px; position:sticky; bottom:0; z-index:1;
+  background:linear-gradient(to top,var(--surface) 72%,transparent);
+  padding:12px 0 2px; }}
+.btn {{ display:inline-flex; align-items:center; gap:8px; padding:12px 16px; border-radius:10px;
+  font-weight:600; text-decoration:none; border:1px solid var(--line); color:var(--ink);
+  background:var(--surface-2); }}
+.btn.primaire {{ background:var(--accent); color:var(--on-accent); border-color:transparent; }}
+button.btn {{ font:inherit; font-weight:600; cursor:pointer; }}
+button.btn:disabled {{ opacity:.45; cursor:default; }}
+.btn:hover {{ filter:brightness(.97); }}
+.btn:focus-visible {{ outline:2px solid var(--accent); outline-offset:2px; }}
+.note {{ font-size:13.5px; color:var(--muted); margin:0; }}
+.alts {{ border:1px solid var(--line); border-radius:11px; padding:11px 13px;
+  background:var(--surface-2); }}
+.alts h3 {{ margin:0 0 3px; font-size:13px; font-weight:600; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--muted); }}
+.alts ul {{ list-style:none; margin:9px 0 0; padding:0; display:grid; gap:9px; }}
+.alts li {{ display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px;
+  padding-top:8px; border-top:1px solid var(--line); }}
+.alts li:first-child {{ border-top:0; padding-top:0; }}
+.alt-nom {{ font-weight:600; flex:1 1 180px; min-width:0; }}
+.alt-mat {{ font-size:11.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
+  color:var(--muted); border:1px solid var(--line); border-radius:6px; padding:2px 7px;
+  background:var(--surface); white-space:nowrap; }}
+.alt-lien {{ font-size:13.5px; font-weight:600; color:var(--accent); text-decoration:none;
+  border:1px solid var(--line); border-radius:7px; padding:5px 10px; background:var(--surface); }}
+.alt-lien:hover {{ background:var(--bg); }}
+.rotation {{ margin:9px 2px 0; max-width:70ch; }}
+footer {{ margin-top:30px; padding-top:16px; border-top:1px solid var(--line);
+  color:var(--muted); font-size:14px; }}
+@media (max-width:560px) {{
+  .semaine {{ grid-template-columns:repeat(4,1fr); }}
+  .dlg-pos {{ padding:0; align-items:end; }}
+  .sheet {{ border-radius:16px 16px 0 0; max-height:92dvh; }}
+  .btn {{ flex:1 1 auto; justify-content:center; }}
+  .vign {{ flex-basis:66px; width:66px; }}
+}}
+html {{ scroll-behavior:smooth; }}
+@media (prefers-reduced-motion:reduce) {{
+  html {{ scroll-behavior:auto; }}
+  * {{ animation:none !important; transition:none !important; }}
+}}
+</style>
+
+<div class="wrap">
+  <header class="tete">
+    <p class="eyebrow" {A["sur_titre"]}>{esc(UI["sur_titre"][0])}</p>
+    <h1 {A["titre"]}>{esc(UI["titre"][0])}</h1>
+  </header>
+
+  <p class="bandeau" id="jour-etat"></p>
+
+  <div class="corps">
+    <aside class="cote">
+      <details class="panneau" id="panneau">
+        <summary {A["cote_titre"]}>{esc(UI["cote_titre"][0])}</summary>
+        <div class="panneau-corps">
+
+          <div class="bloc-cote">
+            <p class="cal-etat" id="cal-etat"></p>
+            <div class="jauge"><span id="cal-jauge"></span></div>
+            <p class="cal-prog-txt" id="cal-prog-txt"></p>
+            <div class="cal-defil"><table class="cal-table"><tbody id="cal-corps"></tbody></table></div>
+            <p class="note" {A["cal_legende"]}>{esc(UI["cal_legende"][0])}</p>
+          </div>
+
+          <div class="bloc-cote">
+            <div class="champ"><label for="cal-debut" {A["cal_debut"]}>{esc(UI["cal_debut"][0])}</label>
+              <input type="date" id="cal-debut"></div>
+            <div class="champ"><label for="cal-duree" {A["cal_duree"]}>{esc(UI["cal_duree"][0])}</label>
+              <select id="cal-duree">
+                <option value="4" {A["cal_4"]}>{esc(UI["cal_4"][0])}</option>
+                <option value="5" {A["cal_5"]}>{esc(UI["cal_5"][0])}</option>
+              </select></div>
+            <p class="note" id="cal-stockage"></p>
+          </div>
+
+          <div class="bloc-cote">
+            <div class="champ"><label for="langue" {A["langue"]}>{esc(UI["langue"][0])}</label>
+              <select id="langue">{langues}</select></div>
+            <div class="champ"><label for="q" {A["filtrer"]}>{esc(UI["filtrer"][0])}</label>
+              <select id="q">{options}</select></div>
+          </div>
+
+          <div class="bloc-cote">
+            <div class="onglets" role="tablist" aria-label="Choix du programme">{onglets}</div>
+            <p class="note" {A["rotation"]}>{esc(UI["rotation"][0])}</p>
+          </div>
+
+          <div class="bloc-cote">
+            <p class="eyebrow" {A["apropos"]}>{esc(UI["apropos"][0])}</p>
+            <p class="note" {A["intro"]}>{esc(UI["intro"][0])}</p>
+            <p class="note" {A["cal_aide"]}>{esc(UI["cal_aide"][0])}</p>
+          </div>
+
+        </div>
+      </details>
+    </aside>
+
+    <main class="principal">
+      <div class="semaine">{semaine}</div>
+      <p class="vide" id="vide" hidden {A["vide"]}>{esc(UI["vide"][0])}</p>
+      {grilles}
+    </main>
+  </div>
+
+  <footer>
+    <p class="note" {A["note_video"]}>{esc(UI["note_video"][0])}</p>
+  </footer>
+</div>
+
+<dialog id="dlg" aria-labelledby="dlg-nom">
+  <div class="dlg-pos">
+    <div class="sheet">
+      <div class="sheet-tete">
+        <span class="num" id="dlg-num"></span>
+        <div><h2 id="dlg-nom"></h2><p class="note" id="dlg-groupe"></p></div>
+        <button class="fermer" type="button" id="dlg-fermer" {A["fermer"]}>{esc(UI["fermer"][0])}</button>
+      </div>
+      <div class="sheet-corps">
+        <div>
+          <div class="fig" id="dlg-fig"></div>
+          <div class="legende">
+            <span><i></i><span {A["depart"]}>{esc(UI["depart"][0])}</span></span>
+            <span><i class="clair"></i><span {A["arrivee"]}>{esc(UI["arrivee"][0])}</span></span>
+            <span><i class="rouge"></i><span {A["sens"]}>{esc(UI["sens"][0])}</span></span>
+          </div>
+        </div>
+        <div class="doses" id="dlg-doses"></div>
+        <div class="bloc"><h3 {A["machine"]}>{esc(UI["machine"][0])}</h3><p id="dlg-machine"></p></div>
+        <div class="bloc"><h3 {A["reglage"]}>{esc(UI["reglage"][0])}</h3><p id="dlg-reglage"></p></div>
+        <div class="bloc"><h3 {A["execution"]}>{esc(UI["execution"][0])}</h3><ol id="dlg-etapes"></ol></div>
+        <div class="bloc err"><h3 {A["erreurs"]}>{esc(UI["erreurs"][0])}</h3><ol id="dlg-erreurs"></ol></div>
+        <div class="alts" id="dlg-alts" hidden>
+          <h3 {A["alternatives"]}>{esc(UI["alternatives"][0])}</h3>
+          <p class="note" {A["alt_intro"]}>{esc(UI["alt_intro"][0])}</p>
+          <ul id="dlg-alts-liste"></ul>
+        </div>
+        <div class="actions">
+          <a class="btn primaire" id="dlg-video" href="#" target="_blank" rel="noopener"
+             {A["video"]}>{esc(UI["video"][0])}</a>
+          <button class="btn" type="button" id="dlg-alt-btn"
+            aria-expanded="false" aria-controls="dlg-alts" {A["alternatives"]}>{esc(UI["alternatives"][0])}</button>
+          <button class="btn" type="button" id="dlg-precedent">{esc(UI["precedent"][0])}</button>
+          <button class="btn" type="button" id="dlg-suivant">{esc(UI["suivant"][0])}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</dialog>
+
+<script id="donnees" type="application/json">{json.dumps(d, ensure_ascii=False)}</script>
+<script id="ui" type="application/json">{ui_json}</script>
+<script id="planning" type="application/json">{plan_json}</script>
+<script>
+(function () {{
+  var D = JSON.parse(document.getElementById('donnees').textContent);
+  var U = JSON.parse(document.getElementById('ui').textContent);
+  var LANGS = ['fr', 'en', 'es'];
+  var LANG = 'fr';
+  var dlg = document.getElementById('dlg');
+  function t(cle) {{ return U[cle][LANGS.indexOf(LANG)]; }}
+  var el = function (id) {{ return document.getElementById(id); }};
+  var champ = el('q');
+
+  function liste(cible, items) {{
+    cible.textContent = '';
+    items.forEach(function (t) {{
+      var li = document.createElement('li'); li.textContent = t; cible.appendChild(li);
+    }});
+  }}
+
+  var courant = null;
+
+  function precedentDe(btn) {{
+    for (var n = btn.parentElement.previousElementSibling; n; n = n.previousElementSibling) {{
+      if (n.classList.contains('row-li') && !n.hidden) return n.querySelector('.row');
+    }}
+    return null;                                   // premier exercice de la séance
+  }}
+
+  function suivantDe(btn) {{
+    for (var n = btn.parentElement.nextElementSibling; n; n = n.nextElementSibling) {{
+      if (n.classList.contains('row-li') && !n.hidden) return n.querySelector('.row');
+    }}
+    return null;                                   // dernier exercice de la séance
+  }}
+
+  function ouvrir(btn) {{
+    var ex = D[btn.dataset.id];
+    if (!ex) return;
+    courant = btn;
+    var svg = btn.querySelector('svg');
+    el('dlg-fig').textContent = '';
+    if (svg) el('dlg-fig').appendChild(svg.cloneNode(true));
+    el('dlg-num').textContent = ex.n;
+    el('dlg-num').style.setProperty('--g', 'var(--' + ex.g + ')');
+    var i = LANGS.indexOf(LANG), f = ex.t[LANG];
+    el('dlg-nom').textContent = f.nom;
+    el('dlg-groupe').textContent = f.groupe + ' · ' + t('fiche_no') + ' ' + ex.n;
+    var doses = el('dlg-doses'); doses.textContent = '';
+    ex.seances.forEach(function (s) {{
+      var d = document.createElement('span'); d.className = 'dose';
+      d.innerHTML = '<b></b> <span></span>';
+      d.querySelector('b').textContent = s.p + ' · ' + t('seance') + ' ' + s.l;
+      d.querySelector('span').textContent = s.v[i] + ' — ' + t('repos') + ' ' + s.r;
+      doses.appendChild(d);
+    }});
+    el('dlg-machine').textContent = f.machine;
+    el('dlg-reglage').textContent = f.reglage;
+    liste(el('dlg-etapes'), f.etapes);
+    liste(el('dlg-erreurs'), f.erreurs);
+    el('dlg-video').href = f.video;
+
+    var listeAlts = el('dlg-alts-liste');
+    listeAlts.textContent = '';
+    (f.alts || []).forEach(function (alt) {{
+      var li = document.createElement('li');
+      var nom = document.createElement('span');
+      nom.className = 'alt-nom'; nom.textContent = alt.n;
+      li.appendChild(nom);
+      var mat = document.createElement('span');
+      mat.className = 'alt-mat'; mat.textContent = alt.m;
+      li.appendChild(mat);
+      var lien = document.createElement('a');
+      lien.className = 'alt-lien'; lien.href = alt.v;
+      lien.target = '_blank'; lien.rel = 'noopener';
+      lien.textContent = '▶ ' + t('alt_video');
+      li.appendChild(lien);
+      if (alt.f) {{
+        var autre = document.querySelector('.row[data-id="' + alt.f + '"]');
+        if (autre) {{
+          var b = document.createElement('button');
+          b.type = 'button'; b.className = 'alt-lien';
+          b.textContent = t('alt_ouvrir');
+          b.addEventListener('click', function () {{ ouvrir(autre); }});
+          li.appendChild(b);
+        }}
+      }}
+      listeAlts.appendChild(li);
+    }});
+    el('dlg-alts').hidden = true;
+    el('dlg-alt-btn').setAttribute('aria-expanded', 'false');
+    var prec = precedentDe(btn), bp = el('dlg-precedent');
+    bp.disabled = !prec;
+    bp.textContent = prec ? t('precedent') : t('debut_seance');
+    bp.title = prec ? D[prec.dataset.id].t[LANG].nom : '';
+    var suiv = suivantDe(btn), bs = el('dlg-suivant');
+    bs.disabled = !suiv;
+    bs.textContent = suiv ? t('suivant') : t('fin');
+    bs.title = suiv ? D[suiv.dataset.id].t[LANG].nom : '';
+    if (typeof dlg.showModal === 'function') dlg.showModal(); else dlg.setAttribute('open', '');
+    dlg.querySelector('.sheet').scrollTop = 0;
+  }}
+
+  var doux = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var selLangue = el('langue');
+
+  function traduire(l) {{
+    if (LANGS.indexOf(l) === -1) return;
+    LANG = l;
+    selLangue.value = l;
+    document.documentElement.lang = l;
+    document.querySelectorAll('[data-t-fr]').forEach(function (n) {{
+      var v = n.getAttribute('data-t-' + l);
+      if (v !== null) n.textContent = v;
+    }});
+    try {{ localStorage.setItem('langue', l); }} catch (e) {{}}
+    document.dispatchEvent(new Event('langue'));
+    if (dlg.open && courant) ouvrir(courant);
+  }}
+
+  selLangue.addEventListener('change', function () {{ traduire(selLangue.value); }});
+  try {{
+    var lm = localStorage.getItem('langue');
+    if (lm) traduire(lm);
+  }} catch (e) {{}}
+
+  function choisirProg(cle, defiler) {{
+    var connu = false;
+    document.querySelectorAll('.onglet').forEach(function (o) {{
+      var actif = o.dataset.prog === cle;
+      if (actif) connu = true;
+      o.setAttribute('aria-selected', actif ? 'true' : 'false');
+    }});
+    if (!connu) return;
+    document.querySelectorAll('.grille').forEach(function (g) {{
+      g.hidden = g.dataset.prog !== cle;
+    }});
+    try {{ localStorage.setItem('programme', cle); }} catch (e) {{}}
+    if (defiler) document.querySelector('.grille:not([hidden])')
+      .scrollIntoView({{ behavior: doux ? 'smooth' : 'auto', block: 'start' }});
+  }}
+
+  try {{
+    var memo = localStorage.getItem('programme');
+    if (memo) choisirProg(memo, false);
+  }} catch (e) {{}}
+
+  function allerA(lettre) {{
+    var cible = document.querySelector('.grille:not([hidden]) .carte[data-seance="' + lettre + '"]');
+    if (!cible) return;
+    if (champ.value) {{ champ.value = ''; filtrer(); }}   // une carte filtrée resterait cachée
+    cible.scrollIntoView({{ behavior: doux ? 'smooth' : 'auto', block: 'start' }});
+    cible.focus({{ preventScroll: true }});
+    document.querySelectorAll('.carte.cible').forEach(function (c) {{ c.classList.remove('cible'); }});
+    cible.classList.add('cible');
+    clearTimeout(allerA.t);
+    allerA.t = setTimeout(function () {{ cible.classList.remove('cible'); }}, 1800);
+  }}
+
+  document.addEventListener('click', function (e) {{
+    var onglet = e.target.closest('.onglet');
+    if (onglet) {{ choisirProg(onglet.dataset.prog, true); return; }}
+    var jour = e.target.closest('a.jour');
+    if (jour) {{ e.preventDefault(); allerA(jour.dataset.seance); return; }}
+    var btn = e.target.closest('.row');
+    if (btn) {{ ouvrir(btn); return; }}
+    if (e.target.id === 'dlg-fermer') {{ dlg.close(); return; }}
+    if (e.target.id === 'dlg-alt-btn') {{
+      var pan = el('dlg-alts'), ouvert = pan.hidden;
+      pan.hidden = !ouvert;
+      e.target.setAttribute('aria-expanded', ouvert ? 'true' : 'false');
+      if (ouvert) {{
+        // la barre d'actions est collée en bas : on descend la fiche jusqu'au
+        // bout pour que les deux alternatives soient visibles d'un coup.
+        var sh = dlg.querySelector('.sheet');
+        requestAnimationFrame(function () {{ sh.scrollTop = sh.scrollHeight; }});
+      }}
+      return;
+    }}
+    if (e.target.id === 'dlg-precedent') {{
+      var prec = courant && precedentDe(courant);
+      if (prec) ouvrir(prec);
+      return;
+    }}
+    if (e.target.id === 'dlg-suivant') {{
+      var suiv = courant && suivantDe(courant);
+      if (suiv) ouvrir(suiv);
+      return;
+    }}
+    if (e.target === dlg || e.target.classList.contains('dlg-pos')) dlg.close();
+  }});
+
+  function filtrer() {{
+    var v = champ.value, cle = v.slice(2), par = v.slice(0, 1), n = 0;
+    document.querySelectorAll('.row').forEach(function (r) {{
+      var ok = !v || (par === 'g' ? r.dataset.g === cle : r.dataset.m === cle);
+      r.parentElement.hidden = !ok; if (ok) n++;
+    }});
+    document.querySelectorAll('.sous-tete').forEach(function (st) {{
+      var reste = false;
+      for (var n = st.nextElementSibling;
+           n && !n.classList.contains('sous-tete'); n = n.nextElementSibling) {{
+        if (!n.hidden) {{ reste = true; break; }}
+      }}
+      st.hidden = !reste;
+    }});
+    document.querySelectorAll('.carte').forEach(function (c) {{
+      c.hidden = !c.querySelector('.rows > li.row-li:not([hidden])');
+    }});
+    el('vide').hidden = n > 0;
+  }}
+  champ.addEventListener('change', filtrer);
+}})();
+</script>
+{cal_js}
+"""
+    with open(SORTIE, "w", encoding="utf-8") as fh:
+        fh.write(page)
+    print("Carte ecrite :", SORTIE, f"({len(page)//1024} Ko)")
+    ecrire_pwa(page)
+
+
+
+# ---------------------------------------------------------------------------
+# Version installable (PWA) publiée par GitHub Pages depuis docs/
+# ---------------------------------------------------------------------------
+MANIFESTE = {
+    "name": "Gym — musculation du soir",
+    "short_name": "Gym",
+    "description": "Les séances du soir : schémas, réglages, exécution et calendrier.",
+    "lang": "fr",
+    "start_url": "./",
+    "scope": "./",
+    "display": "standalone",
+    "orientation": "portrait",
+    "background_color": "#eef2f6",
+    "theme_color": "#111827",
+    "icons": [
+        {"src": "icone-192.png", "sizes": "192x192", "type": "image/png"},
+        {"src": "icone-512.png", "sizes": "512x512", "type": "image/png"},
+        {"src": "icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
+    ],
+}
+
+SW = """/* Service worker : la carte reste disponible sans réseau.
+   Le nom du cache change à chaque modification du contenu, ce qui déclenche
+   la bannière « nouvelle version » au lieu de servir une page périmée. */
+const VERSION = '%%VERSION%%';
+const CACHE = 'carte-' + VERSION;
+const FICHIERS = ['./', './index.html', './manifest.webmanifest',
+                  './icone-192.png', './icone-512.png', './icone-180.png'];
+
+self.addEventListener('install', (e) => {
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FICHIERS)));
+});
+
+self.addEventListener('activate', (e) => {
+  e.waitUntil(caches.keys()
+    .then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+    .then(() => self.clients.claim()));
+});
+
+self.addEventListener('message', (e) => { if (e.data === 'passe') self.skipWaiting(); });
+
+self.addEventListener('fetch', (e) => {
+  const req = e.request;
+  if (req.method !== 'GET') return;
+  if (new URL(req.url).origin !== location.origin) return;   // polices : réseau seul
+  if (req.mode === 'navigate') {
+    e.respondWith(fetch(req)
+      .then((r) => { const copie = r.clone();
+                     caches.open(CACHE).then((c) => c.put('./index.html', copie)); return r; })
+      .catch(() => caches.match('./index.html')));
+    return;
+  }
+  e.respondWith(caches.match(req).then((r) => r || fetch(req)));
+});
+"""
+
+ENREGISTREMENT = """
+<script>
+/* Enregistrement du service worker et bannière de mise à jour. */
+(function () {
+  if (!('serviceWorker' in navigator)) return;
+  function proposer(reg) {
+    var b = document.getElementById('maj');
+    if (!b) return;
+    b.hidden = false;
+    b.querySelector('button').onclick = function () {
+      if (reg.waiting) reg.waiting.postMessage('passe');
+    };
+  }
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('./sw.js').then(function (reg) {
+      if (reg.waiting && navigator.serviceWorker.controller) proposer(reg);
+      reg.addEventListener('updatefound', function () {
+        var neuf = reg.installing;
+        if (!neuf) return;
+        neuf.addEventListener('statechange', function () {
+          if (neuf.state === 'installed' && navigator.serviceWorker.controller) proposer(reg);
+        });
+      });
+    }).catch(function () {});
+    var recharge = false;
+    navigator.serviceWorker.addEventListener('controllerchange', function () {
+      if (recharge) return;
+      recharge = true;
+      location.reload();
+    });
+  });
+})();
+</script>
+"""
+
+
+def ecrire_pwa(page):
+    """Emballe la carte dans un document autonome, avec manifeste et cache."""
+    import hashlib
+    dossier = os.path.join(RACINE, "docs")
+    os.makedirs(dossier, exist_ok=True)
+
+    tete, corps = page.split('<div class="wrap">', 1)
+    corps = '<div class="wrap">' + corps
+    banniere = (f'<div class="maj" id="maj" hidden>'
+                f'<span {tri(*UI["maj_dispo"])}>{esc(UI["maj_dispo"][0])}</span>'
+                f'<button type="button" {tri(*UI["maj_bouton"])}>{esc(UI["maj_bouton"][0])}</button>'
+                f'</div>')
+    style_pwa = """
+<style>
+:root { color-scheme:light; padding-top:env(safe-area-inset-top, 0px);
+  padding-bottom:env(safe-area-inset-bottom, 0px); }
+img { max-width:100%; }
+[hidden] { display:none !important; }
+.maj { position:fixed; left:12px; right:12px; bottom:calc(12px + env(safe-area-inset-bottom, 0px));
+  z-index:50; display:flex; align-items:center; gap:12px; justify-content:space-between;
+  background:#111827; color:#fff; border-radius:12px; padding:11px 14px; font-size:14.5px;
+  box-shadow:0 8px 28px rgba(0,0,0,.28); }
+.maj button { font:inherit; font-weight:600; background:#fff; color:#111827; border:0;
+  border-radius:8px; padding:7px 13px; cursor:pointer; }
+</style>"""
+
+    doc = (f'<!doctype html>\n<html lang="fr">\n<head>\n'
+           f'<meta charset="utf-8">\n'
+           f'<meta name="viewport" content="width=device-width, initial-scale=1, '
+           f'viewport-fit=cover">\n'
+           f'<meta name="theme-color" content="#111827">\n'
+           f'<meta name="description" content="{esc(MANIFESTE["description"])}">\n'
+           f'<link rel="manifest" href="manifest.webmanifest">\n'
+           f'<link rel="icon" href="icone-192.png">\n'
+           f'<link rel="apple-touch-icon" href="icone-180.png">\n'
+           f'<meta name="apple-mobile-web-app-capable" content="yes">\n'
+           f'<meta name="apple-mobile-web-app-title" content="{esc(MANIFESTE["short_name"])}">\n'
+           f'{tete}{style_pwa}\n</head>\n<body>\n{banniere}\n{corps}\n{ENREGISTREMENT}\n'
+           f'</body>\n</html>\n')
+
+    with open(os.path.join(dossier, "index.html"), "w", encoding="utf-8") as fh:
+        fh.write(doc)
+    with open(os.path.join(dossier, "manifest.webmanifest"), "w", encoding="utf-8") as fh:
+        json.dump(MANIFESTE, fh, ensure_ascii=False, indent=2)
+    version = hashlib.sha1(doc.encode("utf-8")).hexdigest()[:12]
+    with open(os.path.join(dossier, "sw.js"), "w", encoding="utf-8") as fh:
+        fh.write(SW.replace("%%VERSION%%", version))
+    print("PWA ecrite  :", dossier, f"(version {version})")
+
+if __name__ == "__main__":
+    main()
