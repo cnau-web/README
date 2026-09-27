@@ -12,9 +12,10 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from contenu import FICHES, IDX, SEMAINE, PROGRAMMES
+from contenu import FICHES, IDX, SEMAINE, PROGRAMMES, ALTERNATIVES
 import traductions as TR
-from traductions import UI, GROUPES, MATERIELS, JOURS, SEANCE_GROUPE, BLOCS_NOM, LANGUES
+from traductions import (UI, GROUPES, MATERIELS, JOURS, SEANCE_GROUPE, BLOCS_NOM,
+                         LANGUES, ALT)
 from illustrations import ILLUS
 
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -131,6 +132,23 @@ def construire_donnees():
                            groupe=GROUPES[f["groupe"]][i],
                            video=q(VIDEO[fid] if i == 0
                                    else src["nom"] + " " + TR.SUFFIXE_VIDEO[i]))
+        for i, (code, _) in enumerate(LANGUES):
+            liste = []
+            for entree in ALTERNATIVES[fid]:
+                sorte, cle = entree.split(":", 1)
+                if sorte == "f":
+                    autre = next(x for x in FICHES if x["id"] == cle)
+                    nom = (autre["nom"] if i == 0
+                           else (TR.FICHES_EN if i == 1 else TR.FICHES_ES)[cle]["nom"])
+                    mat = MAT_DE[cle]
+                    liste.append(dict(n=nom, m=MATERIELS[mat][i], f=cle,
+                                      v=q(VIDEO[cle] if i == 0
+                                          else nom + " " + TR.SUFFIXE_VIDEO[i])))
+                else:
+                    noms, mat = ALT[cle]
+                    liste.append(dict(n=noms[i], m=MATERIELS[mat][i], f=None,
+                                      v=q(noms[i] + " " + TR.SUFFIXE_VIDEO[i])))
+            t[code]["alts"] = liste
         d[fid] = dict(n=IDX[fid], g=CLE_GROUPE[f["groupe"]], seances=[], t=t)
 
     def dose(fid, prog, lettre, valeur, repos):
@@ -507,6 +525,19 @@ button.btn:disabled {{ opacity:.45; cursor:default; }}
 .btn:hover {{ filter:brightness(.97); }}
 .btn:focus-visible {{ outline:2px solid var(--accent); outline-offset:2px; }}
 .note {{ font-size:13.5px; color:var(--muted); margin:0; }}
+.alts {{ border:1px solid var(--line); border-radius:11px; padding:11px 13px;
+  background:var(--surface-2); }}
+.alts ul {{ list-style:none; margin:8px 0 0; padding:0; display:grid; gap:8px; }}
+.alts li {{ display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px;
+  padding-top:8px; border-top:1px solid var(--line); }}
+.alts li:first-child {{ border-top:0; padding-top:0; }}
+.alt-nom {{ font-weight:600; flex:1 1 180px; min-width:0; }}
+.alt-mat {{ font-size:11.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
+  color:var(--muted); border:1px solid var(--line); border-radius:6px; padding:2px 7px;
+  background:var(--surface); white-space:nowrap; }}
+.alt-lien {{ font-size:13.5px; font-weight:600; color:var(--accent); text-decoration:none;
+  border:1px solid var(--line); border-radius:7px; padding:5px 10px; background:var(--surface); }}
+.alt-lien:hover {{ background:var(--bg); }}
 .rotation {{ margin:9px 2px 0; max-width:70ch; }}
 footer {{ margin-top:30px; padding-top:16px; border-top:1px solid var(--line);
   color:var(--muted); font-size:14px; }}
@@ -613,9 +644,15 @@ html {{ scroll-behavior:smooth; }}
         <div class="bloc"><h3 {A["reglage"]}>{esc(UI["reglage"][0])}</h3><p id="dlg-reglage"></p></div>
         <div class="bloc"><h3 {A["execution"]}>{esc(UI["execution"][0])}</h3><ol id="dlg-etapes"></ol></div>
         <div class="bloc err"><h3 {A["erreurs"]}>{esc(UI["erreurs"][0])}</h3><ol id="dlg-erreurs"></ol></div>
+        <div class="alts" id="dlg-alts" hidden>
+          <p class="note" {A["alt_intro"]}>{esc(UI["alt_intro"][0])}</p>
+          <ul id="dlg-alts-liste"></ul>
+        </div>
         <div class="actions">
           <a class="btn primaire" id="dlg-video" href="#" target="_blank" rel="noopener"
              {A["video"]}>{esc(UI["video"][0])}</a>
+          <button class="btn" type="button" id="dlg-alt-btn"
+            aria-expanded="false" aria-controls="dlg-alts" {A["alternatives"]}>{esc(UI["alternatives"][0])}</button>
           <button class="btn" type="button" id="dlg-suivant">{esc(UI["suivant"][0])}</button>
         </div>
       </div>
@@ -678,6 +715,36 @@ html {{ scroll-behavior:smooth; }}
     liste(el('dlg-etapes'), f.etapes);
     liste(el('dlg-erreurs'), f.erreurs);
     el('dlg-video').href = f.video;
+
+    var listeAlts = el('dlg-alts-liste');
+    listeAlts.textContent = '';
+    (f.alts || []).forEach(function (alt) {{
+      var li = document.createElement('li');
+      var nom = document.createElement('span');
+      nom.className = 'alt-nom'; nom.textContent = alt.n;
+      li.appendChild(nom);
+      var mat = document.createElement('span');
+      mat.className = 'alt-mat'; mat.textContent = alt.m;
+      li.appendChild(mat);
+      var lien = document.createElement('a');
+      lien.className = 'alt-lien'; lien.href = alt.v;
+      lien.target = '_blank'; lien.rel = 'noopener';
+      lien.textContent = '▶ ' + t('alt_video');
+      li.appendChild(lien);
+      if (alt.f) {{
+        var autre = document.querySelector('.row[data-id="' + alt.f + '"]');
+        if (autre) {{
+          var b = document.createElement('button');
+          b.type = 'button'; b.className = 'alt-lien';
+          b.textContent = t('alt_ouvrir');
+          b.addEventListener('click', function () {{ ouvrir(autre); }});
+          li.appendChild(b);
+        }}
+      }}
+      listeAlts.appendChild(li);
+    }});
+    el('dlg-alts').hidden = true;
+    el('dlg-alt-btn').setAttribute('aria-expanded', 'false');
     var suiv = suivantDe(btn), bs = el('dlg-suivant');
     bs.disabled = !suiv;
     bs.textContent = suiv ? t('suivant') : t('fin');
@@ -751,6 +818,13 @@ html {{ scroll-behavior:smooth; }}
     var btn = e.target.closest('.row');
     if (btn) {{ ouvrir(btn); return; }}
     if (e.target.id === 'dlg-fermer') {{ dlg.close(); return; }}
+    if (e.target.id === 'dlg-alt-btn') {{
+      var pan = el('dlg-alts'), ouvert = pan.hidden;
+      pan.hidden = !ouvert;
+      e.target.setAttribute('aria-expanded', ouvert ? 'true' : 'false');
+      if (ouvert) pan.scrollIntoView({{ block: 'nearest' }});
+      return;
+    }}
     if (e.target.id === 'dlg-suivant') {{
       var suiv = courant && suivantDe(courant);
       if (suiv) ouvrir(suiv);

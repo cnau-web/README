@@ -12,7 +12,8 @@ import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from contenu import FICHES, IDX, SEMAINE, PROGRAMMES, resoudre
+from contenu import FICHES, IDX, SEMAINE, PROGRAMMES, ALTERNATIVES, resoudre
+from traductions import ALT, MATERIELS
 from illustrations import ILLUS
 
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -90,6 +91,24 @@ def esc(t):
     return H.escape(t, quote=False)
 
 
+NOM_FR = {f["id"]: f["nom"] for f in FICHES}
+MAT_FR = None  # rempli à la première utilisation
+
+
+def alternatives_html(fid):
+    from generer_carte import MAT_DE
+    items = []
+    for entree in ALTERNATIVES[fid]:
+        sorte, cle = entree.split(":", 1)
+        if sorte == "f":
+            items.append(f"{esc(NOM_FR[cle])} <span class='note'>"
+                         f"({MATERIELS[MAT_DE[cle]][0].lower()}, fiche n° {IDX[cle]})</span>")
+        else:
+            noms, mat = ALT[cle]
+            items.append(f"{esc(noms[0])} <span class='note'>({MATERIELS[mat][0].lower()})</span>")
+    return " · ".join(items)
+
+
 def fiche_html(f, n):
     c = COULEUR[f["groupe"]]
     etapes = "".join(f"<li>{esc(e)}</li>" for e in f["etapes"])
@@ -105,6 +124,7 @@ def fiche_html(f, n):
     <div class="bloc"><b>Réglages avant de commencer</b><div>{esc(f['reglage'])}</div></div>
     <div class="bloc"><b>Exécution</b><ol>{etapes}</ol></div>
     <div class="bloc"><b>Erreurs à éviter</b><ol class="err">{erreurs}</ol></div>
+    <div class="bloc"><b>Alternatives</b><div>{alternatives_html(f['id'])}</div></div>
   </div>
 </div>"""
 

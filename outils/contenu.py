@@ -832,3 +832,60 @@ PROGRAMMES = [
     dict(cle="B", titre="Programme B", sous="2e bloc · 4 à 5 semaines",
          seances=SEANCES_B, blocs=BLOCS_B, gainage=GAINAGE_B, semaine=SEMAINE_B),
 ]
+
+
+# --- deux alternatives par exercice, machine en priorité --------------------
+# "f:<id>"  = un autre exercice du programme (sa fiche existe déjà)
+# "a:<cle>" = une entrée du catalogue ALT de traductions.py
+ALTERNATIVES = {
+    # pectoraux
+    "developpe_couche": ["f:presse_pectoraux", "a:smith_couche"],
+    "developpe_incline": ["a:presse_incline", "a:smith_incline"],
+    "ecarte_poulie": ["f:pec_deck", "f:ecarte_poulie_basse"],
+    "pec_deck": ["f:ecarte_poulie", "a:ecarte_banc"],
+    "dips": ["a:dips_machine", "f:presse_pectoraux"],
+    "ecarte_incline": ["f:pec_deck", "f:ecarte_poulie_basse"],
+    "developpe_couche_halteres": ["f:presse_pectoraux", "a:smith_couche"],
+    "developpe_decline": ["a:presse_decline", "a:dips_machine"],
+    "presse_pectoraux": ["f:pec_deck", "f:developpe_couche_halteres"],
+    "ecarte_poulie_basse": ["f:pec_deck", "f:ecarte_incline"],
+    "pompes": ["f:presse_pectoraux", "a:pompes_smith"],
+    # dos
+    "tractions": ["f:tirage_vertical", "a:tractions_machine"],
+    "tirage_vertical": ["a:tirage_v", "a:tractions_machine"],
+    "rowing_barre": ["f:rowing_machine", "f:tirage_horizontal"],
+    "tirage_horizontal": ["f:rowing_machine", "a:tirage_un_bras"],
+    "rowing_haltere": ["f:rowing_machine", "a:tirage_un_bras"],
+    "pullover_poulie": ["a:pullover_machine", "f:pullover_haltere"],
+    "extensions_lombaires": ["a:lombaires_machine", "a:superman"],
+    "tractions_supination": ["a:tirage_v", "a:tractions_machine"],
+    "rowing_machine": ["f:tirage_horizontal", "a:tirage_un_bras"],
+    "rowing_t": ["f:rowing_machine", "f:rowing_barre"],
+    "pullover_haltere": ["a:pullover_machine", "a:pullover_poulie_v"],
+    # épaules
+    "developpe_militaire": ["f:presse_epaules", "a:smith_militaire"],
+    "developpe_haltere_assis": ["f:presse_epaules", "a:arnold"],
+    "elevations_laterales": ["a:machine_laterale", "f:elevations_poulie"],
+    "tirage_menton": ["a:machine_laterale", "f:elevations_poulie"],
+    "oiseau": ["a:pec_deck_inverse", "f:oiseau_poulie"],
+    "face_pull": ["a:pec_deck_inverse", "a:rotations_externes"],
+    "shrugs": ["a:shrugs_machine", "f:shrugs_barre"],
+    "presse_epaules": ["f:developpe_haltere_assis", "a:smith_militaire"],
+    "elevations_poulie": ["a:machine_laterale", "f:elevations_laterales"],
+    "elevations_frontales": ["a:frontales_poulie", "a:frontales_un_bras"],
+    "oiseau_poulie": ["a:pec_deck_inverse", "f:oiseau"],
+    "shrugs_barre": ["a:shrugs_machine", "f:shrugs"],
+    # abdominaux
+    "dragon_flag": ["a:crunch_machine", "f:releves_jambes"],
+    "crunch_decline": ["a:crunch_machine", "f:crunch_poulie"],
+    "v_ups": ["a:crunch_machine", "f:crunch_inverse"],
+    "releves_jambes": ["a:chaise_romaine", "a:releves_banc"],
+    "crunch_poulie": ["a:crunch_machine", "f:crunch_decline"],
+    "crunch_inverse": ["a:releves_banc", "f:releves_jambes"],
+    "russian_twist": ["a:rotations_machine", "f:woodchopper"],
+    "woodchopper": ["a:rotations_machine", "f:russian_twist"],
+    "ab_wheel": ["a:crunch_machine", "f:planche"],
+    "planche": ["a:planche_haute", "f:hollow"],
+    "planche_laterale": ["a:flexion_poulie", "a:planche_genoux"],
+    "hollow": ["a:crunch_machine", "f:crunch_inverse"],
+}

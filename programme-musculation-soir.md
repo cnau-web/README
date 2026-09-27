@@ -16,6 +16,9 @@ Le tableau ci‑dessous ne concerne que la séance du soir.
 > Disponible en français, anglais et espagnol (sélecteur en haut de page) ;
 > les traductions sont dans `outils/traductions.py`. Le PDF reste en français.
 >
+> Chaque fiche propose deux alternatives (machine en priorité), avec leur lien vidéo ;
+> dans la carte, elles s'ouvrent avec le bouton « Alternatives ».
+>
 > Trois exercices restent documentés sans être programmés, comme variantes : tirage menton
 > (fiche 26), pull-over poulie (fiche 17) et élévations frontales (fiche 32).
 
