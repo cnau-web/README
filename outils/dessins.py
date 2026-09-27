@@ -25,6 +25,22 @@ def P(o, ang, l):
     return (o[0] + l * math.cos(a), o[1] + l * math.sin(a))
 
 
+def ip(a, b, t):
+    """Interpole un parametre de pose entre depart (t=0) et fin (t=1).
+
+    Les angles prennent le chemin le plus court : sans cela, passer de 185 a
+    -82 degres ferait traverser tout le cercle a la position intermediaire.
+    """
+    if isinstance(a, (int, float)):
+        d = b - a
+        if d > 180:
+            d -= 360
+        elif d < -180:
+            d += 360
+        return a + d * t
+    return tuple(ip(x, y, t) for x, y in zip(a, b))
+
+
 def mid(a, b):
     return ((a[0] + b[0]) / 2.0, (a[1] + b[1]) / 2.0)
 

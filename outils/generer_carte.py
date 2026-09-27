@@ -16,7 +16,7 @@ from contenu import FICHES, IDX, SEMAINE, PROGRAMMES, ALTERNATIVES
 import traductions as TR
 from traductions import (UI, GROUPES, MATERIELS, JOURS, SEANCE_GROUPE, BLOCS_NOM,
                          LANGUES, ALT, PRECISION)
-from illustrations import ILLUS
+from illustrations import ILLUS, phases
 
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SORTIE = os.path.join(RACINE, "carte-exercices.html")
@@ -152,7 +152,8 @@ def construire_donnees():
                 liste.append(dict(n=nom, m=MATERIELS[mat][i],
                                   f=cle if sorte == "f" else None, v=q(requete)))
             t[code]["alts"] = liste
-        d[fid] = dict(n=IDX[fid], g=CLE_GROUPE[f["groupe"]], seances=[], t=t)
+        d[fid] = dict(n=IDX[fid], g=CLE_GROUPE[f["groupe"]], illu=ILLU[fid],
+                      seances=[], t=t)
 
     def dose(fid, prog, lettre, valeur, repos):
         e = dict(p=prog, l=lettre, v=[TR.dose(valeur, i) for i in range(3)], r=repos)
@@ -177,12 +178,23 @@ def construire_donnees():
 ILLU = {f["id"]: f.get("illu", f["id"]) for f in FICHES}
 
 
+def reserve_svg():
+    """Toutes les images, une fois, clonées ensuite par la page."""
+    out = ['<div id="schemas" hidden>']
+    for cle in sorted(set(ILLU.values())):
+        out.append(f'<div data-illu="{cle}">')
+        out += [f"<div>{v}</div>" for v in phases(cle)]
+        out.append("</div>")
+    out.append("</div>")
+    return "".join(out)
+
+
 def ligne(fid, nom, dose, repos, d):
     noms = tuple(d[fid]["t"][c]["nom"] for c, _ in LANGUES)
     doses = tuple(f"{TR.dose(dose, i)} · {UI['repos'][i]} {TR.dose(repos, i)}" for i in range(3))
     return f"""<li class="row-li"><button class="row" type="button" data-id="{fid}"
       data-g="{d[fid]['g']}" data-m="{MAT_DE[fid]}" aria-haspopup="dialog">
-  <span class="vign">{ILLUS[ILLU[fid]]().svg()}</span>
+  <span class="vign" data-illu="{ILLU[fid]}"></span>
   <span class="ligne-txt"><span class="ligne-nom" {tri(*noms)}>{esc(noms[0])}</span>
     <span class="ligne-dose" {tri(*doses)}>{esc(doses[0])}</span></span>
   <span class="chev" aria-hidden="true">›</span>
@@ -276,6 +288,7 @@ def main():
         plan["jours"][i] = {"l": lettre, "g": list(SEANCE_GROUPE[groupe])}
     plan_json = json.dumps(plan, ensure_ascii=False)
     cal_js = CAL_JS
+    reserve = reserve_svg()
 
     grilles, onglets = "", ""
     for i, prog in enumerate(PROGRAMMES):
@@ -496,9 +509,22 @@ dialog::backdrop {{ background:rgba(8,12,18,.55); }}
   cursor:pointer; }}
 .fermer:hover {{ background:var(--bg); }}
 .sheet-corps {{ padding:16px; display:grid; gap:16px; }}
-.fig {{ background:var(--plaque); border:1px solid var(--plaque-line); border-radius:12px;
+.fig-defile {{ display:flex; gap:10px; overflow-x:auto; scroll-snap-type:x mandatory;
+  scrollbar-width:none; -webkit-overflow-scrolling:touch; }}
+.fig-defile::-webkit-scrollbar {{ display:none; }}
+.vue {{ position:relative; flex:0 0 100%; scroll-snap-align:center;
+  background:var(--plaque); border:1px solid var(--plaque-line); border-radius:12px;
   padding:6px; }}
-.fig svg {{ display:block; width:100%; height:auto; }}
+.vue svg {{ display:block; width:100%; height:auto; }}
+.vue-lg {{ position:absolute; top:9px; left:11px; font-size:11.5px; font-weight:700;
+  letter-spacing:.09em; text-transform:uppercase; color:var(--muted);
+  background:var(--surface); border:1px solid var(--line); border-radius:6px;
+  padding:2px 8px; }}
+.fig-points {{ display:flex; gap:7px; justify-content:center; margin-top:8px; }}
+.fig-points i {{ width:7px; height:7px; border-radius:50%; background:var(--line);
+  transition:background .15s; }}
+.fig-points i.on {{ background:var(--accent); }}
+.vign svg {{ display:block; width:100%; height:auto; }}
 .legende {{ display:flex; flex-wrap:wrap; gap:14px; font-size:13px; color:var(--muted);
   margin-top:6px; }}
 .legende i {{ display:inline-block; width:22px; height:0; border-top:3px solid #1f2937;
@@ -637,10 +663,10 @@ html {{ scroll-behavior:smooth; }}
       </div>
       <div class="sheet-corps">
         <div>
-          <div class="fig" id="dlg-fig"></div>
+          <div class="fig-defile" id="dlg-fig"></div>
+          <div class="fig-points" id="dlg-points"></div>
+          <p class="note" id="dlg-phase-aide" {A["phase_aide"]}>{esc(UI["phase_aide"][0])}</p>
           <div class="legende">
-            <span><i></i><span {A["depart"]}>{esc(UI["depart"][0])}</span></span>
-            <span><i class="clair"></i><span {A["arrivee"]}>{esc(UI["arrivee"][0])}</span></span>
             <span><i class="rouge"></i><span {A["sens"]}>{esc(UI["sens"][0])}</span></span>
           </div>
         </div>
@@ -667,6 +693,7 @@ html {{ scroll-behavior:smooth; }}
   </div>
 </dialog>
 
+{reserve}
 <script id="donnees" type="application/json">{json.dumps(d, ensure_ascii=False)}</script>
 <script id="ui" type="application/json">{ui_json}</script>
 <script id="planning" type="application/json">{plan_json}</script>
@@ -680,6 +707,24 @@ html {{ scroll-behavior:smooth; }}
   function t(cle) {{ return U[cle][LANGS.indexOf(LANG)]; }}
   var el = function (id) {{ return document.getElementById(id); }};
   var champ = el('q');
+  var reserve = document.getElementById('schemas');
+
+  function cadres(cle) {{
+    var bloc = reserve && reserve.querySelector('[data-illu="' + cle + '"]');
+    return bloc ? bloc.children : [];
+  }}
+
+  document.querySelectorAll('.vign').forEach(function (v) {{
+    var c = cadres(v.dataset.illu);
+    if (c.length) v.appendChild(c[0].firstElementChild.cloneNode(true));
+  }});
+
+  el('dlg-fig').addEventListener('scroll', function () {{
+    var z = el('dlg-fig'), pts = el('dlg-points').children;
+    if (!pts.length) return;
+    var i = Math.round(z.scrollLeft / (z.clientWidth || 1));
+    for (var k = 0; k < pts.length; k++) pts[k].className = (k === i ? 'on' : '');
+  }}, {{ passive: true }});
 
   function liste(cible, items) {{
     cible.textContent = '';
@@ -708,9 +753,26 @@ html {{ scroll-behavior:smooth; }}
     var ex = D[btn.dataset.id];
     if (!ex) return;
     courant = btn;
-    var svg = btn.querySelector('svg');
-    el('dlg-fig').textContent = '';
-    if (svg) el('dlg-fig').appendChild(svg.cloneNode(true));
+    var zone = el('dlg-fig'), points = el('dlg-points');
+    zone.textContent = ''; points.textContent = '';
+    var c = cadres(ex.illu), noms = ['phase_debut', 'phase_milieu', 'phase_fin'];
+    for (var k = 0; k < c.length; k++) {{
+      var vue = document.createElement('div');
+      vue.className = 'vue';
+      vue.appendChild(c[k].firstElementChild.cloneNode(true));
+      var lg = document.createElement('span');
+      lg.className = 'vue-lg';
+      lg.textContent = c.length === 1 ? t('phase_maintien') : t(noms[k]);
+      vue.appendChild(lg);
+      zone.appendChild(vue);
+      if (c.length > 1) {{
+        var pt = document.createElement('i');
+        if (k === 0) pt.className = 'on';
+        points.appendChild(pt);
+      }}
+    }}
+    zone.scrollLeft = 0;
+    el('dlg-phase-aide').hidden = c.length < 2;
     el('dlg-num').textContent = ex.n;
     el('dlg-num').style.setProperty('--g', 'var(--' + ex.g + ')');
     var i = LANGS.indexOf(LANG), f = ex.t[LANG];

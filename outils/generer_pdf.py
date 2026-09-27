@@ -14,7 +14,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from contenu import FICHES, IDX, SEMAINE, PROGRAMMES, ALTERNATIVES, resoudre
 from traductions import ALT, MATERIELS
-from illustrations import ILLUS
+from illustrations import ILLUS, phases
 
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SORTIE = os.path.join(RACINE, "programme-musculation-soir.pdf")
@@ -59,12 +59,14 @@ ul { margin:0 0 0 4mm; padding:0; }
 li { margin-bottom:1mm; }
 
 .fiche { border:1px solid #d1d5db; border-radius:2mm; padding:3.5mm;
-         margin-bottom:4mm; font-size:8.8pt; line-height:1.4; break-inside:avoid; page-break-inside:avoid;
-         display:flex; gap:4mm; }
-.fiche .img { width:66mm; flex:0 0 66mm; }
-.fiche .img svg { width:100%; height:auto; background:#f8fafc;
-                  border:1px solid #e5e7eb; border-radius:1.5mm; }
-.fiche .txt { flex:1; }
+         margin-bottom:4mm; font-size:8.8pt; line-height:1.4; break-inside:avoid; page-break-inside:avoid; }
+.bandes { display:flex; gap:3mm; margin:3mm 0 3.5mm; }
+.bande { flex:1 1 0; min-width:0; background:#f8fafc; border:1px solid #e5e7eb;
+         border-radius:1.5mm; padding:1mm 1mm .5mm; }
+.bande svg { display:block; width:100%; height:auto; }
+.bande span { display:block; text-align:center; font-size:7pt; font-weight:600;
+              letter-spacing:.3pt; text-transform:uppercase; color:#6b7280; }
+.fiche .txt { }
 .tete { display:flex; align-items:baseline; gap:2mm; margin-bottom:1.5mm; }
 .num { background:#111827; color:#fff; border-radius:50%; width:6mm; height:6mm;
        display:inline-flex; align-items:center; justify-content:center;
@@ -109,17 +111,26 @@ def alternatives_html(fid):
     return " · ".join(items)
 
 
+def bandes_html(f):
+    """Les trois temps du mouvement, cote a cote."""
+    vues = phases(f.get("illu", f["id"]))
+    noms = ["Départ", "Milieu", "Fin"] if len(vues) == 3 else ["Position à tenir"]
+    bandes = "".join(f'<div class="bande">{v}<span>{esc(noms[i])}</span></div>'
+                     for i, v in enumerate(vues))
+    return f'<div class="bandes">{bandes}</div>'
+
+
 def fiche_html(f, n):
     c = COULEUR[f["groupe"]]
     etapes = "".join(f"<li>{esc(e)}</li>" for e in f["etapes"])
     erreurs = "".join(f"<li>{esc(e)}</li>" for e in f["erreurs"])
     return f"""
 <div class="fiche">
-  <div class="img">{ILLUS[f.get('illu', f['id'])]().svg()}</div>
   <div class="txt">
     <div class="tete"><span class="num">{n}</span>
       <span class="nom">{esc(f['nom'])}</span>
       <span class="badge" style="background:{c}">{esc(f['groupe'])}</span></div>
+    {bandes_html(f)}
     <div class="bloc"><b>Quelle machine</b><div>{esc(f['machine'])}</div></div>
     <div class="bloc"><b>Réglages avant de commencer</b><div>{esc(f['reglage'])}</div></div>
     <div class="bloc"><b>Exécution</b><ol>{etapes}</ol></div>
