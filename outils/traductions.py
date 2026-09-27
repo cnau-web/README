@@ -188,6 +188,16 @@ BLOCS_NOM = {
     "mixte": ("mixte", "mixed", "mixto"),
 }
 
+# Mot ajouté à la recherche vidéo d'une alternative, pour que les résultats ne se
+# confondent pas avec ceux de l'exercice principal.
+PRECISION = {
+    "machine": ("machine", "machine", "máquina"),
+    "poulie": ("poulie", "cable", "polea"),
+    "barre": ("barre", "barbell", "barra"),
+    "halteres": ("haltères", "dumbbell", "mancuernas"),
+    "corps": ("poids du corps", "bodyweight", "peso corporal"),
+}
+
 # Suffixe ajouté à la recherche vidéo selon la langue.
 SUFFIXE_VIDEO = ("technique musculation", "proper form technique", "técnica ejecución")
 

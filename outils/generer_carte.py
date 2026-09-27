@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from contenu import FICHES, IDX, SEMAINE, PROGRAMMES, ALTERNATIVES
 import traductions as TR
 from traductions import (UI, GROUPES, MATERIELS, JOURS, SEANCE_GROUPE, BLOCS_NOM,
-                         LANGUES, ALT)
+                         LANGUES, ALT, PRECISION)
 from illustrations import ILLUS
 
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -141,13 +141,13 @@ def construire_donnees():
                     nom = (autre["nom"] if i == 0
                            else (TR.FICHES_EN if i == 1 else TR.FICHES_ES)[cle]["nom"])
                     mat = MAT_DE[cle]
-                    liste.append(dict(n=nom, m=MATERIELS[mat][i], f=cle,
-                                      v=q(VIDEO[cle] if i == 0
-                                          else nom + " " + TR.SUFFIXE_VIDEO[i])))
+                    requete = VIDEO[cle] if i == 0 else nom + " " + TR.SUFFIXE_VIDEO[i]
                 else:
                     noms, mat = ALT[cle]
-                    liste.append(dict(n=noms[i], m=MATERIELS[mat][i], f=None,
-                                      v=q(noms[i] + " " + TR.SUFFIXE_VIDEO[i])))
+                    nom = noms[i]
+                    requete = f"{nom} {PRECISION[mat][i]} {TR.SUFFIXE_VIDEO[i]}"
+                liste.append(dict(n=nom, m=MATERIELS[mat][i],
+                                  f=cle if sorte == "f" else None, v=q(requete)))
             t[code]["alts"] = liste
         d[fid] = dict(n=IDX[fid], g=CLE_GROUPE[f["groupe"]], seances=[], t=t)
 
@@ -527,7 +527,9 @@ button.btn:disabled {{ opacity:.45; cursor:default; }}
 .note {{ font-size:13.5px; color:var(--muted); margin:0; }}
 .alts {{ border:1px solid var(--line); border-radius:11px; padding:11px 13px;
   background:var(--surface-2); }}
-.alts ul {{ list-style:none; margin:8px 0 0; padding:0; display:grid; gap:8px; }}
+.alts h3 {{ margin:0 0 3px; font-size:13px; font-weight:600; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--muted); }}
+.alts ul {{ list-style:none; margin:9px 0 0; padding:0; display:grid; gap:9px; }}
 .alts li {{ display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px;
   padding-top:8px; border-top:1px solid var(--line); }}
 .alts li:first-child {{ border-top:0; padding-top:0; }}
@@ -645,6 +647,7 @@ html {{ scroll-behavior:smooth; }}
         <div class="bloc"><h3 {A["execution"]}>{esc(UI["execution"][0])}</h3><ol id="dlg-etapes"></ol></div>
         <div class="bloc err"><h3 {A["erreurs"]}>{esc(UI["erreurs"][0])}</h3><ol id="dlg-erreurs"></ol></div>
         <div class="alts" id="dlg-alts" hidden>
+          <h3 {A["alternatives"]}>{esc(UI["alternatives"][0])}</h3>
           <p class="note" {A["alt_intro"]}>{esc(UI["alt_intro"][0])}</p>
           <ul id="dlg-alts-liste"></ul>
         </div>
@@ -834,7 +837,12 @@ html {{ scroll-behavior:smooth; }}
       var pan = el('dlg-alts'), ouvert = pan.hidden;
       pan.hidden = !ouvert;
       e.target.setAttribute('aria-expanded', ouvert ? 'true' : 'false');
-      if (ouvert) pan.scrollIntoView({{ block: 'nearest' }});
+      if (ouvert) {{
+        // la barre d'actions est collée en bas : on descend la fiche jusqu'au
+        // bout pour que les deux alternatives soient visibles d'un coup.
+        var sh = dlg.querySelector('.sheet');
+        requestAnimationFrame(function () {{ sh.scrollTop = sh.scrollHeight; }});
+      }}
       return;
     }}
     if (e.target.id === 'dlg-precedent') {{
