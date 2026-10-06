@@ -124,6 +124,7 @@ input[type=range]{width:100%;accent-color:var(--cobalt)}
 .items td.amt{text-align:right;white-space:nowrap;font-family:var(--f-mono)}
 .items .lbl{font-weight:600}
 .items .det{color:var(--ink-soft);font-size:.84rem;margin-top:2px}
+.rlink{font-size:.8rem;font-weight:600}
 .items select{width:auto;max-width:170px;font-size:.85rem;padding:5px 8px}
 .dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;vertical-align:1px}
 .result{position:sticky;top:64px;display:grid;gap:16px}
@@ -179,7 +180,7 @@ table.data td{padding:10px 8px;border-bottom:1px solid var(--line);vertical-alig
 .paybox{display:flex;gap:8px;flex-wrap:wrap}
 .paybox label{display:flex;gap:4px;align-items:center;font-size:.82rem;font-weight:600;cursor:pointer}
 .paybox input{accent-color:var(--good);width:16px;height:16px}
-.pill{display:inline-block;font-size:.76rem;font-weight:700;border-radius:999px;padding:2px 9px}
+.pill{display:inline-block;white-space:nowrap;font-size:.76rem;font-weight:700;border-radius:999px;padding:2px 9px}
 .pill.voy{background:var(--good-soft);color:var(--good)}
 .pill.quizas{background:var(--warn-soft);color:var(--warn)}
 .pill.no{background:var(--bad-soft);color:var(--bad)}
@@ -188,6 +189,10 @@ table.data td{padding:10px 8px;border-bottom:1px solid var(--line);vertical-alig
 .vote{display:grid;grid-template-columns:minmax(0,150px) minmax(0,1fr) 32px;gap:10px;align-items:center;font-size:.9rem}
 .vote .bar{height:12px;border-radius:4px;background:var(--surface-2);overflow:hidden}
 .vote .bar i{display:block;height:100%;background:var(--ochre);transition:width .3s}
+.legendrow{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;font-size:.85rem}
+.pill.info{background:var(--cobalt-soft);color:var(--cobalt)}
+.rprov a{font-weight:700}
+.rprov small{display:block;color:var(--ink-soft)}
 .empty{padding:22px;text-align:center;color:var(--ink-soft);border:1.5px dashed var(--line);border-radius:10px}
 
 /* checklist */
@@ -208,7 +213,7 @@ footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);color:v
 </style>
 
 <nav class="nav" aria-label="Secciones"><div class="in">
-  <a href="#plan">Plan</a><a href="#presupuesto">Presupuesto</a><a href="#alojamiento">Alojamiento</a><a href="#viaje">Cómo llegar</a><a href="#comer">Comer y salir</a><a href="#lista">Lista y pagos</a><a href="#organizacion">Organización</a><a href="#sorpresas">Sorpresas</a><a href="#practico">Práctico</a>
+  <a href="#plan">Plan</a><a href="#presupuesto">Presupuesto</a><a href="#alojamiento">Alojamiento</a><a href="#viaje">Cómo llegar</a><a href="#comer">Comer y salir</a><a href="#reservas">Dónde reservar</a><a href="#lista">Lista y pagos</a><a href="#organizacion">Organización</a><a href="#sorpresas">Sorpresas</a><a href="#practico">Práctico</a>
 </div></nav>
 
 <div class="wrap">
@@ -219,7 +224,7 @@ footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);color:v
     <div class="facts">
       <div class="fact"><b>Jue 5 – Dom 8 ago 2027</b><small>3 noches · alternativa 12–15 ago</small></div>
       <div class="fact"><b id="f-pax">20 personas</b><small>Andrés invitado por el grupo</small></div>
-      <div class="fact"><b>Totana → Albufeira</b><small>≈710 km en autocar con conductor</small></div>
+      <div class="fact"><b>Totana → Albufeira</b><small>≈700 km en autocar con conductor</small></div>
       <div class="fact"><b id="f-pp">~1.250 €</b><small>por persona, plan equilibrado</small></div>
       <div class="fact"><b id="f-count">—</b><small>días para salir</small></div>
     </div>
@@ -232,7 +237,7 @@ footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);color:v
     <div class="sec-head">
       <p class="eyebrow">Itinerario</p>
       <h2>El plan, día a día</h2>
-      <p class="muted">Fechas para el fin de semana del 5 al 8 de agosto, que recomiendo frente al del 12 al 15: el 15 es festivo en España y en Portugal, el Algarve está a tope y los precios y el tráfico de vuelta son los peores del año. El plan sirve igual para las dos fechas. Horas en hora local de Portugal, una hora menos que en España, salvo donde se indica. Lo marcado como <span class="tag book">reservar</span> se contrata con antelación; lo marcado como <span class="tag star">momento clave</span> es para Andrés.</p>
+      <p class="muted">Fechas para el fin de semana del 5 al 8 de agosto, que recomiendo frente al del 12 al 15: el domingo 15 es festivo en Portugal y en España, el Algarve está a tope, y en la Región de Murcia el festivo no pasa al lunes 16, que será laborable (BORM nº 171, 27-07-2026). El plan sirve igual para las dos fechas. Horas en hora local de Portugal, una hora menos que en España, salvo donde se indica. Lo marcado como <span class="tag book">reservar</span> se contrata con antelación; lo marcado como <span class="tag star">momento clave</span> es para Andrés.</p>
     </div>
     <div class="days" role="tablist" aria-label="Días">
       <button class="daybtn" role="tab" id="t-0" aria-selected="true" aria-controls="d-0">Jueves 5</button>
@@ -249,8 +254,8 @@ footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);color:v
         <li><time>14:45</time><div><h3>Llegada a la villa</h3><p>Ya en hora portuguesa: al cruzar la frontera, atrasad el reloj una hora. Unas 8 h y media de viaje en total.</p></div></li>
         <li><time>15:00</time><div><h3>Check-in y sorteo de habitaciones</h3><p>Sorteo con papelitos para que nadie se queje. Andrés y el padrino eligen primero.</p></div></li>
         <li><time>15:30</time><div><h3>Entrega del kit <span class="tag star">momento clave</span></h3><p>Camisetas personalizadas con foto de Andrés de pequeño, gafas, y su disfraz oficial, que lleva puesto hasta la cena.</p></div></li>
-        <li><time>16:30</time><div><h3>Piscina y llegada del súper</h3><p>Compra online con entrega en la villa (desayunos, agua, hielo, bebida, carne para la barbacoa). Ya pedida desde España la semana anterior.</p></div></li>
-        <li><time>20:30</time><div><h3>Barbacoa de bienvenida en la villa</h3><p>Según el plan: la hacemos nosotros, o un chef privado con camarero para que nadie trabaje.</p></div></li>
+        <li><time>16:30</time><div><h3>Piscina y llegada de la compra</h3><p>Pedido online en <a href="https://www.apolonia.com/" target="_blank" rel="noopener">Apolónia</a>, que reparte en Albufeira, Guia y Galé todos los días de 9 a 19 h (envío gratis desde 125 €). Pedirlo desde España la semana anterior.</p></div></li>
+        <li><time>20:30</time><div><h3>Barbacoa de bienvenida en la villa</h3><p>La hacemos nosotros con lo de la compra. Si preferís que cocine otro: chef privado como <a href="https://www.takeachef.com/en-pt/chef/basil-algarve" target="_blank" rel="noopener">Basil Algarve</a>, 92 € por persona (no incluido en el presupuesto).</p></div></li>
         <li><time>23:30</time><div><h3>Primera noche: casco antiguo de Albufeira</h3><p>Bolt o taxi (10–15 min). Plaza de los Pescadores para empezar, después The Strip (Avenida Sá Carneiro). Volver antes de las 4: mañana hay barco.</p></div></li>
       </ol>
       <aside class="aside"><h3>Para que salga bien</h3><ul><li>Pedir el súper el domingo anterior.</li><li>El padrino lleva las camisetas en su maleta y las reparte al llegar.</li><li>El tesorero lleva la tarjeta del bote para el chef y el súper.</li><li>Lista de pasajeros con DNI para el conductor.</li></ul></aside>
@@ -259,10 +264,10 @@ footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);color:v
     <div class="day" id="d-1" role="tabpanel" aria-labelledby="t-1" hidden>
       <ol class="timeline">
         <li><time>10:00</time><div><h3>Desayuno largo en la villa</h3><p>Ibuprofeno, café y tostadas. Bañador puesto.</p></div></li>
-        <li><time>11:15</time><div><h3>Autocar a la marina</h3><p>Portimão o Albufeira, según desde dónde salga el barco.</p></div></li>
-        <li><time>12–16h</time><div><h3>Catamarán privado: cuevas de Benagil <span class="tag book">reservar</span> <span class="tag star">momento clave</span></h3><p>Barco solo para el grupo con patrón, música y barra libre. Ruta por Benagil, Algar Seco y Praia da Marinha, baño en una cala y paddle surf. En el plan épico, barbacoa a bordo.</p></div></li>
+        <li><time>11:15</time><div><h3>Autocar a la Marina de Albufeira</h3><p>Muchas empresas de barcos para despedidas incluyen la recogida; confirmadlo al reservar.</p></div></li>
+        <li><time>12–15h</time><div><h3>Barco privado: cuevas de Benagil <span class="tag book">reservar</span> <span class="tag star">momento clave</span></h3><p>Barco solo para el grupo con patrón, música, barra libre, paddle surf y paradas para nadar. En el plan épico, 5 horas con barbacoa. Desde agosto de 2024 los barcos entran en la cueva de Benagil, pero está prohibido desembarcar en su playa o llegar a nado.</p></div></li>
         <li><time>17:00</time><div><h3>Siesta y piscina</h3><p>Imprescindible. El sábado es largo.</p></div></li>
-        <li><time>20:30</time><div><h3>Cena de pescado <span class="tag book">reservar</span></h3><p>Ferragudo, pueblo de pescadores frente a Portimão, o en la playa de Albufeira. Sardinas, pulpo, arroz de marisco y vinho verde.</p></div></li>
+        <li><time>19:30</time><div><h3>Cena de pescado <span class="tag book">reservar</span></h3><p><a href="https://restaurantesueste.com" target="_blank" rel="noopener">Sueste</a> en Ferragudo (abre todos los días de 12 a 22 h, por eso se cena pronto) o <a href="https://restaurante-ruina.com/reservation.php" target="_blank" rel="noopener">A Ruína</a> en la playa de Albufeira (en verano solo reserva hasta las 19:30). Sardinas, pulpo, arroz de marisco y vinho verde.</p></div></li>
         <li><time>23:30</time><div><h3>Noche en Albufeira</h3><p>Bares de The Strip y Oura. Reto del día para Andrés (ver Sorpresas).</p></div></li>
       </ol>
       <aside class="aside"><h3>En el barco</h3><ul><li>Protector solar 50 y gorra: el reflejo del agua quema.</li><li>Biodramina para quien se maree.</li><li>Funda estanca para el móvil.</li><li>Las cuevas solo se visitan con mar en calma; el patrón decide.</li></ul></aside>
@@ -274,8 +279,8 @@ footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);color:v
         <li><time>14:00</time><div><h3>Comida rápida y vuelta a la villa</h3><p>Bifanas y cerveza en cualquier tasca de camino.</p></div></li>
         <li><time>15:30</time><div><h3>Pool party con DJ y fotógrafo <span class="tag star">momento clave</span></h3><p>Juegos y retos para Andrés, el vídeo sorpresa de la novia y la familia, y fotos de grupo que valgan para la boda.</p></div></li>
         <li><time>20:30</time><div><h3>Dress code: camisa blanca</h3><p>Todos de blanco. Andrés de otro color para que se le vea en todas las fotos.</p></div></li>
-        <li><time>21:30</time><div><h3>Cena de gala con sala privada <span class="tag book">reservar</span> <span class="tag star">momento clave</span></h3><p>Menú cerrado para 20 en Vilamoura o Albufeira. Discursos de dos minutos (máximo), trivial de Andrés y entrega del trofeo.</p></div></li>
-        <li><time>00:30</time><div><h3>Discoteca con mesa reservada <span class="tag book">reservar</span></h3><p>Mesa con botellas en Albufeira o Vilamoura. A la vuelta, Bolt: el conductor del autocar tiene que descansar 11 horas antes del viaje del domingo.</p></div></li>
+        <li><time>21:30</time><div><h3>Cena de gala con sala privada <span class="tag book">reservar</span> <span class="tag star">momento clave</span></h3><p>Rodízio con vino para el grupo en Albufeira o, en el plan épico, <a href="https://www.nit.pt/comida/restaurantes/o-bar-restaurante-em-vilamoura-que-conquistou-ronaldo-e-georgina-ja-tem-data-de-reabertura" target="_blank" rel="noopener">MöTAO</a> en la Marina de Vilamoura. Discursos de dos minutos (máximo), trivial de Andrés y entrega del trofeo.</p></div></li>
+        <li><time>00:30</time><div><h3>Discoteca con mesa reservada <span class="tag book">reservar</span></h3><p>Mesa VIP con botellas en <a href="https://www.libertosclub.com" target="_blank" rel="noopener">Libertos</a> (reserva en su web) o en <a href="https://xceed.me/ca/albufeira/club/kiss-disco-club" target="_blank" rel="noopener">Kiss</a>, los dos junto a The Strip. A la vuelta, taxi: el conductor del autocar tiene que descansar antes del viaje del domingo.</p></div></li>
       </ol>
       <aside class="aside"><h3>El padrino coordina</h3><ul><li>Pasar el vídeo sorpresa a la tablet o al altavoz antes.</li><li>Dejar al conductor libre después de la cena: el domingo conduce 8 horas.</li><li>Recoger el trofeo y la carta colectiva.</li></ul></aside>
     </div>
@@ -283,9 +288,9 @@ footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);color:v
     <div class="day" id="d-3" role="tabpanel" aria-labelledby="t-3" hidden>
       <ol class="timeline">
         <li><time>09:30</time><div><h3>Recoger y check-out</h3><p>Revisión de la villa en grupo para recuperar la fianza. Maletas al autocar.</p></div></li>
-        <li><time>10:15</time><div><h3>Playa de Falésia</h3><p>Acantilados rojos y último baño en el Atlántico, a 15 minutos de Guia.</p></div></li>
-        <li><time>12:15</time><div><h3>Pollo piri-piri en Guia <span class="tag book">reservar</span></h3><p>El frango da Guia es una institución del Algarve. Comida temprana y sencilla para poder salir pronto.</p></div></li>
-        <li><time>13:45</time><div><h3>Salida hacia Totana</h3><p>Hora portuguesa. Dos paradas en ruta. Película y siesta a bordo.</p></div></li>
+        <li><time>10:15</time><div><h3>Playa de Falésia</h3><p>Acantilados rojos y último baño en el Atlántico, de camino a Guia.</p></div></li>
+        <li><time>12:00</time><div><h3>Pollo piri-piri en <a href="https://restauranteramires.com" target="_blank" rel="noopener">Ramires</a>, Guia <span class="tag star">sin reserva</span></h3><p>En julio y agosto no aceptan reservas: hay que estar en la puerta a las 12:00, cuando abren. Admiten grupos de hasta 80. Unos 15–20 € por persona.</p></div></li>
+        <li><time>13:30</time><div><h3>Salida hacia Totana</h3><p>Hora portuguesa. Dos paradas en ruta. Película y siesta a bordo.</p></div></li>
         <li><time>23:30</time><div><h3>Llegada a Totana</h3><p>Hora española, aproximada. El padrino sube el álbum compartido con las fotos del fotógrafo.</p></div></li>
       </ol>
       <aside class="aside"><h3>Antes de irse</h3><ul><li>Basura separada y lavavajillas puesto (cláusula habitual de fianza).</li><li>El lunes, quien pueda, que no madrugue.</li><li>Foto de cada habitación al salir.</li><li>Cuadrar el bote y devolver lo que sobre.</li></ul></aside>
@@ -353,10 +358,10 @@ footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);color:v
     <div class="sec-head">
       <p class="eyebrow">Alojamiento · 3 noches</p>
       <h2>Una villa para los 20</h2>
-      <p class="muted">Dormir juntos es la mitad de la despedida. Buscad en Airbnb, Vrbo, Booking y agencias locales de villas para grupos con filtro de 10+ dormitorios o 20+ huéspedes. Si no hay una, dos villas contiguas funcionan igual de bien.</p>
+      <p class="muted">Dormir juntos es la mitad de la despedida. En <a href="#reservas">Dónde reservar</a> están las villas concretas que he encontrado con precio para esas fechas. Si no hay una para 20, dos villas contiguas funcionan igual de bien.</p>
     </div>
     <div class="grid3">
-      <div class="card pick"><span class="badge">Recomendado</span><h3>Albufeira: Galé, Guia u Olhos de Água</h3><p class="muted">A 10–15 min de la fiesta sin dormir encima de ella. A 1 h 15 de la frontera, la parada más cercana desde Totana, y a 25 min de Benagil.</p><ul><li>Villa de 8–10 dormitorios con piscina: 1.300–2.300 € / noche en agosto</li><li>Fiesta, playa y barco a mano</li><li>Supermercados grandes cerca</li></ul></div>
+      <div class="card pick"><span class="badge">Recomendado</span><h3>Albufeira: Galé, Guia u Olhos de Água</h3><p class="muted">A 10–15 min de la fiesta sin dormir encima de ella. A 1 h 15 de la frontera, la parada más cercana desde Totana, y a 25 min de Benagil.</p><ul><li>Villa de 8–10 dormitorios con piscina: 1.800–3.000 € por noche en agosto de 2027 (unos 5.500–9.000 € las 3 noches)</li><li>Fiesta, playa y barco a mano</li><li>Supermercados grandes cerca</li></ul></div>
       <div class="card"><h3>Lagos</h3><p class="muted">El pueblo más bonito y con más ambiente joven, pero añade 45 minutos más de autocar en cada sentido.</p><ul><li>Ponta da Piedade en kayak o barco</li><li>Viaje desde Totana más largo</li><li>Villas grandes más escasas</li></ul></div>
       <div class="card"><h3>Vilamoura</h3><p class="muted">Marina, beach clubs y golf. Más caro y algo más tranquilo.</p><ul><li>Ideal para el plan épico</li><li>Restaurantes con sala privada</li><li>Menos ambiente de calle</li></ul></div>
     </div>
@@ -364,9 +369,11 @@ footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);color:v
       <h3>Antes de pagar la reserva, comprobad</h3>
       <ul class="checks">
         <li>Que acepten <b>despedidas y grupos de 20</b>. Decidlo siempre por escrito: si se oculta, pueden echaros y quedarse la fianza.</li>
-        <li>Número de licencia de Alojamento Local (AL) en el anuncio. Sin licencia, no.</li>
+        <li>Número de licencia de Alojamento Local (AL) en el anuncio, comprobable en el <a href="https://rnt.turismodeportugal.pt/RNT/_default.aspx" target="_blank" rel="noopener">registro de Turismo de Portugal</a>. Sin licencia, no.</li>
         <li>Camas reales para todos (no sofás cama) y al menos 5 baños.</li>
         <li>Normas de ruido: en Portugal suele haber silencio en el exterior a partir de las 23:00. Pool party de día, no de noche.</li>
+        <li>Que admitan <b>3 noches</b>: muchas agencias exigen 7 noches en agosto. En Airbnb hay casas que ya muestran precio para el 5–8 de agosto de 2027.</li>
+        <li>Que la capacidad sea de verdad 20: algunas villas grandes admiten 16 o 19 como máximo.</li>
         <li>Cancelación flexible y pago en dos plazos.</li>
         <li>Barbacoa, hielo y aparcamiento para el autocar.</li>
         <li>Importe de la fianza y cuándo se devuelve.</li>
@@ -377,25 +384,25 @@ footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);color:v
   <!-- VIAJE -->
   <section id="viaje">
     <div class="sec-head">
-      <p class="eyebrow">Totana → Algarve · ≈710 km</p>
+      <p class="eyebrow">Totana → Algarve · ≈700 km</p>
       <h2>Cómo llegar desde Totana</h2>
-      <p class="muted">Ni Alicante ni Corvera tienen vuelo directo a Faro, y con escala el avión sale más caro y más largo que ir por carretera. La ruta es A-7 hasta Puerto Lumbreras, A-92N y A-92 por Guadix y Granada hasta Sevilla, A-49 hasta la frontera y A22 hasta Albufeira: unas 7 h en coche y 8 h y media en autocar con paradas.</p>
+      <p class="muted">Ni Alicante ni Corvera tienen vuelo directo a Faro, y tampoco hay autobús de línea directo (con ALSA, transbordo en Sevilla y casi 13 horas). Por carretera son <a href="https://www.rome2rio.com/s/Totana/Albufeira" target="_blank" rel="noopener">unos 700 km y 7 h en coche</a>: A-7 hasta Puerto Lumbreras, A-92N y A-92 por Guadix y Granada hasta Sevilla, A-49 hasta la frontera y A22 hasta Albufeira. En autocar, con las paradas obligatorias, contad con 8 h y media–9 h y media.</p>
     </div>
     <div class="scroll panel" style="padding:6px 10px">
       <table class="data">
         <thead><tr><th>Opción</th><th>Coste del grupo</th><th>€ / pagador</th><th>A favor</th><th>En contra</th></tr></thead>
         <tbody>
-          <tr><td><b>Autocar con conductor 4 días</b><br><span class="pill voy">Recomendada</span></td><td class="num">5.000–6.500 €</td><td class="num">265–340 €</td><td>Viajamos juntos y nadie conduce. Sirve también para el barco, la actividad y la cena, así que no hacen falta traslados ni minibús.</td><td>Hay que pedir presupuesto pronto: en agosto los autocares escasean.</td></tr>
-          <tr><td><b>3 furgonetas de 9 plazas</b></td><td class="num">2.200–2.800 €</td><td class="num">115–150 €</td><td>Lo más barato con todo el grupo junto. Se conducen con carné B.</td><td>Hacen falta 6 conductores que no beban la víspera. Poco sitio para maletas. Hay que pedir permiso para cruzar a Portugal.</td></tr>
-          <tr><td><b>5 coches particulares</b></td><td class="num">≈900 € (gasolina y peajes)</td><td class="num">45–55 €</td><td>Lo más barato.</td><td>5 conductores, 14 horas al volante y coches propios. Cansado y menos despedida.</td></tr>
-          <tr><td><b>Avión (Alicante o Corvera con escala)</b></td><td class="num">—</td><td class="num">300 € o más</td><td>Rápido una vez en el aire.</td><td>Sin vuelo directo a Faro. Hay que llegar al aeropuerto y pagar traslados a los dos lados.</td></tr>
+          <tr><td><b>Autocar con conductor 4 días</b><br><span class="pill voy">Recomendada</span></td><td class="num">3.000–5.000 €</td><td class="num">160–265 €</td><td>Viajamos juntos y nadie conduce. Sirve también para el barco, la actividad y la cena.</td><td>Hay que pedir presupuesto pronto: en agosto los autocares escasean.</td></tr>
+          <tr><td><b>3 furgonetas de 9 plazas</b></td><td class="num">2.300–2.900 €</td><td class="num">120–155 €</td><td>Se conducen con carné B. Más baratas si se alquilan en Alicante.</td><td>6 conductores que no beban la víspera. Poco sitio para maletas. Hay que pagar el paso a Portugal.</td></tr>
+          <tr><td><b>5 coches particulares</b></td><td class="num">≈900 € de gasóleo</td><td class="num">45–50 €</td><td>Lo más barato.</td><td>5 conductores, 14 horas al volante y coches propios.</td></tr>
+          <tr><td><b>Avión</b></td><td class="num">—</td><td class="num">más de 300 €</td><td>—</td><td>Sin vuelo directo a Faro desde Alicante ni desde Corvera.</td></tr>
         </tbody>
       </table>
     </div>
     <div class="grid3" style="margin-top:16px">
-      <div class="card"><h3>Pedir presupuesto del autocar</h3><ul><li>Pedid 3 presupuestos a empresas de autocares de la Región de Murcia.</li><li>Autocar de 25–35 plazas, a disposición del jueves 06:00 al domingo por la noche.</li><li>Que incluya dietas y hotel del conductor, peajes de Portugal y gasóleo.</li><li>Preguntad si exigen dos conductores para 8 horas seguidas.</li></ul></div>
-      <div class="card"><h3>El conductor descansa</h3><p class="muted">Por ley tiene que descansar al menos 9–11 horas al día. El autocar se usa de día y para ir a cenar; las vueltas de madrugada, en Bolt (12–20 € por coche de 4).</p></div>
-      <div class="card"><h3>Si vais en furgonetas</h3><p class="muted">Los peajes de la A22 son solo electrónicos: registrad las matrículas en el punto EASYToll al entrar en Portugal o contratad el dispositivo con la empresa de alquiler.</p></div>
+      <div class="card"><h3>De dónde sale el precio del autocar</h3><p class="muted">La única tarifa pública que he encontrado es la de un contrato de la Universidad de Granada (2024): 490 € por día con 300 km incluidos, 1,14 € por km extra y 114 € de dieta del conductor por noche. Para este viaje salen unos 3.000 €. En agosto y con empresa privada será más: el plan equilibrado presupuesta 4.500 € hasta tener presupuestos reales. <a href="https://scgp.ugr.es/pages/circulares/2024/circular1aclaracionessobreelcontratodeautobusesconconductorugr/!" target="_blank" rel="noopener">Ver tarifa</a></p></div>
+      <div class="card"><h3>El conductor descansa</h3><p class="muted">Por <a href="https://transport.ec.europa.eu/transport-modes/road/social-provisions/driving-time-and-rest-periods_en" target="_blank" rel="noopener">ley europea</a>: máximo 9 h de conducción al día (10 h dos veces por semana), 45 min de pausa cada 4 h y media y 11 h de descanso diario. Un conductor puede hacer el viaje en un día; por eso el autocar se usa de día y las vueltas de madrugada se hacen en taxi.</p></div>
+      <div class="card"><h3>Peajes y gasóleo</h3><p class="muted">La <a href="https://postal.pt/algarve/infraestruturas-de-portugal-garante-que-a22-esta-isenta-de-portagens-desde-janeiro" target="_blank" rel="noopener">A22 no tiene peaje desde enero de 2025</a> y las autovías españolas de la ruta tampoco. El gasóleo cuesta unos 1,90 € el litro en España y 2,21 € en Portugal (octubre de 2026): repostad antes de cruzar.</p></div>
     </div>
   </section>
 
@@ -410,20 +417,37 @@ footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);color:v
       <table class="data">
         <thead><tr><th>Cuándo</th><th>Dónde</th><th>Qué</th><th>€ / persona</th></tr></thead>
         <tbody>
-          <tr><td>Jue noche</td><td>En la villa</td><td>Barbacoa: nosotros o chef privado con camarero</td><td class="num">0–55</td></tr>
-          <tr><td>Vie mediodía</td><td>En el barco</td><td>Picoteo a bordo o barbacoa en el plan épico</td><td class="num">incl.</td></tr>
-          <tr><td>Vie noche</td><td>Ferragudo (p. ej. Sueste) o la playa de Albufeira (p. ej. A Ruína)</td><td>Pescado a la brasa, pulpo, arroz de marisco</td><td class="num">35–55</td></tr>
+          <tr><td>Jue noche</td><td>En la villa</td><td>Barbacoa nuestra (en la compra). Chef privado opcional: 92 €</td><td class="num">incl.</td></tr>
+          <tr><td>Vie mediodía</td><td>En el barco</td><td>Barra libre a bordo; barbacoa en el plan épico</td><td class="num">incl.</td></tr>
+          <tr><td>Vie noche</td><td><a href="https://restaurantesueste.com" target="_blank" rel="noopener">Sueste</a> (Ferragudo) o <a href="https://restaurante-ruina.com" target="_blank" rel="noopener">A Ruína</a> (Albufeira, cierra los lunes)</td><td>Pescado a la brasa, pulpo, arroz de marisco. Precio por confirmar</td><td class="num">35–55</td></tr>
           <tr><td>Sáb mediodía</td><td>Tasca de camino</td><td>Bifanas, prego, cerveza</td><td class="num">10–15</td></tr>
-          <tr><td>Sáb noche</td><td>Restaurante con sala privada en Vilamoura o Albufeira</td><td>Cena de gala con menú cerrado y vino</td><td class="num">50–80</td></tr>
-          <tr><td>Dom mediodía</td><td>Guia (p. ej. Restaurante Ramires)</td><td>Frango piri-piri, la comida típica de la zona</td><td class="num">18–25</td></tr>
+          <tr><td>Sáb noche</td><td><a href="https://labodega.dineup.pt/index.html" target="_blank" rel="noopener">La Bodega</a> (rodízio, ≈25 €), <a href="https://www.funktionevents.co.uk/stag-do/portugal/albufeira/brazilian-rodizio-meal" target="_blank" rel="noopener">rodízio con vino</a> (57 £) o MöTAO (más de 50 €)</td><td>Cena de gala con discursos</td><td class="num">25–80</td></tr>
+          <tr><td>Dom mediodía</td><td><a href="https://restauranteramires.com" target="_blank" rel="noopener">Ramires</a> (Guia). Sin reservas en agosto</td><td>Frango piri-piri, la comida típica de la zona</td><td class="num">15–20</td></tr>
         </tbody>
       </table>
     </div>
     <div class="grid3" style="margin-top:16px">
-      <div class="card"><h3>Para salir</h3><ul><li><b>The Strip</b> (Av. Sá Carneiro, Albufeira): bares y discotecas hasta tarde.</li><li><b>Casco antiguo de Albufeira</b>: más ambiente para empezar.</li><li><b>Vilamoura</b>: marina y clubs con mesa reservada.</li></ul></div>
-      <div class="card"><h3>Ojo en Albufeira</h3><p class="muted">El ayuntamiento multa beber alcohol en la calle y pasear en bañador o sin camiseta fuera de la playa, con sanciones de cientos de euros. El disfraz de Andrés, mejor sin desnudos.</p></div>
+      <div class="card"><h3>Para salir</h3><ul><li><b>The Strip</b> (Av. Sá Carneiro, Albufeira): bares y discotecas hasta tarde.</li><li><b>Casco antiguo de Albufeira</b>: más ambiente para empezar.</li><li><b>Libertos</b> y <b>Kiss</b>: abiertos en 2026 con mesas VIP. Bliss (Vilamoura) cambia de local en 2027 y aún no se sabe dónde.</li></ul></div>
+      <div class="card"><h3>Ojo en Albufeira</h3><p class="muted">Desde junio de 2025, el <a href="https://observador.pt/2025/06/24/codigo-de-comportamentos-de-albufeira-entra-esta-terca-feira-em-vigor/" target="_blank" rel="noopener">Código de Comportamentos</a> multa con 300–1.500 € beber alcohol en la calle, ir en bañador fuera de la playa u orinar en la vía pública, y con 500–1.800 € el desnudo. La policía ya multa. El disfraz de Andrés, sin desnudos.</p></div>
       <div class="card"><h3>Qué pedir</h3><ul><li>Cataplana de marisco</li><li>Sardinhas assadas</li><li>Polvo à lagareiro</li><li>Medronho para el chupito final</li></ul></div>
     </div>
+  </section>
+
+  <!-- RESERVAS -->
+  <section id="reservas">
+    <div class="sec-head">
+      <p class="eyebrow">Enlaces comprobados el 6 de octubre de 2026</p>
+      <h2>Dónde reservar</h2>
+      <p class="muted">Todos los enlaces se han abierto y comprobado. Casi ningún proveedor publica todavía tarifas de agosto de 2027: los precios son los publicados en 2026 salvo que se indique, y habrá que reconfirmarlos al reservar. Solo las villas de Airbnb muestran ya precio y disponibilidad para el 5–8 de agosto de 2027.</p>
+    </div>
+    <div class="days" id="rfilter" role="group" aria-label="Filtrar por categoría"></div>
+    <div class="scroll panel" style="padding:6px 10px">
+      <table class="data">
+        <thead><tr><th>Qué</th><th>Proveedor</th><th>Precio comprobado</th><th>Estado</th></tr></thead>
+        <tbody id="rtable"></tbody>
+      </table>
+    </div>
+    <div class="legendrow"><span class="pill voy">Precio publicado</span> <span class="pill quizas">Pedir presupuesto</span> <span class="pill info">Información</span></div>
   </section>
 
   <!-- LISTA -->
@@ -496,15 +520,15 @@ footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);color:v
       <h2>Lo práctico</h2>
     </div>
     <div class="grid3">
-      <div class="card"><h3>Documentación</h3><ul><li>DNI o pasaporte en vigor (sin caducar en agosto).</li><li>Tarjeta Sanitaria Europea.</li><li>Seguro de viaje con cancelación, por si alguien se lesiona antes.</li></ul></div>
+      <div class="card"><h3>Documentación</h3><ul><li>DNI o pasaporte en vigor (sin caducar en agosto).</li><li>Tarjeta Sanitaria Europea: se pide gratis en la <a href="https://sede.seg-social.gob.es/wps/portal/sede/sede/Ciudadanos/asistencia+sanitaria/06asistencia+sanitaria" target="_blank" rel="noopener">sede de la Seguridad Social</a>.</li><li>Seguro de viaje con cancelación, por si alguien se lesiona antes.</li></ul></div>
       <div class="card"><h3>En la maleta</h3><ul><li>Camisa blanca para el sábado.</li><li>Protector 50, gorra y gafas de sol.</li><li>Bañador de recambio y chanclas.</li><li>Cargador y batería externa.</li></ul></div>
-      <div class="card"><h3>Datos útiles</h3><ul><li>Hora: una hora menos que en España.</li><li>Emergencias: 112. Línea de salud SNS 24: 808 24 24 24.</li><li>Agua del Atlántico: 19–22 °C. Calor de día: 28–33 °C.</li><li>Propina habitual: 5–10 %.</li></ul></div>
+      <div class="card"><h3>Datos útiles</h3><ul><li>Hora: una hora menos que en España.</li><li>Emergencias: 112. Línea de salud SNS 24: 808 24 24 24 (<a href="https://www.gov.pt/guias/contactos-de-emergencia-em-portugal" target="_blank" rel="noopener">gov.pt</a>).</li><li>Agosto: máximas de unos 28 °C y mar a unos 21 °C (<a href="https://weather2travel.com/algarve/albufeira/august/" target="_blank" rel="noopener">fuente</a>).</li><li>Propina habitual: 5–10 %.</li></ul></div>
     </div>
   </section>
 
   <footer>
     <div class="tile" aria-hidden="true" style="height:12px;background-size:12px 12px"></div>
-    <p>Precios orientativos para agosto de 2027, calculados en octubre de 2026. Distancias y tiempos de viaje aproximados. Confirmad cada importe con presupuesto real antes de cobrar.</p>
+    <p>Precios y enlaces comprobados el 6 de octubre de 2026. Salvo las villas de Airbnb, los precios son tarifas de 2026: hay que reconfirmarlos al reservar para agosto de 2027.</p>
     <p>Hecho para Andrés, por los de siempre.</p>
   </footer>
 </div>
@@ -533,26 +557,25 @@ footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);color:v
   const LV = ['Ajustado','Equilibrado','Épico'];
   // mode: 'g' = total del grupo; 'p' = por persona (asistente). own: lo compra cada uno.
   const ITEMS = [
-    {id:'villa',cat:'aloj',mode:'g',label:'Villa 3 noches (limpieza incluida)',det:['Villa sencilla o aparthotel, 10 dobles','Villa 8–10 dormitorios con piscina','Villa premium con vistas y jacuzzi'],v:[3900,5000,6000]},
-    {id:'tasa',cat:'aloj',mode:'p',label:'Tasa turística municipal',det:['≈2 € por noche y persona','≈2 € por noche y persona','≈2 € por noche y persona'],v:[6,6,6]},
-    {id:'coach',cat:'trans',mode:'g',label:'Viaje Totana – Algarve y transporte allí',det:['3 furgonetas de 9 plazas, gasolina y peajes','Autocar 25–30 plazas con conductor 4 días','Autocar 35 plazas con nevera y micro, 4 días'],v:[2500,5500,6200]},
-    {id:'bolt',cat:'trans',mode:'p',label:'Bolt y taxis por la noche',det:['Más trayectos en Bolt','Jueves y viernes','Jueves y viernes, coches grandes'],v:[30,25,35]},
-    {id:'boat',cat:'act',mode:'g',label:'Barco a las cuevas de Benagil',det:['Excursión compartida 2 h','Catamarán privado 4 h, barra libre','Catamarán privado 5 h, barbacoa y paddle'],v:[700,1500,2000]},
-    {id:'adv',cat:'act',mode:'p',label:'Actividad del sábado (la más votada)',det:['Paintball o kayak','Buggies o motos de agua','Buggies + motos de agua'],v:[40,65,90]},
-    {id:'dj',cat:'party',mode:'g',label:'Pool party: DJ y fotógrafo',det:['Altavoz propio y fotos nuestras','Fotógrafo 2 h','DJ 3 h + fotógrafo'],v:[0,300,600]},
-    {id:'super',cat:'food',mode:'p',label:'Súper para la villa',det:['Desayunos, agua, bebida y barbacoa','Desayunos, agua, hielo, bebida','Todo lo anterior con mejor bebida'],v:[60,55,70]},
-    {id:'bbq',cat:'food',mode:'p',label:'Cena del jueves en la villa',det:['La hacemos nosotros (en el súper)','Chef privado de barbacoa','Chef + camarero + postre'],v:[0,35,45]},
-    {id:'rest',cat:'food',mode:'p',label:'Restaurantes (vie, sáb, dom)',det:['Menús sencillos','Pescado + cena de gala + piri-piri','Cena de gala premium con vino bueno'],v:[110,150,170]},
-    {id:'drinks',cat:'party',mode:'p',label:'Copas y entradas (3 noches)',det:['Bares, sin discoteca de pago','Bares + entradas','Bares + entradas + rondas extra'],v:[70,90,95]},
-    {id:'vip',cat:'party',mode:'g',label:'Mesa reservada con botellas, sábado',det:['Sin mesa','Mesa con botellas','Mesa premium'],v:[0,800,1200]},
-    {id:'kit',cat:'otros',mode:'p',label:'Kit: camisetas, disfraz, trofeo, libro',det:['Camisetas y disfraz','Camisetas, disfraz, trofeo','Todo + libro encuadernado'],v:[15,25,30]},
-    {id:'ins',cat:'otros',mode:'p',own:true,label:'Seguro de viaje con cancelación',det:['Básico','Con cancelación','Con cancelación'],v:[10,12,15]},
+    {id:'villa',cat:'aloj',mode:'g',label:'Villa 3 noches',url:'https://www.airbnb.com/s/Albufeira--Portugal/homes?adults=20&checkin=2027-08-05&checkout=2027-08-08&currency=EUR',det:['Casa de 7 dorm. para 20, sin piscina (≈4.471 € en Airbnb)','Villa de 8–10 dorm. con piscina (≈6.000–6.800 € en Airbnb)','Villa con piscina climatizada y zona de juegos (≈6.800–7.000 € en Airbnb)'],v:[4500,6500,7000]},
+    {id:'tasa',cat:'aloj',mode:'p',label:'Tasa turística de Albufeira',url:'https://postal.pt/nacional/esta-cidade-algarvia-ja-comecou-a-cobrar-taxa-turistica-mas-existem-isencoes/',det:['2 € por persona y noche (abril–octubre)','2 € por persona y noche (abril–octubre)','2 € por persona y noche (abril–octubre)'],v:[6,6,6]},
+    {id:'coach',cat:'trans',mode:'g',label:'Viaje Totana – Algarve y transporte allí',url:'https://www.autocaresbelmonte.com/presupuesto/',det:['3 furgonetas de 9 plazas 4 días + paso a Portugal + gasóleo','Autocar con conductor 4 días (presupuesto a pedir)','Autocar con conductor, 2 conductores o vehículo premium'],v:[2600,4500,4900]},
+    {id:'bolt',cat:'trans',mode:'p',label:'Taxis por la noche (3 noches)',url:'https://www.taxi-calculator.com/taxi-rate-albufeira/1211',det:['≈15–17 € por taxi de 4 cada trayecto','≈15–17 € por taxi de 4 cada trayecto','Monovolúmenes de 8 plazas reservados'],v:[25,25,35]},
+    {id:'boat',cat:'act',mode:'g',label:'Barco a las cuevas de Benagil',url:'https://albufeirastagdo.com/party/private-boat-party/',det:['Tour compartido 3 h (desde 45 € por persona)','Barco privado 3 h con barra libre y paddle (desde 80 € por persona)','BBQ Boat Party 5 h con barra libre (desde 120 € por persona)'],v:[900,1600,2400]},
+    {id:'adv',cat:'act',mode:'p',label:'Actividad del sábado (la más votada)',url:'https://algarvemoments.pt/en/quad-buggy-tours/',det:['Paintball (desde 45 € por persona)','Buggy 1 h 30, 2 por buggy (desde 132 € el buggy)','Buggy 3 h, 2 por buggy (desde 198 € el buggy)'],v:[45,75,110]},
+    {id:'dj',cat:'party',mode:'g',label:'Pool party: fotógrafo y DJ',url:'https://www.pelago.com/en-GB/activity/pupma43hx-hire-photographer-professional-photo-shoot-algarve-faro/',det:['Altavoz propio y fotos nuestras','Fotógrafo 2 h (≈441 £)','Fotógrafo 2 h + DJ 3 h (desde 450 €)'],v:[0,550,900]},
+    {id:'super',cat:'food',mode:'p',label:'Compra para la villa (Apolónia, entrega en la villa)',url:'https://www.apolonia.com/',det:['Desayunos, agua, bebida y barbacoa del jueves','Lo mismo con mejor carne y bebida','Compra premium: mejor carne, marisco y bebida'],v:[60,70,85]},
+    {id:'rest',cat:'food',mode:'p',label:'Restaurantes (vie, sáb, dom)',url:'https://restauranteramires.com',det:['Pescado sencillo, rodízio La Bodega (≈25 €), Ramires','Sueste, rodízio con vino (≈57 £), Ramires','Sueste, MöTAO Vilamoura (>50 €), Ramires'],v:[100,145,170]},
+    {id:'drinks',cat:'party',mode:'p',label:'Copas y entradas (3 noches)',url:'https://www.libertosclub.com',det:['Bares, sin discoteca de pago','Bares + entradas (10–30 €)','Bares + entradas + rondas extra'],v:[70,90,95]},
+    {id:'vip',cat:'party',mode:'g',label:'Mesa VIP con botellas, sábado',url:'https://www.libertosclub.com',det:['Sin mesa','Mesa con ≈6 botellas (≈120–150 € la botella)','Mesa con ≈7 botellas'],v:[0,850,1000]},
+    {id:'kit',cat:'otros',mode:'p',label:'Kit: camisetas, disfraz, trofeo, libro',url:'https://www.crealo.es/camisetas-personalizadas/20822-camiseta-personalizada-especial-despedidas-de-solteroa.html',det:['Camisetas (7,34 €) y disfraz','Camisetas, disfraz y trofeo (desde 12,99 €)','Todo + libro de cartas encuadernado'],v:[10,15,20]},
+    {id:'ins',cat:'otros',mode:'p',own:true,label:'Seguro de viaje con cancelación',url:'https://heymondo.es/seguro-cancelacion-viaje/',det:['Cancelación básica (desde 12,03 €)','Cancelación y asistencia','Cancelación y asistencia premium'],v:[15,20,25]},
   ];
   const state = {pax:20, flight:0, cont:5, invite:true, lv:Object.fromEntries(ITEMS.map(i=>[i.id,1]))};
-  const saved = store.get('calc'); if(saved&&typeof saved==='object'&&saved.v===2){Object.assign(state,saved); state.lv=Object.assign(Object.fromEntries(ITEMS.map(i=>[i.id,1])),saved.lv||{})}
+  const saved = store.get('calc'); if(saved&&typeof saved==='object'&&saved.v===3){Object.assign(state,saved); state.lv=Object.assign(Object.fromEntries(ITEMS.map(i=>[i.id,1])),saved.lv||{})}
 
   const tbody = $('#items tbody');
-  tbody.innerHTML = ITEMS.map(it=>`<tr><td><div class="lbl"><span class="dot" style="background:${CATS[it.cat].c}"></span>${it.label}</div><div class="det" id="det-${it.id}"></div></td>
+  tbody.innerHTML = ITEMS.map(it=>`<tr><td><div class="lbl"><span class="dot" style="background:${CATS[it.cat].c}"></span>${it.label}</div><div class="det" id="det-${it.id}"></div><a class="rlink" href="${it.url}" target="_blank" rel="noopener">Dónde reservar ↗</a></td>
     <td><select id="lv-${it.id}" aria-label="Nivel: ${it.label}">${LV.map((l,i)=>`<option value="${i}">${l}</option>`).join('')}</select></td>
     <td class="amt" id="amt-${it.id}"></td></tr>`).join('') +
     `<tr><td><div class="lbl">Fondo de imprevistos</div><div class="det">Sobre el bote común</div></td><td></td><td class="amt" id="amt-cont"></td></tr>`;
@@ -622,9 +645,73 @@ footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);color:v
     $('#r-pays').innerHTML=html; $('#pays-2').innerHTML=html;
     $('#f-pax').textContent=`${state.pax} personas`;
     $('#f-pp').textContent='~'+eur(r.pp);
-    store.set('calc',{...state,v:2});
+    store.set('calc',{...state,v:3});
     renderStats();
   }
+
+  /* ---------- reservas ---------- */
+  const RES=[
+    ['Transporte','Autocar con conductor','Autocares Belmonte (Cartagena), formulario de presupuesto','https://www.autocaresbelmonte.com/presupuesto/','Autocares de 16 a 71 plazas; viajes internacionales','presu'],
+    ['Transporte','Autocar con conductor','Autocares Águilas, contacto','https://www.autocaresaguilas.com/contact-us/','22 a 69 plazas; tel. 968 44 80 84','presu'],
+    ['Transporte','Autocar con conductor','Autocares Martínez (Totana)','https://www.bodas.net/autobuses/autocares-martinez--e43262','Autobuses de 26 y 38 plazas; confirmar si van a Portugal','presu'],
+    ['Transporte','Referencia de precio de autocar','Tarifa pública Universidad de Granada 2024','https://scgp.ugr.es/pages/circulares/2024/circular1aclaracionessobreelcontratodeautobusesconconductorugr/!','490 €/día con 300 km; 1,14 €/km extra; dieta 114 €/noche','info'],
+    ['Transporte','Furgoneta de 9 plazas','Comparador Kayak, Alicante','https://www.kayak.es/Alicante-alquiler-furgonetas-9-pasajeros.20171.9-lcv.ksp','Media 68 €/día; julio 106 €/día','ok'],
+    ['Transporte','Furgoneta de 9 plazas','Comparador Kayak, Murcia','https://www.kayak.es/Murcia-alquiler-furgonetas-9-pasajeros.23074.9-lcv.ksp','Media 117 €/día; julio 151 €/día','ok'],
+    ['Transporte','Paso a Portugal con furgoneta','Centauro, condiciones','https://www.centauro.net/en/services/car-hire-with-insurance-abroad/','14 €/día (3–12 días); sin cobertura, 200 € de penalización','ok'],
+    ['Transporte','Paso a Portugal con furgoneta','Enterprise, cruce de fronteras','https://www.enterprise.com/en/car-rental-faqs/spain-general/crossing-borders.html','55 € por alquiler','ok'],
+    ['Transporte','Peajes A22','Postal do Algarve','https://postal.pt/algarve/infraestruturas-de-portugal-garante-que-a22-esta-isenta-de-portagens-desde-janeiro','Sin peaje desde el 1 de enero de 2025','info'],
+    ['Alojamiento','Buscar villa para el 5–8 ago 2027','Airbnb, 20 adultos y fechas ya puestas','https://www.airbnb.com/s/Albufeira--Portugal/homes?adults=20&checkin=2027-08-05&checkout=2027-08-08&currency=EUR','29 casas disponibles al consultarlo','ok'],
+    ['Alojamiento','Villa dos Sonhos, Albufeira','10 dorm., piscina, billar (máx. 19 huéspedes)','https://www.airbnb.com/rooms/1051263695583795308','5.998 € las 3 noches del 5–8 ago 2027','ok'],
+    ['Alojamiento','Villa Camilla, Olhos de Água','8 dorm., piscina climatizada (16–18 huéspedes)','https://www.airbnb.com/rooms/1658779122491277396','6.786 € las 3 noches del 5–8 ago 2027','ok'],
+    ['Alojamiento','Villa Alba V7, Santa Eulália','7 dorm., 18 camas, piscina climatizada','https://www.airbnb.com/rooms/617243319631648949','8.076 € las 3 noches del 5–8 ago 2027','ok'],
+    ['Alojamiento','Casa junto al casco antiguo','7 dorm., hasta 20 huéspedes, sin piscina','https://www.airbnb.com/rooms/1329768186009476592','4.471 € las 3 noches del 5–8 ago 2027','ok'],
+    ['Alojamiento','Villa Garden, Albufeira','11 dorm., 22 plazas; acepta despedidas (Portugal Rocks)','https://portugalrocks.com/stag-hen/hotel/casa-garden-villa-albufeira','Sin precio publicado; tel. +351 927 441 886','presu'],
+    ['Alojamiento','Villa Tres, junto a The Strip','3 villas contiguas, 14 dorm., 28 plazas (Clickstay)','https://www.clickstay.com/p/75765','Desde 3.570 £/semana en temporada baja','presu'],
+    ['Alojamiento','Villa Bella, Albufeira','8 dorm., 20+ plazas, reseñas de despedidas (Clickstay)','https://www.clickstay.com/p/86169','Desde 2.572 £/semana en temporada baja; fianza 1.000 £','presu'],
+    ['Alojamiento','Comprobar licencia de la villa','Registo Nacional de Turismo','https://rnt.turismodeportugal.pt/RNT/_default.aspx','Búsqueda por número AL','info'],
+    ['Alojamiento','Tasa turística','Postal do Algarve','https://postal.pt/nacional/esta-cidade-algarvia-ja-comecou-a-cobrar-taxa-turistica-mas-existem-isencoes/','2 € por persona y noche, abril–octubre','ok'],
+    ['Actividades','Barco privado con barra libre','Private Boat Party, Albufeira Stag Do','https://albufeirastagdo.com/party/private-boat-party/','Desde 80 € por persona, 3 h, máx. 20 personas','ok'],
+    ['Actividades','Barco con barbacoa (épico)','Private BBQ Boat Party, desde Vilamoura','https://albufeirastagdo.com/party/private-bbq-boat-party/','Desde 120 € por persona, 5 h, máx. 20 personas','ok'],
+    ['Actividades','Catamarán privado sin bebida','Seasiren, Marina de Portimão (CheckYeti)','https://www.checkyeti.com/en/d/1452/24770','750 € el barco, 3 h, hasta 28 personas (precio de otoño 2026)','ok'],
+    ['Actividades','Catamarán grande privado','Catamarán Custom 16, Marina de Albufeira (Sailo)','https://www.sailo.com/boats/Albufeira_Portugal/Motor/rental_boat_87538/?duration=4','1.750 € por 3 h, hasta 90 personas','ok'],
+    ['Actividades','Tour compartido a Benagil (ajustado)','Albufeira Stag Do','https://albufeirastagdo.com/activities/benagil-cave-tour/','Desde 45 € por persona, 3 h','ok'],
+    ['Actividades','Normas de Benagil','Postal do Algarve','https://postal.pt/algarve/novas-regras-de-navegacao-nas-grutas-de-benagil-limitam-acessos-e-garantem-mais-seguranca/','Los barcos entran; prohibido desembarcar y llegar a nado','info'],
+    ['Actividades','Buggies','Algarve Moments','https://algarvemoments.pt/en/quad-buggy-tours/','Buggy 1 h 30 desde 132 €; 3 h desde 198 € (por buggy de 2)','ok'],
+    ['Actividades','Buggies (grupos)','Magnibravura, Albufeira','https://magnibravura.com/','Buggy de 4 plazas 1 h 30: 165 €; 3 h: 210 €','ok'],
+    ['Actividades','Paintball','Albufeira Stag Do','https://albufeirastagdo.com/activities/paintball/','Desde 45 € por persona, 100 bolas','ok'],
+    ['Actividades','Motos de agua','Vilamoura Watersports (Manawa)','https://www.manawa.com/en-GB/activity/portugal/vilamoura/jet-skiing/jet-ski-rentals-in-vilamoura-near-albufeira/5113','85 € por 30 min, 1 persona por moto','ok'],
+    ['Actividades','Surf en Galé','Surf 4 Fun Albufeira (CheckYeti)','https://www.checkyeti.com/en/d/2883/22343','40 € por persona, 2 h','ok'],
+    ['Comer y salir','Pollo piri-piri (domingo)','Restaurante Ramires, Guia','https://restauranteramires.com','15–20 €; sin reservas en julio y agosto','ok'],
+    ['Comer y salir','Cena de pescado (viernes)','Restaurante Sueste, Ferragudo','https://restaurantesueste.com','Reservas: sueste.bookings@gmail.com; precio por confirmar','presu'],
+    ['Comer y salir','Cena de pescado (alternativa)','A Ruína, Albufeira','https://restaurante-ruina.com/reservation.php','30–50 $ por persona; cierra los lunes','ok'],
+    ['Comer y salir','Cena de gala económica','La Bodega, rodízio, Oura','https://labodega.dineup.pt/index.html','≈25 € por persona; tel. +351 960 288 232','ok'],
+    ['Comer y salir','Cena de gala con vino','Rodízio para despedidas, Funktion Events','https://www.funktionevents.co.uk/stag-do/portugal/albufeira/brazilian-rodizio-meal','57 £ por persona, con media botella de vino','ok'],
+    ['Comer y salir','Cena de gala para grupos','Celeiro, AP Adriana Beach Resort','https://ap-hotelsresorts.com/adriana/places-for-corporate-events','Exclusivo para grupos; groups@ap-hotelsresorts.com','presu'],
+    ['Comer y salir','Chef privado en la villa','Basil Algarve (Take a Chef)','https://www.takeachef.com/en-pt/chef/basil-algarve','92 € por persona','ok'],
+    ['Comer y salir','Compra a domicilio','Apolónia (reparte en Albufeira, Guia y Galé)','https://www.apolonia.com/','Envío gratis desde 125 €','ok'],
+    ['Comer y salir','Discoteca con mesa VIP','Libertos Club','https://www.libertosclub.com','Reserva de mesa en la web; precio no publicado','presu'],
+    ['Comer y salir','Discoteca','Kiss Disco Club (Xceed)','https://xceed.me/ca/albufeira/club/kiss-disco-club','Abierta de junio a septiembre','info'],
+    ['Comer y salir','Taxis','Tarifas de taxi en Albufeira 2026','https://www.taxi-calculator.com/taxi-rate-albufeira/1211','Noche: 3,90 € + 1,22 €/km','ok'],
+    ['Comer y salir','Normas de conducta','Código de Comportamentos (Observador)','https://observador.pt/2025/06/24/codigo-de-comportamentos-de-albufeira-entra-esta-terca-feira-em-vigor/','Multas de 300–1.500 €','info'],
+    ['Extras','Fotógrafo para despedidas','The Photo Experiences (Pelago)','https://www.pelago.com/en-GB/activity/pupma43hx-hire-photographer-professional-photo-shoot-algarve-faro/','441 £ por 2 h; confirmar desplazamiento a Albufeira','ok'],
+    ['Extras','DJ','DJ Andjo, Loulé (casamentos.pt)','https://www.casamentos.pt/musica-casamento/dj-andjo--e167499','450–700 €; se reserva con 6–12 meses','ok'],
+    ['Extras','Camisetas personalizadas','Crealo.es','https://www.crealo.es/camisetas-personalizadas/20822-camiseta-personalizada-especial-despedidas-de-solteroa.html','7,34 € por unidad para 20 unidades','ok'],
+    ['Extras','Camisetas (alternativa)','El Genio de la Lámpara','https://elgeniodelalampara.com/camisetas-despedida-soltero-soltera/','13 € por unidad; 20 % con el cupón GRUPOS','ok'],
+    ['Extras','Trofeo grabado','MaxiTrofeo','https://www.maxitrofeo.com/trofeos-personalizados','Desde 12,99 €','ok'],
+    ['Extras','Seguro de cancelación','Heymondo','https://heymondo.es/seguro-cancelacion-viaje/','Desde 12,03 €; contratar en los 7 días tras reservar','ok'],
+    ['Extras','Tarjeta Sanitaria Europea','Sede de la Seguridad Social','https://sede.seg-social.gob.es/wps/portal/sede/sede/Ciudadanos/asistencia+sanitaria/06asistencia+sanitaria','Gratis','info'],
+    ['Extras','Cuentas del bote','Tricount','https://www.tricount.com/es','Gratis','info'],
+    ['Extras','Festivos 2027 en Murcia','BORM nº 171, 27-07-2026','https://www.borm.es/services/anuncio/844400/pdf','El lunes 16 de agosto es laborable','info'],
+  ];
+  const RCATS=['Todo',...new Set(RES.map(r=>r[0]))];
+  const ST={ok:['voy','Precio publicado'],presu:['quizas','Pedir presupuesto'],info:['info','Información']};
+  let rcat=store.get('rcat'); if(!RCATS.includes(rcat)) rcat='Todo';
+  function renderRes(){
+    $('#rfilter').innerHTML=RCATS.map(c=>`<button class="daybtn" type="button" aria-pressed="${c===rcat}" aria-selected="${c===rcat}" data-c="${c}">${c}</button>`).join('');
+    document.querySelectorAll('#rfilter .daybtn').forEach(b=>b.addEventListener('click',()=>{rcat=b.dataset.c;store.set('rcat',rcat);renderRes()}));
+    $('#rtable').innerHTML=RES.filter(r=>rcat==='Todo'||r[0]===rcat).map(([c,what,prov,url,price,st])=>`<tr><td><b>${what}</b><br><small class="muted">${c}</small></td><td class="rprov"><a href="${url}" target="_blank" rel="noopener">${prov} ↗</a><small>${new URL(url).hostname.replace('www.','')}</small></td><td>${price}</td><td><span class="pill ${ST[st][0]}">${ST[st][1]}</span></td></tr>`).join('');
+  }
+  renderRes();
 
   /* ---------- checklist ---------- */
   const TASKS=[
