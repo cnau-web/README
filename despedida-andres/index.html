@@ -1,0 +1,740 @@
+<title>Operación Andrés · Algarve</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: guía de viaje a una columna ancha; franja de azulejo como separador; calculadora con panel de resultados fijo en escritorio */
+:root{
+  --bg:#F2F5F4;          /* sal marina */
+  --surface:#FFFFFF;
+  --surface-2:#E7EEEC;
+  --ink:#10233A;         /* azul atlántico profundo */
+  --ink-soft:#4A5B6E;
+  --line:#CBD6D6;
+  --cobalt:#1F4FBF;      /* azulejo */
+  --cobalt-soft:#DCE5FA;
+  --ochre:#D98A1E;       /* acantilado de Benagil */
+  --ochre-soft:#FBEBD2;
+  --sea:#0E7C7B;
+  --good:#1D7A46; --good-soft:#DDF1E4;
+  --warn:#A65F00; --warn-soft:#FDEBCB;
+  --bad:#B42318;  --bad-soft:#FDE2DF;
+  --c1:#1F4FBF; --c2:#0E7C7B; --c3:#D98A1E; --c4:#C2417A; --c5:#6B4FBF; --c6:#7A8A99;
+  --f-display:"Unbounded", "Arial Black", system-ui, sans-serif;
+  --f-body:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --r:12px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0A1520; --surface:#111F2D; --surface-2:#18293A; --ink:#E6EDF3; --ink-soft:#9DB0C2; --line:#24384C;
+  --cobalt:#7EA0FF; --cobalt-soft:#1A2A52; --ochre:#F1AE4B; --ochre-soft:#3A2A12; --sea:#3FC1BE;
+  --good:#5BD08C; --good-soft:#123323; --warn:#F3B24E; --warn-soft:#3A2A0E; --bad:#FF8A7E; --bad-soft:#3D1814;
+  --c1:#7EA0FF; --c2:#3FC1BE; --c3:#F1AE4B; --c4:#F07AAE; --c5:#A994FF; --c6:#8EA0B2;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0A1520; --surface:#111F2D; --surface-2:#18293A; --ink:#E6EDF3; --ink-soft:#9DB0C2; --line:#24384C;
+  --cobalt:#7EA0FF; --cobalt-soft:#1A2A52; --ochre:#F1AE4B; --ochre-soft:#3A2A12; --sea:#3FC1BE;
+  --good:#5BD08C; --good-soft:#123323; --warn:#F3B24E; --warn-soft:#3A2A0E; --bad:#FF8A7E; --bad-soft:#3D1814;
+  --c1:#7EA0FF; --c2:#3FC1BE; --c3:#F1AE4B; --c4:#F07AAE; --c5:#A994FF; --c6:#8EA0B2;
+  color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:20px;padding-block:0 64px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;line-height:1.12;margin:0}
+h2{font-size:clamp(1.35rem,3.2vw,1.9rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.02rem;font-weight:700}
+p{margin:0}
+a{color:var(--cobalt)}
+.eyebrow{font-family:var(--f-mono);font-size:.74rem;letter-spacing:.12em;text-transform:uppercase;color:var(--sea);font-weight:600}
+.muted{color:var(--ink-soft)}
+.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--ochre);outline-offset:2px;border-radius:6px}
+
+/* azulejo band */
+.tile{height:22px;border-radius:4px;background-color:var(--cobalt);
+  background-image:
+    radial-gradient(circle at 50% 50%, var(--bg) 0 3px, transparent 3.5px),
+    radial-gradient(circle at 0 0, var(--bg) 0 7px, transparent 7.5px),
+    radial-gradient(circle at 100% 0, var(--bg) 0 7px, transparent 7.5px),
+    radial-gradient(circle at 0 100%, var(--bg) 0 7px, transparent 7.5px),
+    radial-gradient(circle at 100% 100%, var(--bg) 0 7px, transparent 7.5px);
+  background-size:22px 22px;opacity:.9}
+
+/* nav */
+.nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.nav .in{max-width:1120px;margin:0 auto;padding-inline:20px;display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
+.nav a{white-space:nowrap;text-decoration:none;color:var(--ink-soft);font-weight:600;font-size:.88rem;padding:12px 10px;border-bottom:2px solid transparent}
+.nav a:hover{color:var(--ink);border-bottom-color:var(--ochre)}
+
+/* hero */
+.hero{padding-block:40px 28px;display:grid;gap:22px}
+.hero h1{font-size:clamp(2.1rem,7vw,4.4rem);font-weight:800;letter-spacing:-.03em}
+.hero h1 span{color:var(--ochre)}
+.hero .lede{font-size:1.12rem;max-width:62ch;color:var(--ink-soft)}
+.facts{display:flex;flex-wrap:wrap;gap:10px}
+.fact{display:flex;flex-direction:column;padding:10px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);min-width:0}
+.fact b{font-family:var(--f-mono);font-size:1.05rem}
+.fact small{color:var(--ink-soft);font-size:.78rem}
+.secret{display:flex;gap:10px;align-items:flex-start;background:var(--ochre-soft);color:var(--ink);border-radius:10px;padding:12px 14px;font-size:.92rem}
+.secret b{color:var(--warn)}
+
+section{padding-block:44px 8px;scroll-margin-top:56px}
+.sec-head{display:grid;gap:8px;margin-bottom:22px;max-width:70ch}
+
+/* itinerary */
+.days{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.daybtn{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 16px;cursor:pointer;font-weight:600}
+.daybtn[aria-selected="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.day{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,320px);gap:24px}
+@media (max-width:820px){.day{grid-template-columns:1fr}}
+.timeline{list-style:none;margin:0;padding:0;display:grid;gap:0}
+.timeline li{display:grid;grid-template-columns:64px minmax(0,1fr);gap:14px;padding-block:12px;border-top:1px dashed var(--line)}
+.timeline li:first-child{border-top:0}
+.timeline time{font-family:var(--f-mono);font-weight:600;color:var(--cobalt);font-size:.92rem;padding-top:2px}
+.timeline h3{font-family:var(--f-body);font-size:1.02rem;font-weight:700;margin-bottom:2px}
+.timeline p{color:var(--ink-soft);font-size:.95rem}
+.tag{display:inline-block;font-size:.72rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;border-radius:6px;padding:2px 7px;margin-left:6px;vertical-align:2px}
+.tag.star{background:var(--ochre-soft);color:var(--warn)}
+.tag.book{background:var(--cobalt-soft);color:var(--cobalt)}
+.aside{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;display:grid;gap:12px;align-content:start}
+.aside ul{margin:0;padding-left:18px;display:grid;gap:6px;font-size:.94rem}
+
+/* calculator */
+.calc{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,360px);gap:24px;align-items:start}
+@media (max-width:900px){.calc{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px}
+.controls{display:grid;gap:16px;margin-bottom:18px}
+.presets{display:flex;flex-wrap:wrap;gap:8px}
+.preset{flex:1 1 140px;text-align:left;border:1.5px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 12px;cursor:pointer}
+.preset b{display:block;font-family:var(--f-display);font-size:.9rem}
+.preset small{color:var(--ink-soft)}
+.preset[aria-pressed="true"]{border-color:var(--cobalt);background:var(--cobalt-soft)}
+.row2{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+label.f{display:grid;gap:6px;font-size:.85rem;font-weight:600;color:var(--ink-soft)}
+select,input[type=number],input[type=text]{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%;min-width:0}
+input[type=range]{width:100%;accent-color:var(--cobalt)}
+.switch{display:flex;gap:10px;align-items:center;font-weight:600;font-size:.92rem;cursor:pointer}
+.switch input{width:18px;height:18px;accent-color:var(--cobalt)}
+.items{width:100%;border-collapse:collapse;font-size:.93rem}
+.items-wrap{overflow-x:auto}
+.items th{text-align:left;font-size:.74rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft);padding:8px 6px;border-bottom:1px solid var(--line)}
+.items td{padding:10px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+.items td.amt{text-align:right;white-space:nowrap;font-family:var(--f-mono)}
+.items .lbl{font-weight:600}
+.items .det{color:var(--ink-soft);font-size:.84rem;margin-top:2px}
+.items select{width:auto;max-width:170px;font-size:.85rem;padding:5px 8px}
+.dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;vertical-align:1px}
+.result{position:sticky;top:64px;display:grid;gap:16px}
+.big{font-family:var(--f-display);font-size:clamp(2.2rem,5vw,3rem);font-weight:800;letter-spacing:-.02em;line-height:1}
+.status{display:inline-flex;gap:6px;align-items:center;font-weight:700;font-size:.85rem;padding:4px 10px;border-radius:999px}
+.status.ok{background:var(--good-soft);color:var(--good)}
+.status.lo{background:var(--cobalt-soft);color:var(--cobalt)}
+.status.hi{background:var(--bad-soft);color:var(--bad)}
+.gauge{position:relative;height:38px}
+.gauge .track{position:absolute;left:0;right:0;top:12px;height:10px;border-radius:5px;background:var(--surface-2)}
+.gauge .band{position:absolute;top:12px;height:10px;background:var(--good-soft);border:1px solid var(--good);border-radius:5px}
+.gauge .mark{position:absolute;top:4px;width:4px;height:26px;border-radius:2px;background:var(--ink);transform:translateX(-2px);transition:left .25s}
+.gauge .ticks{position:absolute;left:0;right:0;top:26px;font-family:var(--f-mono);font-size:.68rem;color:var(--ink-soft)}
+.gauge .ticks span{position:absolute;transform:translateX(-50%)}
+.stack{display:flex;height:16px;border-radius:5px;overflow:hidden;background:var(--surface-2);gap:2px}
+.stack i{display:block;height:100%}
+.legend{display:grid;gap:6px;font-size:.88rem}
+.legend div{display:flex;justify-content:space-between;gap:10px}
+.kv{display:grid;gap:6px;font-size:.92rem}
+.kv div{display:flex;justify-content:space-between;gap:12px;border-bottom:1px dashed var(--line);padding-bottom:6px}
+.kv div:last-child{border-bottom:0}
+.pays{display:grid;gap:8px}
+.pay{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;font-size:.9rem}
+.pay .n{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--ochre-soft);color:var(--warn);font-weight:700;font-family:var(--f-mono);font-size:.8rem}
+
+/* cards grid generic */
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;display:grid;gap:10px;align-content:start;min-width:0}
+.card.pick{border:2px solid var(--cobalt)}
+.card .badge{justify-self:start;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:3px 8px;border-radius:6px;background:var(--cobalt);color:var(--bg)}
+.card ul{margin:0;padding-left:18px;display:grid;gap:5px;font-size:.93rem}
+.checks{list-style:none;padding:0!important}
+.checks li{padding-left:24px;position:relative}
+.checks li::before{content:"";position:absolute;left:2px;top:.45em;width:12px;height:7px;border-left:2.5px solid var(--good);border-bottom:2.5px solid var(--good);transform:rotate(-45deg)}
+
+table.data{width:100%;border-collapse:collapse;font-size:.93rem}
+table.data th{text-align:left;font-size:.74rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft);padding:8px;border-bottom:1px solid var(--line)}
+table.data td{padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.scroll{overflow-x:auto}
+
+/* roster */
+.roster-top{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:16px}
+.stat{flex:1 1 150px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.stat b{display:block;font-family:var(--f-display);font-size:1.5rem}
+.stat small{color:var(--ink-soft);font-size:.8rem}
+.addform{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1.2fr) minmax(0,1fr) auto;gap:10px;align-items:end;margin-bottom:14px}
+@media (max-width:720px){.addform{grid-template-columns:1fr 1fr}.addform .full{grid-column:1/-1}}
+.btn{border:0;background:var(--cobalt);color:var(--bg);font-weight:700;border-radius:8px;padding:9px 16px;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.danger{background:var(--bad);color:var(--bg)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.roster td select{font-size:.85rem;padding:5px 6px;width:auto}
+.paybox{display:flex;gap:8px;flex-wrap:wrap}
+.paybox label{display:flex;gap:4px;align-items:center;font-size:.82rem;font-weight:600;cursor:pointer}
+.paybox input{accent-color:var(--good);width:16px;height:16px}
+.pill{display:inline-block;font-size:.76rem;font-weight:700;border-radius:999px;padding:2px 9px}
+.pill.voy{background:var(--good-soft);color:var(--good)}
+.pill.quizas{background:var(--warn-soft);color:var(--warn)}
+.pill.no{background:var(--bad-soft);color:var(--bad)}
+.note{font-size:.88rem;color:var(--ink-soft);background:var(--surface-2);border-radius:10px;padding:12px 14px}
+.votes{display:grid;gap:8px}
+.vote{display:grid;grid-template-columns:minmax(0,150px) minmax(0,1fr) 32px;gap:10px;align-items:center;font-size:.9rem}
+.vote .bar{height:12px;border-radius:4px;background:var(--surface-2);overflow:hidden}
+.vote .bar i{display:block;height:100%;background:var(--ochre);transition:width .3s}
+.empty{padding:22px;text-align:center;color:var(--ink-soft);border:1.5px dashed var(--line);border-radius:10px}
+
+/* checklist */
+.months{display:grid;gap:12px}
+.month{display:grid;grid-template-columns:120px minmax(0,1fr);gap:16px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px}
+@media (max-width:600px){.month{grid-template-columns:1fr;gap:6px}}
+.month h3{font-family:var(--f-mono);font-size:.85rem;color:var(--cobalt);text-transform:uppercase;letter-spacing:.06em;padding-top:3px}
+.month ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.month label{display:flex;gap:10px;align-items:flex-start;cursor:pointer;font-size:.95rem}
+.month input{margin-top:4px;width:17px;height:17px;accent-color:var(--good);flex:none}
+.month input:checked + span{text-decoration:line-through;color:var(--ink-soft)}
+.progress{height:8px;border-radius:4px;background:var(--surface-2);overflow:hidden;margin-block:6px 16px}
+.progress i{display:block;height:100%;background:var(--good);transition:width .3s}
+
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;font-size:.9rem;z-index:50;max-width:calc(100% - 32px)}
+footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);color:var(--ink-soft);font-size:.86rem;display:grid;gap:6px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<nav class="nav" aria-label="Secciones"><div class="in">
+  <a href="#plan">Plan</a><a href="#presupuesto">Presupuesto</a><a href="#alojamiento">Alojamiento</a><a href="#vuelos">Vuelos y transporte</a><a href="#comer">Comer y salir</a><a href="#lista">Lista y pagos</a><a href="#organizacion">Organización</a><a href="#sorpresas">Sorpresas</a><a href="#practico">Práctico</a>
+</div></nav>
+
+<div class="wrap">
+  <header class="hero">
+    <p class="eyebrow">Despedida de soltero · Algarve, Portugal</p>
+    <h1>Operación <span>Andrés</span></h1>
+    <p class="lede">Cuatro días en el sur de Portugal con los de siempre: villa con piscina para 20, catamarán por las cuevas de Benagil, una tarde de aventura, cena de gala y las noches de Albufeira. Todo calculado para que salga entre 800 € y 1.500 € por persona, con todo incluido.</p>
+    <div class="facts">
+      <div class="fact"><b>Jue 26 – Dom 29 ago 2027</b><small>3 noches · alternativa 19–22 ago</small></div>
+      <div class="fact"><b id="f-pax">20 personas</b><small>Andrés invitado por el grupo</small></div>
+      <div class="fact"><b>Albufeira</b><small>Base en villa · aeropuerto de Faro a 35 min</small></div>
+      <div class="fact"><b id="f-pp">~1.250 €</b><small>por persona, plan equilibrado</small></div>
+      <div class="fact"><b id="f-count">—</b><small>días para salir</small></div>
+    </div>
+    <div class="secret" role="note"><b>Alto secreto.</b> <span>Esta carta es para los 19 que organizan. No compartas el enlace con Andrés ni lo dejes abierto en el móvil cerca de él.</span></div>
+  </header>
+  <div class="tile" aria-hidden="true"></div>
+
+  <!-- PLAN -->
+  <section id="plan">
+    <div class="sec-head">
+      <p class="eyebrow">Itinerario</p>
+      <h2>El plan, día a día</h2>
+      <p class="muted">Horas en hora local de Portugal, una hora menos que en España. Lo marcado como <span class="tag book">reservar</span> se contrata con antelación; lo marcado como <span class="tag star">momento clave</span> es para Andrés.</p>
+    </div>
+    <div class="days" role="tablist" aria-label="Días">
+      <button class="daybtn" role="tab" id="t-0" aria-selected="true" aria-controls="d-0">Jueves 26</button>
+      <button class="daybtn" role="tab" id="t-1" aria-selected="false" aria-controls="d-1">Viernes 27</button>
+      <button class="daybtn" role="tab" id="t-2" aria-selected="false" aria-controls="d-2">Sábado 28</button>
+      <button class="daybtn" role="tab" id="t-3" aria-selected="false" aria-controls="d-3">Domingo 29</button>
+    </div>
+
+    <div class="day" id="d-0" role="tabpanel" aria-labelledby="t-0">
+      <ol class="timeline">
+        <li><time>09–12h</time><div><h3>Vuelos a Faro (FAO)</h3><p>Intentad aterrizar todos en una franja de 2–3 horas para compartir el traslado. Quien llegue antes espera en la terraza del aeropuerto, no en la villa.</p></div></li>
+        <li><time>13:30</time><div><h3>Traslado privado en autocar <span class="tag book">reservar</span></h3><p>Un autocar de 20–25 plazas recoge al grupo en llegadas. 35 minutos hasta la villa. Primera ronda de cervezas Sagres a bordo.</p></div></li>
+        <li><time>14:30</time><div><h3>Check-in y sorteo de habitaciones</h3><p>Sorteo con papelitos para que nadie se queje. Andrés y el padrino eligen primero.</p></div></li>
+        <li><time>15:00</time><div><h3>Entrega del kit <span class="tag star">momento clave</span></h3><p>Camisetas personalizadas con foto de Andrés de pequeño, gafas, y su disfraz oficial, que lleva puesto hasta la cena.</p></div></li>
+        <li><time>16:00</time><div><h3>Piscina y llegada del súper</h3><p>Compra online con entrega en la villa (desayunos, agua, hielo, bebida, carne para la barbacoa). Ya pedida desde España la semana anterior.</p></div></li>
+        <li><time>20:30</time><div><h3>Barbacoa de bienvenida en la villa</h3><p>Según el plan: la hacemos nosotros, o un chef privado con camarero para que nadie trabaje.</p></div></li>
+        <li><time>23:30</time><div><h3>Primera noche: casco antiguo de Albufeira</h3><p>Bolt o taxi (10–15 min). Plaza de los Pescadores para empezar, después The Strip (Avenida Sá Carneiro). Volver antes de las 4: mañana hay barco.</p></div></li>
+      </ol>
+      <aside class="aside"><h3>Para que salga bien</h3><ul><li>Pedir el súper el domingo anterior.</li><li>Cada uno trae su camiseta en la maleta de mano, nada facturado.</li><li>El tesorero lleva la tarjeta del bote para el autocar y el chef.</li></ul></aside>
+    </div>
+
+    <div class="day" id="d-1" role="tabpanel" aria-labelledby="t-1" hidden>
+      <ol class="timeline">
+        <li><time>10:00</time><div><h3>Desayuno largo en la villa</h3><p>Ibuprofeno, café y tostadas. Bañador puesto.</p></div></li>
+        <li><time>11:15</time><div><h3>Minibús a la marina</h3><p>Portimão o Albufeira, según desde dónde salga el barco.</p></div></li>
+        <li><time>12–16h</time><div><h3>Catamarán privado: cuevas de Benagil <span class="tag book">reservar</span> <span class="tag star">momento clave</span></h3><p>Barco solo para el grupo con patrón, música y barra libre. Ruta por Benagil, Algar Seco y Praia da Marinha, baño en una cala y paddle surf. En el plan épico, barbacoa a bordo.</p></div></li>
+        <li><time>17:00</time><div><h3>Siesta y piscina</h3><p>Imprescindible. El sábado es largo.</p></div></li>
+        <li><time>20:30</time><div><h3>Cena de pescado <span class="tag book">reservar</span></h3><p>Ferragudo, pueblo de pescadores frente a Portimão, o en la playa de Albufeira. Sardinas, pulpo, arroz de marisco y vinho verde.</p></div></li>
+        <li><time>23:30</time><div><h3>Noche en Albufeira</h3><p>Bares de The Strip y Oura. Reto del día para Andrés (ver Sorpresas).</p></div></li>
+      </ol>
+      <aside class="aside"><h3>En el barco</h3><ul><li>Protector solar 50 y gorra: el reflejo del agua quema.</li><li>Biodramina para quien se maree.</li><li>Funda estanca para el móvil.</li><li>Las cuevas solo se visitan con mar en calma; el patrón decide.</li></ul></aside>
+    </div>
+
+    <div class="day" id="d-2" role="tabpanel" aria-labelledby="t-2" hidden>
+      <ol class="timeline">
+        <li><time>10:30</time><div><h3>Actividad de aventura <span class="tag book">reservar</span></h3><p>La que gane la votación del grupo: buggies o quads por el interior, motos de agua, paintball, clase de surf en la costa oeste o golf para los tranquilos.</p></div></li>
+        <li><time>14:00</time><div><h3>Comida rápida y vuelta a la villa</h3><p>Bifanas y cerveza en cualquier tasca de camino.</p></div></li>
+        <li><time>15:30</time><div><h3>Pool party con DJ y fotógrafo <span class="tag star">momento clave</span></h3><p>Juegos y retos para Andrés, el vídeo sorpresa de la novia y la familia, y fotos de grupo que valgan para la boda.</p></div></li>
+        <li><time>20:30</time><div><h3>Dress code: camisa blanca</h3><p>Todos de blanco. Andrés de otro color para que se le vea en todas las fotos.</p></div></li>
+        <li><time>21:30</time><div><h3>Cena de gala con sala privada <span class="tag book">reservar</span> <span class="tag star">momento clave</span></h3><p>Menú cerrado para 20 en Vilamoura o Albufeira. Discursos de dos minutos (máximo), trivial de Andrés y entrega del trofeo.</p></div></li>
+        <li><time>00:30</time><div><h3>Discoteca con mesa reservada <span class="tag book">reservar</span></h3><p>Mesa con botellas en Albufeira o Vilamoura. El minibús con conductor nos lleva y nos recoge.</p></div></li>
+      </ol>
+      <aside class="aside"><h3>El padrino coordina</h3><ul><li>Pasar el vídeo sorpresa a la tablet o al altavoz antes.</li><li>Confirmar la hora del minibús de vuelta con el conductor.</li><li>Recoger el trofeo y la carta colectiva.</li></ul></aside>
+    </div>
+
+    <div class="day" id="d-3" role="tabpanel" aria-labelledby="t-3" hidden>
+      <ol class="timeline">
+        <li><time>10:30</time><div><h3>Recoger y check-out</h3><p>Pedir salida tardía al reservar. Revisión de la villa en grupo para recuperar la fianza.</p></div></li>
+        <li><time>11:30</time><div><h3>Playa de Falésia</h3><p>Acantilados rojos y último baño en el Atlántico. Las maletas se quedan en el autocar.</p></div></li>
+        <li><time>13:30</time><div><h3>Pollo piri-piri en Guia <span class="tag book">reservar</span></h3><p>El frango da Guia es una institución del Algarve. Comida sencilla, barata y perfecta para cerrar.</p></div></li>
+        <li><time>16:00</time><div><h3>Traslado al aeropuerto</h3><p>Faro está a 30 minutos. Llegar con dos horas de margen: en agosto el control de seguridad va lleno.</p></div></li>
+        <li><time>18h+</time><div><h3>Vuelos de vuelta</h3><p>Al aterrizar, el padrino sube el álbum compartido con las fotos del fotógrafo.</p></div></li>
+      </ol>
+      <aside class="aside"><h3>Antes de irse</h3><ul><li>Basura separada y lavavajillas puesto (cláusula habitual de fianza).</li><li>Foto de cada habitación al salir.</li><li>Cuadrar el bote y devolver lo que sobre.</li></ul></aside>
+    </div>
+  </section>
+
+  <!-- PRESUPUESTO -->
+  <section id="presupuesto">
+    <div class="sec-head">
+      <p class="eyebrow">Plan económico</p>
+      <h2>Presupuesto interactivo</h2>
+      <p class="muted">Elige un plan de partida y ajusta cada partida. Las cifras son estimaciones de precios de agosto con reserva anticipada; actualízalas cuando tengáis presupuestos reales. Por defecto, la parte de Andrés la pagamos entre los demás.</p>
+    </div>
+    <div class="calc">
+      <div class="panel">
+        <div class="controls">
+          <div class="presets" role="group" aria-label="Plan de partida">
+            <button class="preset" data-level="0" aria-pressed="false"><b>Ajustado</b><small>Lo esencial, sin renunciar al barco</small></button>
+            <button class="preset" data-level="1" aria-pressed="true"><b>Equilibrado</b><small>El plan recomendado</small></button>
+            <button class="preset" data-level="2" aria-pressed="false"><b>Épico</b><small>Al límite de 1.500 €</small></button>
+          </div>
+          <div class="row2">
+            <label class="f" for="pax">Personas en total: <span class="num" id="pax-v">20</span><input type="range" id="pax" min="10" max="26" value="20"></label>
+            <label class="f" for="origin">Ciudad de salida
+              <select id="origin"></select></label>
+            <label class="f" for="flight">Vuelo ida y vuelta (€ por persona)<input type="number" id="flight" min="0" step="5" value="230"></label>
+            <label class="f" for="cont">Fondo de imprevistos: <span class="num" id="cont-v">5 %</span><input type="range" id="cont" min="0" max="12" value="5"></label>
+          </div>
+          <label class="switch" for="invite"><input type="checkbox" id="invite" checked> Invitamos a Andrés (su parte se reparte entre los demás)</label>
+        </div>
+        <div class="items-wrap">
+          <table class="items" id="items">
+            <thead><tr><th>Partida</th><th>Nivel</th><th style="text-align:right">€ / pagador</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="result">
+        <div class="panel" style="display:grid;gap:14px">
+          <p class="eyebrow">Cada uno paga</p>
+          <div class="big num" id="r-pp">—</div>
+          <div><span class="status" id="r-status">—</span></div>
+          <div class="gauge" aria-hidden="true">
+            <div class="track"></div><div class="band" id="g-band"></div><div class="mark" id="g-mark"></div>
+            <div class="ticks" id="g-ticks"></div>
+          </div>
+          <div class="stack" id="r-stack" aria-hidden="true"></div>
+          <div class="legend" id="r-legend"></div>
+        </div>
+        <div class="panel" style="display:grid;gap:12px">
+          <p class="eyebrow">Cómo se paga</p>
+          <div class="kv">
+            <div><span>Vuelo + seguro (cada uno compra el suyo)</span><b class="num" id="r-own">—</b></div>
+            <div><span>Bote común por persona</span><b class="num" id="r-bote">—</b></div>
+            <div><span>Bote total del grupo</span><b class="num" id="r-total">—</b></div>
+            <div><span>Pagan</span><b class="num" id="r-payers">—</b></div>
+          </div>
+          <div class="pays" id="r-pays"></div>
+          <p class="muted" style="font-size:.84rem">La fianza de la villa (1.000–2.000 €) no está incluida: se adelanta del bote y se devuelve tras la salida.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ALOJAMIENTO -->
+  <section id="alojamiento">
+    <div class="sec-head">
+      <p class="eyebrow">Alojamiento · 3 noches</p>
+      <h2>Una villa para los 20</h2>
+      <p class="muted">Dormir juntos es la mitad de la despedida. Buscad en Airbnb, Vrbo, Booking y agencias locales de villas para grupos con filtro de 10+ dormitorios o 20+ huéspedes. Si no hay una, dos villas contiguas funcionan igual de bien.</p>
+    </div>
+    <div class="grid3">
+      <div class="card pick"><span class="badge">Recomendado</span><h3>Albufeira: Galé, Guia u Olhos de Água</h3><p class="muted">A 10–15 min de la fiesta sin dormir encima de ella. A 35 min del aeropuerto y a 25 min de Benagil.</p><ul><li>Villa de 8–10 dormitorios con piscina: 1.300–2.300 € / noche en agosto</li><li>Fiesta, playa y barco a mano</li><li>Supermercados grandes cerca</li></ul></div>
+      <div class="card"><h3>Lagos</h3><p class="muted">El pueblo más bonito y con más ambiente joven, pero a 1 h de Faro.</p><ul><li>Ponta da Piedade en kayak o barco</li><li>Traslados más caros</li><li>Villas grandes más escasas</li></ul></div>
+      <div class="card"><h3>Vilamoura</h3><p class="muted">Marina, beach clubs y golf. Más caro y algo más tranquilo.</p><ul><li>Ideal para el plan épico</li><li>Restaurantes con sala privada</li><li>Menos ambiente de calle</li></ul></div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <h3>Antes de pagar la reserva, comprobad</h3>
+      <ul class="checks">
+        <li>Que acepten <b>despedidas y grupos de 20</b>. Decidlo siempre por escrito: si se oculta, pueden echaros y quedarse la fianza.</li>
+        <li>Número de licencia de Alojamento Local (AL) en el anuncio. Sin licencia, no.</li>
+        <li>Camas reales para todos (no sofás cama) y al menos 5 baños.</li>
+        <li>Normas de ruido: en Portugal suele haber silencio en el exterior a partir de las 23:00. Pool party de día, no de noche.</li>
+        <li>Cancelación flexible y pago en dos plazos.</li>
+        <li>Barbacoa, hielo y aparcamiento para el autocar.</li>
+        <li>Importe de la fianza y cuándo se devuelve.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- VUELOS -->
+  <section id="vuelos">
+    <div class="sec-head">
+      <p class="eyebrow">Llegar y moverse</p>
+      <h2>Vuelos y transporte</h2>
+      <p class="muted">Precios orientativos ida y vuelta con maleta de cabina comprando con 6–8 meses de antelación. En agosto suben rápido: compradlos todos la misma semana, en enero. Comprobad en Google Flights o Skyscanner qué rutas directas a Faro opera cada aerolínea ese verano.</p>
+    </div>
+    <div class="scroll panel" style="padding:6px 10px">
+      <table class="data" id="flights-table">
+        <thead><tr><th>Salida</th><th>Cómo</th><th>Estimación</th><th>Nota</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="grid3" style="margin-top:16px">
+      <div class="card"><h3>Traslados aeropuerto</h3><p class="muted">Autocar privado de 20–25 plazas, ida el jueves y vuelta el domingo. Unos 380–550 € por trayecto para todo el grupo. Sale más barato que 5 taxis y llegáis juntos.</p></div>
+      <div class="card"><h3>Por las noches</h3><p class="muted">Bolt y Uber funcionan en todo el Algarve. Villa–Albufeira centro: 12–20 € por coche de 4. Nadie conduce después de beber.</p></div>
+      <div class="card"><h3>Sábado con conductor</h3><p class="muted">Minibús con conductor para toda la tarde y la noche: actividad, cena y discoteca. Unos 500–650 €. Ahorra esperas de taxis con 20 personas.</p></div>
+    </div>
+  </section>
+
+  <!-- COMER -->
+  <section id="comer">
+    <div class="sec-head">
+      <p class="eyebrow">Mesa y noche</p>
+      <h2>Dónde comer y salir</h2>
+      <p class="muted">Para 20 personas hay que reservar siempre y pedir menú cerrado: sale más barato y el servicio es más rápido. Confirmad horarios y que siguen abiertos al reservar.</p>
+    </div>
+    <div class="scroll panel" style="padding:6px 10px">
+      <table class="data">
+        <thead><tr><th>Cuándo</th><th>Dónde</th><th>Qué</th><th>€ / persona</th></tr></thead>
+        <tbody>
+          <tr><td>Jue noche</td><td>En la villa</td><td>Barbacoa: nosotros o chef privado con camarero</td><td class="num">0–55</td></tr>
+          <tr><td>Vie mediodía</td><td>En el barco</td><td>Picoteo a bordo o barbacoa en el plan épico</td><td class="num">incl.</td></tr>
+          <tr><td>Vie noche</td><td>Ferragudo (p. ej. Sueste) o la playa de Albufeira (p. ej. A Ruína)</td><td>Pescado a la brasa, pulpo, arroz de marisco</td><td class="num">35–55</td></tr>
+          <tr><td>Sáb mediodía</td><td>Tasca de camino</td><td>Bifanas, prego, cerveza</td><td class="num">10–15</td></tr>
+          <tr><td>Sáb noche</td><td>Restaurante con sala privada en Vilamoura o Albufeira</td><td>Cena de gala con menú cerrado y vino</td><td class="num">50–80</td></tr>
+          <tr><td>Dom mediodía</td><td>Guia (p. ej. Restaurante Ramires)</td><td>Frango piri-piri, la comida típica de la zona</td><td class="num">18–25</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="grid3" style="margin-top:16px">
+      <div class="card"><h3>Para salir</h3><ul><li><b>The Strip</b> (Av. Sá Carneiro, Albufeira): bares y discotecas hasta tarde.</li><li><b>Casco antiguo de Albufeira</b>: más ambiente para empezar.</li><li><b>Vilamoura</b>: marina y clubs con mesa reservada.</li></ul></div>
+      <div class="card"><h3>Ojo en Albufeira</h3><p class="muted">El ayuntamiento multa beber alcohol en la calle y pasear en bañador o sin camiseta fuera de la playa, con sanciones de cientos de euros. El disfraz de Andrés, mejor sin desnudos.</p></div>
+      <div class="card"><h3>Qué pedir</h3><ul><li>Cataplana de marisco</li><li>Sardinhas assadas</li><li>Polvo à lagareiro</li><li>Medronho para el chupito final</li></ul></div>
+    </div>
+  </section>
+
+  <!-- LISTA -->
+  <section id="lista">
+    <div class="sec-head">
+      <p class="eyebrow">Compartido con el grupo</p>
+      <h2>Lista, pagos y votación</h2>
+      <p class="muted">Quien organiza apunta aquí a cada asistente, sus pagos y su voto para la actividad del sábado. Todo el que tenga acceso de edición ve los cambios al momento.</p>
+    </div>
+    <div class="roster-top">
+      <div class="stat"><b class="num" id="s-voy">0</b><small>confirmados</small></div>
+      <div class="stat"><b class="num" id="s-quizas">0</b><small>en duda</small></div>
+      <div class="stat"><b class="num" id="s-cobrado">0 €</b><small>cobrado en el bote</small></div>
+      <div class="stat"><b class="num" id="s-pend">0 €</b><small>pendiente de cobrar</small></div>
+    </div>
+    <div id="db-off" class="note" hidden>La lista compartida no está disponible en esta vista (hace falta abrir la carta en claude.ai con la sesión iniciada). El resto de la carta funciona igual.</div>
+    <div id="db-ro" class="note" hidden>Puedes ver la lista pero no modificarla. Pide a quien organiza acceso de edición si tienes que apuntar pagos.</div>
+    <form class="addform" id="addform" autocomplete="off">
+      <label class="f full" for="a-name">Nombre<input type="text" id="a-name" maxlength="40" placeholder="Nombre y apellido" required></label>
+      <label class="f" for="a-origin">Sale desde<select id="a-origin"></select></label>
+      <label class="f" for="a-state">Estado<select id="a-state"><option value="voy">Voy</option><option value="quizas">Quizá</option><option value="no">No puede</option></select></label>
+      <button class="btn" type="submit" id="a-btn">Añadir</button>
+    </form>
+    <div class="scroll panel" style="padding:6px 10px">
+      <table class="data roster">
+        <thead><tr><th>Asistente</th><th>Estado</th><th>Pagos</th><th>Voto sábado</th><th></th></tr></thead>
+        <tbody id="roster"></tbody>
+      </table>
+      <div class="empty" id="roster-empty">Todavía no hay nadie en la lista. Añade al primero con el formulario de arriba.</div>
+    </div>
+    <div class="grid3" style="margin-top:16px">
+      <div class="card"><h3>Votación: actividad del sábado</h3><div class="votes" id="votes"></div></div>
+      <div class="card"><h3>Calendario de pagos al bote</h3><div class="pays" id="pays-2"></div><p class="muted" style="font-size:.85rem">Importes según el plan elegido arriba. Dos tesoreros con una cuenta compartida (por ejemplo, una cuenta de grupo en la app del banco o Bizum a una sola persona).</p></div>
+      <div class="card"><h3>Reglas del bote</h3><ul><li>Quien no paga la señal en plazo, no tiene cama asegurada.</li><li>Si alguien se cae después de la reserva, busca sustituto o pierde lo pagado de villa y barco.</li><li>Lo que sobre se devuelve a partes iguales el lunes.</li></ul></div>
+    </div>
+  </section>
+
+  <!-- ORGANIZACION -->
+  <section id="organizacion">
+    <div class="sec-head">
+      <p class="eyebrow">De octubre a agosto</p>
+      <h2>Lista de tareas del organizador</h2>
+      <p class="muted">Marca cada tarea al cerrarla; los demás organizadores lo ven.</p>
+    </div>
+    <div class="progress"><i id="prog"></i></div>
+    <div class="months" id="months"></div>
+  </section>
+
+  <!-- SORPRESAS -->
+  <section id="sorpresas">
+    <div class="sec-head">
+      <p class="eyebrow">Solo para los 19</p>
+      <h2>Sorpresas para Andrés</h2>
+      <p class="muted">Lo que hace que una despedida se recuerde no es el precio. Es que se note que le conocéis desde pequeños.</p>
+    </div>
+    <div class="grid3">
+      <div class="card"><h3>El vídeo</h3><p class="muted">Mensajes de 30 segundos de la novia, sus padres, sus hermanos y algún profesor o entrenador de la infancia. Se pone en la pool party del sábado.</p></div>
+      <div class="card"><h3>Las camisetas</h3><p class="muted">Una foto de Andrés de niño (la más vergonzosa que consiga su madre) y la frase “Operación Andrés · Algarve 2027”. Él lleva una distinta.</p></div>
+      <div class="card"><h3>El libro</h3><p class="muted">Cada uno escribe una carta o un recuerdo de infancia. Se encuaderna y se le da en la cena de gala. Es lo que guardará.</p></div>
+      <div class="card"><h3>El trivial de Andrés</h3><p class="muted">20 preguntas sobre su vida en la cena: su primer gol, su primera novia, su peor corte de pelo. Si falla, bebe.</p></div>
+      <div class="card"><h3>Retos amables</h3><ul><li>Conseguir una foto con un grupo de despedida de otro país.</li><li>Pedir la cena en portugués.</li><li>Cantar en el barco la canción de vuestro primer verano juntos.</li></ul></div>
+      <div class="card"><h3>El trofeo</h3><p class="muted">Una copa grabada con su nombre y la fecha. Va directo a su salón y la novia lo sabrá todo.</p></div>
+    </div>
+  </section>
+
+  <!-- PRACTICO -->
+  <section id="practico">
+    <div class="sec-head">
+      <p class="eyebrow">Antes de salir</p>
+      <h2>Lo práctico</h2>
+    </div>
+    <div class="grid3">
+      <div class="card"><h3>Documentación</h3><ul><li>DNI o pasaporte en vigor (sin caducar en agosto).</li><li>Tarjeta Sanitaria Europea.</li><li>Seguro de viaje con cancelación, por si alguien se lesiona antes.</li></ul></div>
+      <div class="card"><h3>En la maleta</h3><ul><li>Camisa blanca para el sábado.</li><li>Protector 50, gorra y gafas de sol.</li><li>Bañador de recambio y chanclas.</li><li>Cargador y batería externa.</li></ul></div>
+      <div class="card"><h3>Datos útiles</h3><ul><li>Hora: una hora menos que en España.</li><li>Emergencias: 112. Línea de salud SNS 24: 808 24 24 24.</li><li>Agua del Atlántico: 19–22 °C. Calor de día: 28–33 °C.</li><li>Propina habitual: 5–10 %.</li></ul></div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="tile" aria-hidden="true" style="height:12px;background-size:12px 12px"></div>
+    <p>Precios orientativos para agosto de 2027, calculados en octubre de 2026. Confirmad cada importe con presupuesto real antes de cobrar.</p>
+    <p>Hecho para Andrés, por los de siempre.</p>
+  </footer>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(() => {
+  const $ = s => document.querySelector(s);
+  const eur = n => new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR',maximumFractionDigits:0,useGrouping:'always'}).format(Math.round(n));
+  const store = {get(k){try{return JSON.parse(localStorage.getItem('opandres:'+k))}catch(e){return null}},set(k,v){try{localStorage.setItem('opandres:'+k,JSON.stringify(v))}catch(e){}}};
+  let toastT; const toast = m => {const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,2600)};
+
+  /* ---------- countdown ---------- */
+  const days = Math.ceil((new Date('2027-08-26T09:00:00+01:00') - new Date())/864e5);
+  $('#f-count').textContent = days > 0 ? days : '¡Ya!';
+
+  /* ---------- itinerary tabs ---------- */
+  const tabs=[...document.querySelectorAll('.daybtn')];
+  const showDay=i=>{tabs.forEach((t,j)=>{t.setAttribute('aria-selected',j===i);document.getElementById('d-'+j).hidden=j!==i});store.set('day',i)};
+  tabs.forEach((t,i)=>t.addEventListener('click',()=>showDay(i)));
+  tabs.forEach((t,i)=>t.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key==='ArrowLeft'){const n=(i+(e.key==='ArrowRight'?1:3))%4;showDay(n);tabs[n].focus()}}));
+  const sd=store.get('day'); if(Number.isInteger(sd)&&sd>=0&&sd<4) showDay(sd);
+
+  /* ---------- origins ---------- */
+  const ORIGINS = [
+    {id:'mad',name:'Madrid',how:'Avión a Faro (directo o con escala en Lisboa)',range:'170–300 €',def:230,note:'Si no hay directo bueno, mirad Madrid → Sevilla en AVE y furgoneta.'},
+    {id:'bcn',name:'Barcelona',how:'Avión a Faro',range:'150–270 €',def:210,note:'Suele haber vuelo directo en verano.'},
+    {id:'vlc',name:'Valencia',how:'Avión a Faro',range:'170–290 €',def:230,note:'Comparad también con Lisboa + tren.'},
+    {id:'bio',name:'Bilbao',how:'Avión a Faro',range:'190–320 €',def:250,note:'Probablemente con escala.'},
+    {id:'svq',name:'Sevilla',how:'Furgoneta de 9 plazas (2 h por la A-49)',range:'40–70 €',def:55,note:'Alquiler, gasolina y peajes electrónicos portugueses, repartidos.'},
+    {id:'otra',name:'Otra ciudad',how:'Avión a Faro, Sevilla o Lisboa',range:'variable',def:250,note:'Introduce el precio a mano.'}
+  ];
+  $('#origin').innerHTML = ORIGINS.map(o=>`<option value="${o.id}">${o.name}</option>`).join('');
+  $('#a-origin').innerHTML = ORIGINS.map(o=>`<option value="${o.id}">${o.name}</option>`).join('');
+  $('#flights-table tbody').innerHTML = ORIGINS.map(o=>`<tr><td><b>${o.name}</b></td><td>${o.how}</td><td class="num">${o.range}</td><td class="muted">${o.note}</td></tr>`).join('');
+
+  /* ---------- budget model ---------- */
+  const CATS = {aloj:{n:'Alojamiento',c:'var(--c1)'},trans:{n:'Transporte',c:'var(--c2)'},act:{n:'Actividades',c:'var(--c3)'},food:{n:'Comida y bebida',c:'var(--c4)'},party:{n:'Fiesta',c:'var(--c5)'},otros:{n:'Otros',c:'var(--c6)'}};
+  const LV = ['Ajustado','Equilibrado','Épico'];
+  // mode: 'g' = total del grupo; 'p' = por persona (asistente). own: lo compra cada uno.
+  const ITEMS = [
+    {id:'villa',cat:'aloj',mode:'g',label:'Villa 3 noches (limpieza incluida)',det:['Villa sencilla o aparthotel, 10 dobles','Villa 8–10 dormitorios con piscina','Villa premium con vistas y jacuzzi'],v:[3900,5000,6000]},
+    {id:'tasa',cat:'aloj',mode:'p',label:'Tasa turística municipal',det:['≈2 € por noche y persona','≈2 € por noche y persona','≈2 € por noche y persona'],v:[6,6,6]},
+    {id:'transfer',cat:'trans',mode:'g',label:'Traslados aeropuerto ida y vuelta',det:['Autocar compartido básico','Autocar privado 20–25 plazas','Autocar privado con nevera y bebidas'],v:[760,900,1000]},
+    {id:'bolt',cat:'trans',mode:'p',label:'Bolt y taxis por la noche',det:['Más trayectos en Bolt','Jueves y viernes','Jueves y viernes, coches grandes'],v:[30,25,35]},
+    {id:'minibus',cat:'trans',mode:'g',label:'Minibús con conductor el sábado',det:['Sin minibús (Bolt)','Tarde y noche','Tarde y noche + domingo'],v:[0,500,600]},
+    {id:'boat',cat:'act',mode:'g',label:'Barco a las cuevas de Benagil',det:['Excursión compartida 2 h','Catamarán privado 4 h, barra libre','Catamarán privado 5 h, barbacoa y paddle'],v:[700,1500,2000]},
+    {id:'adv',cat:'act',mode:'p',label:'Actividad del sábado (la más votada)',det:['Paintball o kayak','Buggies o motos de agua','Buggies + motos de agua'],v:[40,65,90]},
+    {id:'dj',cat:'party',mode:'g',label:'Pool party: DJ y fotógrafo',det:['Altavoz propio y fotos nuestras','Fotógrafo 2 h','DJ 3 h + fotógrafo'],v:[0,300,600]},
+    {id:'super',cat:'food',mode:'p',label:'Súper para la villa',det:['Desayunos, agua, bebida y barbacoa','Desayunos, agua, hielo, bebida','Todo lo anterior con mejor bebida'],v:[60,55,70]},
+    {id:'bbq',cat:'food',mode:'p',label:'Cena del jueves en la villa',det:['La hacemos nosotros (en el súper)','Chef privado de barbacoa','Chef + camarero + postre'],v:[0,35,45]},
+    {id:'rest',cat:'food',mode:'p',label:'Restaurantes (vie, sáb, dom)',det:['Menús sencillos','Pescado + cena de gala + piri-piri','Cena de gala premium con vino bueno'],v:[110,150,170]},
+    {id:'drinks',cat:'party',mode:'p',label:'Copas y entradas (3 noches)',det:['Bares, sin discoteca de pago','Bares + entradas','Bares + entradas + rondas extra'],v:[70,90,95]},
+    {id:'vip',cat:'party',mode:'g',label:'Mesa reservada con botellas, sábado',det:['Sin mesa','Mesa con botellas','Mesa premium'],v:[0,800,1200]},
+    {id:'kit',cat:'otros',mode:'p',label:'Kit: camisetas, disfraz, trofeo, libro',det:['Camisetas y disfraz','Camisetas, disfraz, trofeo','Todo + libro encuadernado'],v:[15,25,30]},
+    {id:'ins',cat:'otros',mode:'p',own:true,label:'Seguro de viaje con cancelación',det:['Básico','Con cancelación','Con cancelación'],v:[10,12,15]},
+  ];
+  const state = {pax:20, origin:'mad', flight:230, cont:5, invite:true, lv:Object.fromEntries(ITEMS.map(i=>[i.id,1]))};
+  const saved = store.get('calc'); if(saved&&typeof saved==='object'){Object.assign(state,saved); state.lv=Object.assign(Object.fromEntries(ITEMS.map(i=>[i.id,1])),saved.lv||{})}
+
+  const tbody = $('#items tbody');
+  tbody.innerHTML = ITEMS.map(it=>`<tr><td><div class="lbl"><span class="dot" style="background:${CATS[it.cat].c}"></span>${it.label}</div><div class="det" id="det-${it.id}"></div></td>
+    <td><select id="lv-${it.id}" aria-label="Nivel: ${it.label}">${LV.map((l,i)=>`<option value="${i}">${l}</option>`).join('')}</select></td>
+    <td class="amt" id="amt-${it.id}"></td></tr>`).join('') +
+    `<tr><td><div class="lbl"><span class="dot" style="background:var(--c2)"></span>Vuelo ida y vuelta</div><div class="det">Según ciudad de salida, lo compra cada uno</div></td><td></td><td class="amt" id="amt-flight"></td></tr>
+     <tr><td><div class="lbl">Fondo de imprevistos</div><div class="det">Sobre el bote común</div></td><td></td><td class="amt" id="amt-cont"></td></tr>`;
+  ITEMS.forEach(it=>$('#lv-'+it.id).addEventListener('change',e=>{state.lv[it.id]=+e.target.value;calc()}));
+
+  document.querySelectorAll('.preset').forEach(b=>b.addEventListener('click',()=>{const l=+b.dataset.level;ITEMS.forEach(i=>state.lv[i.id]=l);calc()}));
+  $('#pax').addEventListener('input',e=>{state.pax=+e.target.value;calc()});
+  $('#cont').addEventListener('input',e=>{state.cont=+e.target.value;calc()});
+  $('#invite').addEventListener('change',e=>{state.invite=e.target.checked;calc()});
+  $('#origin').addEventListener('change',e=>{state.origin=e.target.value;state.flight=ORIGINS.find(o=>o.id===state.origin).def;calc()});
+  $('#flight').addEventListener('input',e=>{const v=parseFloat(e.target.value);state.flight=isFinite(v)&&v>=0?v:0;calc(true)});
+
+  // pure budget function
+  function budget(s){
+    const N=s.pax, payers=s.invite?N-1:N, c=s.cont/100;
+    const byCat={}; Object.keys(CATS).forEach(k=>byCat[k]=0);
+    let bote=0, ownPP=s.flight; const perItem={};
+    ITEMS.forEach(it=>{
+      const v=it.v[s.lv[it.id]];
+      if(it.own){ ownPP+=v; const andres=s.invite?v/payers:0; perItem[it.id]=v+andres; byCat[it.cat]+=v; if(s.invite) bote+=v; return;}
+      const groupCost = it.mode==='g'? v : v*N;
+      bote+=groupCost; perItem[it.id]=groupCost/payers; byCat[it.cat]+=groupCost/payers;
+    });
+    if(s.invite) bote+=s.flight;
+    byCat.trans+=s.flight + (s.invite? s.flight/payers:0);
+    perItem.flight = s.flight + (s.invite? s.flight/payers:0);
+    const contAmt = bote*c; bote+=contAmt;
+    byCat.otros+=contAmt/payers;
+    const botePP=bote/payers;
+    // own items of payers are bought individually; Andrés' own items (if invited) are paid from the bote
+    const pp = botePP + ownPP;
+    return {N,payers,bote,botePP,ownPP,pp,byCat,perItem,contPP:contAmt/payers};
+  }
+  // quick sanity of the three presets (console only)
+  try{[0,1,2].forEach(l=>{const s={...state,pax:20,flight:230,cont:5,invite:true,lv:Object.fromEntries(ITEMS.map(i=>[i.id,l]))};console.debug(LV[l],Math.round(budget(s).pp))})}catch(e){}
+
+  const LO=800, HI=1500, GMIN=600, GMAX=1800;
+  const pos = v => Math.max(0,Math.min(100,(v-GMIN)/(GMAX-GMIN)*100));
+  $('#g-band').style.left=pos(LO)+'%'; $('#g-band').style.width=(pos(HI)-pos(LO))+'%';
+  $('#g-ticks').innerHTML=[600,800,1000,1200,1500,1800].map(v=>`<span style="left:${pos(v)}%">${v}</span>`).join('');
+
+  function paySchedule(botePP){
+    const p1=Math.min(200,botePP), rest=botePP-p1, p2=Math.round(rest*0.45);
+    return [{n:1,when:'Antes del 30 nov 2026',what:'Señal: reserva de la villa',amt:p1},{n:2,when:'Antes del 28 feb 2027',what:'Barco, actividad, traslados',amt:p2},{n:3,when:'Antes del 30 jun 2027',what:'Resto: cena, fiesta, súper, imprevistos',amt:rest-p2}];
+  }
+  let lastPays=[200,0,0];
+  function calc(fromFlightInput){
+    $('#pax').value=state.pax; $('#pax-v').textContent=state.pax;
+    $('#cont').value=state.cont; $('#cont-v').textContent=state.cont+' %';
+    $('#invite').checked=state.invite; $('#origin').value=state.origin;
+    if(!fromFlightInput) $('#flight').value=state.flight;
+    const lvls=new Set(ITEMS.map(i=>state.lv[i.id]));
+    document.querySelectorAll('.preset').forEach(b=>b.setAttribute('aria-pressed', lvls.size===1 && lvls.has(+b.dataset.level)));
+    const r=budget(state);
+    ITEMS.forEach(it=>{$('#lv-'+it.id).value=state.lv[it.id];$('#det-'+it.id).textContent=it.det[state.lv[it.id]]+(it.mode==='g'?` · ${eur(it.v[state.lv[it.id]])} el grupo`:'');$('#amt-'+it.id).textContent=eur(r.perItem[it.id])});
+    $('#amt-flight').textContent=eur(r.perItem.flight); $('#amt-cont').textContent=eur(r.contPP);
+    $('#r-pp').textContent=eur(r.pp);
+    const st=$('#r-status');
+    if(r.pp>HI){st.className='status hi';st.textContent=`${eur(r.pp-HI)} por encima del máximo`}
+    else if(r.pp<LO){st.className='status lo';st.textContent='Por debajo del rango: hay margen para mejorar'}
+    else{st.className='status ok';st.textContent='Dentro del rango 800–1.500 €'}
+    $('#g-mark').style.left=pos(r.pp)+'%';
+    const cats=Object.entries(r.byCat).filter(([,v])=>v>0.5);
+    $('#r-stack').innerHTML=cats.map(([k,v])=>`<i style="width:${v/r.pp*100}%;background:${CATS[k].c}" title="${CATS[k].n}"></i>`).join('');
+    $('#r-legend').innerHTML=cats.map(([k,v])=>`<div><span><span class="dot" style="background:${CATS[k].c}"></span>${CATS[k].n}</span><span class="num">${eur(v)}</span></div>`).join('');
+    $('#r-own').textContent=eur(r.ownPP); $('#r-bote').textContent=eur(r.botePP); $('#r-total').textContent=eur(r.bote);
+    $('#r-payers').textContent=`${r.payers} de ${r.N}`;
+    const ps=paySchedule(r.botePP); lastPays=ps.map(p=>p.amt);
+    const html=ps.map(p=>`<div class="pay"><span class="n">${p.n}</span><span><b>${p.what}</b><br><small class="muted">${p.when}</small></span><b class="num">${eur(p.amt)}</b></div>`).join('');
+    $('#r-pays').innerHTML=html; $('#pays-2').innerHTML=html;
+    $('#f-pax').textContent=`${state.pax} personas`;
+    $('#f-pp').textContent='~'+eur(r.pp);
+    store.set('calc',state);
+    renderStats();
+  }
+
+  /* ---------- checklist ---------- */
+  const TASKS=[
+    ['Oct–nov 2026',[['wa','Crear grupo de WhatsApp sin Andrés y pasar esta carta'],['list','Cerrar la lista de asistentes'],['treas','Elegir dos tesoreros y abrir la cuenta del bote'],['p1','Cobrar la señal (pago 1)'],['date','Confirmar fecha con la novia (sin decir destino)']]],
+    ['Dic 2026',[['villa','Reservar la villa con cancelación flexible y despedida declarada'],['ins','Recordar a todos el seguro de viaje']]],
+    ['Ene 2027',[['flights','Compra de vuelos de todos la misma semana'],['rooms','Plano de la villa y reparto de camas']]],
+    ['Feb 2027',[['p2','Cobrar el pago 2'],['boat','Reservar el catamarán privado'],['vote','Cerrar la votación de la actividad del sábado']]],
+    ['Mar–abr 2027',[['adv','Reservar la actividad del sábado'],['transfer','Reservar autocar del aeropuerto y minibús del sábado'],['gala','Reservar cena de gala con sala privada'],['vip','Reservar mesa en discoteca']]],
+    ['May 2027',[['shirts','Encargar camisetas, disfraz y trofeo'],['photo','Contratar fotógrafo o DJ'],['video','Pedir los vídeos a la novia y la familia'],['book','Recoger las cartas para el libro']]],
+    ['Jun 2027',[['p3','Cobrar el pago final'],['trivia','Preparar el trivial de Andrés'],['menus','Pedir alergias y elegir menús cerrados']]],
+    ['Jul 2027',[['confirm','Confirmar todas las reservas por escrito'],['guide','Enviar horarios finales al grupo'],['docs','Recordar DNI en vigor y tarjeta sanitaria']]],
+    ['Ago 2027',[['super','Pedir el súper con entrega en la villa'],['cash','Llevar la tarjeta del bote y algo de efectivo'],['go','Disfrutar. Andrés solo se casa una vez']]],
+  ];
+  let checklist = store.get('checks')||{};
+  $('#months').innerHTML=TASKS.map(([m,ts])=>`<div class="month"><h3>${m}</h3><ul>${ts.map(([id,t])=>`<li><label for="ck-${id}"><input type="checkbox" id="ck-${id}" data-id="${id}"><span>${t}</span></label></li>`).join('')}</ul></div>`).join('');
+  const allTasks=TASKS.flatMap(([,ts])=>ts.map(t=>t[0]));
+  function renderChecks(){allTasks.forEach(id=>{$('#ck-'+id).checked=!!checklist[id]});const d=allTasks.filter(id=>checklist[id]).length;$('#prog').style.width=(d/allTasks.length*100)+'%'}
+  renderChecks();
+
+  /* ---------- roster (db) ---------- */
+  const ACTS=[['buggy','Buggies / quads'],['jetski','Motos de agua'],['paint','Paintball'],['surf','Surf'],['golf','Golf']];
+  let db=null, canWrite=true, roster=[], dbReady=false;
+  const writeQueue={}; // one write at a time per doc
+  const enqueue=(key,fn)=>{const p=(writeQueue[key]||Promise.resolve()).then(fn,fn);writeQueue[key]=p.catch(()=>{});return p};
+  function onWriteError(e){
+    if(e&&(e.code==='invalid_argument'||e.code==='not_granted'||e.code==='revoked')){setReadOnly();toast('No tienes permiso para editar la lista.')}
+    else if(e&&e.code==='quota_exceeded'){toast('La lista está llena. Borra entradas antiguas.')}
+    else toast('No se pudo guardar. Inténtalo de nuevo.');
+  }
+  function setReadOnly(){canWrite=false;$('#addform').hidden=true;$('#db-ro').hidden=!dbReady;renderRoster()}
+
+  function renderStats(){
+    const voy=roster.filter(r=>r.estado==='voy'), q=roster.filter(r=>r.estado==='quizas');
+    $('#s-voy').textContent=voy.length; $('#s-quizas').textContent=q.length;
+    const payersList=voy.filter(r=>!r.novio);
+    let cob=0,pend=0; payersList.forEach(r=>['p1','p2','p3'].forEach((k,i)=>{if(r[k])cob+=lastPays[i];else pend+=lastPays[i]}));
+    $('#s-cobrado').textContent=eur(cob); $('#s-pend').textContent=eur(pend);
+    const tally=Object.fromEntries(ACTS.map(a=>[a[0],0])); roster.forEach(r=>{if(r.estado!=='no'&&tally[r.voto]!==undefined)tally[r.voto]++});
+    const max=Math.max(1,...Object.values(tally));
+    $('#votes').innerHTML=ACTS.map(([k,n])=>`<div class="vote"><span>${n}</span><span class="bar"><i style="width:${tally[k]/max*100}%"></i></span><b class="num">${tally[k]}</b></div>`).join('');
+  }
+  function renderRoster(){
+    const tb=$('#roster'); tb.textContent='';
+    $('#roster-empty').hidden=roster.length>0;
+    const order={voy:0,quizas:1,no:2};
+    [...roster].sort((a,b)=>(b.novio?1:0)-(a.novio?1:0)||(order[a.estado]??3)-(order[b.estado]??3)||String(a.nombre).localeCompare(String(b.nombre),'es')).forEach(r=>{
+      const tr=document.createElement('tr');
+      const td1=document.createElement('td'); const nm=document.createElement('b'); nm.textContent=r.nombre||'Sin nombre'; td1.append(nm);
+      const sub=document.createElement('div'); sub.className='muted'; sub.style.fontSize='.82rem';
+      sub.textContent=(r.novio?'El novio · ':'')+((ORIGINS.find(o=>o.id===r.origen)||{}).name||''); td1.append(sub);
+      const td2=document.createElement('td');
+      if(canWrite){const s=document.createElement('select');s.setAttribute('aria-label','Estado de '+(r.nombre||''));[['voy','Voy'],['quizas','Quizá'],['no','No puede']].forEach(([v,l])=>{const o=document.createElement('option');o.value=v;o.textContent=l;s.append(o)});s.value=r.estado||'voy';s.addEventListener('change',()=>upd(r.id,{estado:s.value}));td2.append(s)}
+      else{const p=document.createElement('span');p.className='pill '+(r.estado||'voy');p.textContent={voy:'Voy',quizas:'Quizá',no:'No puede'}[r.estado]||'Voy';td2.append(p)}
+      const td3=document.createElement('td');
+      if(r.novio){td3.innerHTML='<span class="pill voy">Invitado</span>'}
+      else{const box=document.createElement('div');box.className='paybox';['p1','p2','p3'].forEach((k,i)=>{const l=document.createElement('label');const c=document.createElement('input');c.type='checkbox';c.checked=!!r[k];c.disabled=!canWrite;c.setAttribute('aria-label',`Pago ${i+1} de ${r.nombre||''}`);c.addEventListener('change',()=>upd(r.id,{[k]:c.checked}));l.append(c,document.createTextNode(String(i+1)));box.append(l)});td3.append(box)}
+      const td4=document.createElement('td');
+      if(r.novio){td4.innerHTML='<span class="muted">No vota</span>'}
+      else if(canWrite){const s=document.createElement('select');s.setAttribute('aria-label','Voto de '+(r.nombre||''));[['','—'],...ACTS].forEach(([v,l])=>{const o=document.createElement('option');o.value=v;o.textContent=l;s.append(o)});s.value=r.voto||'';s.addEventListener('change',()=>upd(r.id,{voto:s.value}));td4.append(s)}
+      else{td4.textContent=(ACTS.find(a=>a[0]===r.voto)||[,'—'])[1]}
+      const td5=document.createElement('td');
+      if(canWrite){const b=document.createElement('button');b.className='btn ghost';b.type='button';b.textContent='Quitar';b.style.padding='5px 10px';
+        b.addEventListener('click',()=>{if(b.dataset.confirm){del(r.id)}else{b.dataset.confirm='1';b.textContent='¿Seguro?';b.className='btn danger';b.style.padding='5px 10px';setTimeout(()=>{if(b.isConnected){delete b.dataset.confirm;b.textContent='Quitar';b.className='btn ghost';b.style.padding='5px 10px'}},3000)}});td5.append(b)}
+      tr.append(td1,td2,td3,td4,td5); tb.append(tr);
+    });
+    renderStats();
+  }
+  const upd=(id,patch)=>{if(!db)return;enqueue(id,()=>db.doc('asistentes/'+id).update(patch)).catch(onWriteError)};
+  const del=(id)=>{if(!db)return;enqueue(id,()=>db.doc('asistentes/'+id).delete()).then(()=>toast('Quitado de la lista')).catch(onWriteError)};
+
+  $('#addform').addEventListener('submit',e=>{
+    e.preventDefault(); if(!db){toast('La lista compartida no está disponible aquí.');return}
+    const nombre=$('#a-name').value.trim(); if(!nombre){$('#a-name').focus();return}
+    const doc={nombre:nombre.slice(0,40),origen:$('#a-origin').value,estado:$('#a-state').value,p1:false,p2:false,p3:false,voto:'',novio:false,creado:new Date().toISOString()};
+    $('#a-btn').disabled=true;
+    db.collection('asistentes').add(doc).then(()=>{$('#a-name').value='';toast(`${nombre} añadido`)}).catch(onWriteError).finally(()=>{$('#a-btn').disabled=false});
+  });
+
+  // checklist: local first, shared when db is available
+  document.getElementById('months').addEventListener('change',e=>{
+    const id=e.target.dataset.id; if(!id)return;
+    if(dbReady&&!canWrite){e.target.checked=!!checklist[id];toast('Solo lectura');return}
+    checklist={...checklist,[id]:e.target.checked}; store.set('checks',checklist); renderChecks();
+    if(db&&dbReady){const snapshot={...checklist};enqueue('checklist',()=>db.doc('organizacion/checklist').set({done:snapshot})).catch(onWriteError)}
+  });
+
+  calc(); renderRoster();
+
+  (async()=>{
+    if(!window.claude||typeof window.claude.use!=='function'){$('#db-off').hidden=false;$('#addform').hidden=true;return}
+    try{db=await window.claude.use('db')}catch(e){db=null}
+    if(!db){$('#db-off').hidden=false;$('#addform').hidden=true;return}
+    try{const u=await window.claude.use('user'); if(u){const cw=await u.can('data.write'); if(cw===false){dbReady=true;setReadOnly()}}}catch(e){}
+    dbReady=true;
+    db.collection('asistentes').onSnapshot(snap=>{roster=snap.docs.filter(d=>d.exists).map(d=>({id:d.id,...d.data()}));renderRoster()},err=>{toast('Se perdió la conexión con la lista. Recarga la página.')});
+    db.doc('organizacion/checklist').onSnapshot(snap=>{if(snap.exists){const d=snap.data();checklist=(d&&d.done&&typeof d.done==='object')?{...d.done}:{};store.set('checks',checklist);renderChecks()}},()=>{});
+  })();
+})();
+</script>
