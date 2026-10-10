@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import SwiftUI // Array.move(fromOffsets:toOffset:) est défini par SwiftUI
 
 /// Favoris, chaînes récentes et positions de lecture, par compte.
 @MainActor
@@ -13,6 +14,19 @@ final class LibraryStore {
         /// Clé : "movie-<id>" ou "episode-<id>" → position en secondes et durée.
         var progress: [String: Progress] = [:]
         var lastChannel: Int?
+
+        init() {}
+
+        // Décodage tolérant : un champ ajouté dans une future version ne doit pas effacer la bibliothèque.
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            favoriteChannels = (try? c.decodeIfPresent([Int].self, forKey: .favoriteChannels)) ?? []
+            favoriteMovies = (try? c.decodeIfPresent([Int].self, forKey: .favoriteMovies)) ?? []
+            favoriteSeries = (try? c.decodeIfPresent([Int].self, forKey: .favoriteSeries)) ?? []
+            recentChannels = (try? c.decodeIfPresent([Int].self, forKey: .recentChannels)) ?? []
+            progress = (try? c.decodeIfPresent([String: Progress].self, forKey: .progress)) ?? [:]
+            lastChannel = try? c.decodeIfPresent(Int.self, forKey: .lastChannel)
+        }
     }
 
     struct Progress: Codable, Hashable {

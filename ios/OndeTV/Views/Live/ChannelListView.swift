@@ -29,7 +29,7 @@ struct ChannelListView: View {
                                 .tag(stream.id as Int?)
                                 .contextMenu { menu(stream, channels) }
                         }
-                        .onMove(perform: categoryId == LiveSection.favorites ? library.moveFavoriteChannels : nil)
+                        .onMove(perform: categoryId == LiveSection.favorites ? { library.moveFavoriteChannels(from: $0, to: $1) } : nil)
                     }
                 } else {
                     List {
@@ -48,7 +48,7 @@ struct ChannelListView: View {
                             }
                             .contextMenu { menu(stream, channels) }
                         }
-                        .onMove(perform: categoryId == LiveSection.favorites ? library.moveFavoriteChannels : nil)
+                        .onMove(perform: categoryId == LiveSection.favorites ? { library.moveFavoriteChannels(from: $0, to: $1) } : nil)
                     }
                 }
             }

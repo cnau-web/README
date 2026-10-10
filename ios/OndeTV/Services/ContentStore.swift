@@ -36,7 +36,7 @@ final class ContentStore {
     @ObservationIgnored private var epgInFlight: Set<Int> = []
     @ObservationIgnored private let limiter = AsyncLimiter(limit: 6)
 
-    static let allCategoryId = ""
+    nonisolated static let allCategoryId = ""
 
     init(client: XtreamClient) {
         self.client = client

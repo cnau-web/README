@@ -14,9 +14,15 @@ final class PlaybackEngine {
     private(set) var currentTime: Double = 0
     private(set) var duration: Double = 0
 
+    /// Propriété calculée : on notifie Observation à la main pour que l'icône se mette à jour.
     var isMuted: Bool {
-        get { player.isMuted }
-        set { player.isMuted = newValue }
+        get {
+            access(keyPath: \.isMuted)
+            return player.isMuted
+        }
+        set {
+            withMutation(keyPath: \.isMuted) { player.isMuted = newValue }
+        }
     }
 
     @ObservationIgnored private var controlObservation: NSKeyValueObservation?

@@ -273,13 +273,20 @@ struct ProgramSheet: View {
                         if program.isLive(at: now) {
                             Button {
                                 dismiss()
-                                player.playLive(stream, in: [], fullScreen: true)
+                                Task {
+                                    // Attendre la fermeture de la feuille avant de présenter le lecteur.
+                                    try? await Task.sleep(for: .milliseconds(450))
+                                    player.playLive(stream, in: [], fullScreen: true)
+                                }
                             } label: { Label("Regarder en direct", systemImage: "play.fill").frame(maxWidth: .infinity) }
                                 .buttonStyle(.borderedProminent)
                         } else if canReplay {
                             Button {
                                 dismiss()
-                                Task { await player.playCatchup(stream, program: program, serverTimeZone: app.serverTimeZone) }
+                                Task {
+                                    try? await Task.sleep(for: .milliseconds(450))
+                                    await player.playCatchup(stream, program: program, serverTimeZone: app.serverTimeZone)
+                                }
                             } label: { Label("Revoir", systemImage: "gobackward").frame(maxWidth: .infinity) }
                                 .buttonStyle(.borderedProminent)
                         } else if program.start > now {
