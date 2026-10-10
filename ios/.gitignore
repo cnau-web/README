@@ -1,0 +1,7 @@
+*.xcodeproj/
+xcuserdata/
+DerivedData/
+.build/
+.swiftpm/
+Packages/XtreamKit/.build/
+OndeTV/Info.plist
