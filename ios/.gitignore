@@ -5,3 +5,5 @@ DerivedData/
 .swiftpm/
 Packages/XtreamKit/.build/
 OndeTV/Info.plist
+Pods/
+*.xcworkspace/

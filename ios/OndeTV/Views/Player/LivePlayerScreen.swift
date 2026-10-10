@@ -147,6 +147,14 @@ struct LivePlayerScreen: View {
                 Button("Réessayer") { engine.retry() }.buttonStyle(.borderedProminent)
                 Button("Chaîne suivante") { player.zap(1) }.buttonStyle(.bordered)
             }
+            if VLCSupport.isAvailable {
+                Button {
+                    player.playLiveWithVLC()
+                } label: {
+                    Label("Essayer avec VLC", systemImage: "play.rectangle.on.rectangle")
+                }
+                .buttonStyle(.bordered)
+            }
         }
         .padding(24)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))

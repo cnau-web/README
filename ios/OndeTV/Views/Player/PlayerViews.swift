@@ -85,7 +85,7 @@ final class OnDemandPlayerController: AVPlayerViewController, AVPlayerViewContro
             title: "Lecture impossible",
             message: "\(message)\n\nCe format (souvent MKV/AVI) n'est peut-être pas pris en charge par le lecteur iOS. Essayez un lecteur externe.",
             preferredStyle: .alert)
-        for external in [ExternalPlayer.vlc, .infuse] {
+        for external in [PlayerChoice.vlc, .infuse] {
             alert.addAction(UIAlertAction(title: "Ouvrir dans \(external.label)", style: .default) { [weak self] _ in
                 Task { @MainActor in
                     let opened = await external.open(mediaURL)

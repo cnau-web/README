@@ -16,18 +16,21 @@ OndeTV est **un lecteur** : il ne fournit aucun contenu, il se connecte à votre
 | **Films** | Catégories, recherche, fiche (synopsis, casting, note, bande-annonce), reprise de lecture |
 | **Séries** | Saisons / épisodes, « Reprendre SxEy », épisodes vus |
 | **Favoris / récents** | Chaînes (réordonnables), films, séries — par compte |
-| **Lecteurs externes** | VLC ou Infuse pour les formats non lus par iOS (MKV, AVI…), proposés automatiquement en cas d'échec |
+| **Lecteur VLC intégré** | MKV, AVI, MPEG-TS… lus dans l'app via VLCKit : sauts ±10/30 s, barre de progression, choix des pistes audio et sous-titres, reprise |
+| **Choix du lecteur** | Automatique (lecteur iOS pour MP4/HLS, VLC pour le reste, bascule sur VLC si iOS échoue), ou forcé : VLC intégré, lecteur iOS, app VLC, app Infuse |
 
 ## Compiler et installer
 
-Prérequis : un Mac avec **Xcode 16** et [XcodeGen](https://github.com/yonaskolb/XcodeGen).
+Prérequis : un Mac avec **Xcode 16**, [XcodeGen](https://github.com/yonaskolb/XcodeGen) et [CocoaPods](https://cocoapods.org).
 
 ```bash
-brew install xcodegen
+brew install xcodegen cocoapods
 cd ios
-xcodegen generate        # crée OndeTV.xcodeproj
-open OndeTV.xcodeproj
+xcodegen generate        # crée OndeTV.xcodeproj puis lance « pod install » (MobileVLCKit, ~230 Mo)
+open OndeTV.xcworkspace  # ⚠️ ouvrir le .xcworkspace, pas le .xcodeproj
 ```
+
+Sans `pod install`, l'app compile quand même (VLC intégré désactivé, repli sur les apps VLC/Infuse).
 
 Dans Xcode : cible **OndeTV** → *Signing & Capabilities* → choisir votre *Team*
 (un identifiant Apple gratuit suffit pour installer sur votre propre appareil, valable 7 jours),
@@ -47,6 +50,7 @@ swift test
 ```
 ios/
 ├── project.yml                  # Spécification XcodeGen
+├── Podfile                      # MobileVLCKit (pod officiel VideoLAN)
 ├── Packages/XtreamKit/          # Module Swift indépendant de l'UI
 │   ├── Sources/XtreamKit/
 │   │   ├── XtreamClient.swift   # player_api.php, URLs live / movie / series / timeshift
@@ -60,7 +64,7 @@ ios/
         ├── Live/                # Catégories, liste des chaînes, fiche chaîne + aperçu
         ├── Guide/               # Grille EPG
         ├── VOD/ Series/         # Catalogues et fiches
-        ├── Player/              # AVPlayer partagé, plein écran direct, lecteur films (AVPlayerViewController)
+        ├── Player/              # AVPlayer partagé, plein écran direct, AVPlayerViewController, lecteur VLCKit
         └── Settings/
 ```
 
@@ -73,7 +77,8 @@ Points techniques :
 
 ## Limites connues / pistes
 
-- Le lecteur iOS (AVFoundation) ne lit pas le MKV/AVI ni le MPEG-TS brut → utiliser VLC/Infuse, ou intégrer **VLCKit** (MobileVLCKit) pour un lecteur universel intégré.
+- Le lecteur VLC intégré ne gère pas le PiP ni AirPlay vidéo (limites de VLCKit 3) ; le lecteur iOS reste utilisé pour le MP4/HLS.
+- VLCKit est sous licence **LGPL 2.1** : une diffusion sur l'App Store impose d'en respecter les conditions (VLC pour iOS le fait en publiant son code).
 - Pas encore d'import M3U ni d'EPG XMLTV externe (uniquement Xtream Codes).
 - Pas de version Apple TV (tvOS) : la base `XtreamKit` est déjà compatible tvOS.
 - Distribution App Store : Apple examine de près les lecteurs IPTV ; l'app ne doit pas être livrée avec du contenu ou des playlists préconfigurées.

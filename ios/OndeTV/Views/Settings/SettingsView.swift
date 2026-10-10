@@ -5,7 +5,7 @@ struct SettingsView: View {
     @Environment(AppModel.self) private var app
     @Environment(LibraryStore.self) private var library
 
-    @AppStorage("vodPlayer") private var vodPlayer = ExternalPlayer.builtIn.rawValue
+    @AppStorage("vodPlayer") private var vodPlayer = PlayerChoice.auto.rawValue
 
     @State private var showAddAccount = false
     @State private var switchError: String?
@@ -99,12 +99,14 @@ struct SettingsView: View {
     private var playbackSection: some View {
         Section {
             Picker("Films et séries", selection: $vodPlayer) {
-                ForEach(ExternalPlayer.allCases) { Text($0.label).tag($0.rawValue) }
+                ForEach(PlayerChoice.available) { Text($0.label).tag($0.rawValue) }
             }
         } header: {
             Text("Lecture")
         } footer: {
-            Text("Le lecteur iOS lit le HLS, le MP4 et le MOV. Pour les fichiers MKV/AVI, choisissez VLC ou Infuse (à installer depuis l'App Store). Le direct et le replay utilisent toujours le flux HLS.")
+            Text(VLCSupport.isAvailable
+                 ? "Automatique : lecteur iOS pour le MP4 et le HLS (PiP, AirPlay), VLC intégré pour le MKV, l'AVI et les autres formats. Si le lecteur iOS échoue, VLC prend le relais."
+                 : "Le lecteur iOS lit le HLS, le MP4 et le MOV. Pour les fichiers MKV/AVI, choisissez VLC ou Infuse (à installer depuis l'App Store).")
         }
     }
 
