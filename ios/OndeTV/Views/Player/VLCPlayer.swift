@@ -157,7 +157,9 @@ final class VLCPlaybackModel: NSObject, VLCMediaPlayerDelegate {
     }
 
     private func refreshTracks() {
+        // L'entrée « Désactiver » (-1) n'a pas d'intérêt pour l'audio ; on la garde pour les sous-titres.
         audioTracks = Self.tracks(names: mediaPlayer.audioTrackNames, indexes: mediaPlayer.audioTrackIndexes)
+            .filter { $0.id >= 0 }
         subtitleTracks = Self.tracks(names: mediaPlayer.videoSubTitlesNames, indexes: mediaPlayer.videoSubTitlesIndexes)
         currentAudio = mediaPlayer.currentAudioTrackIndex
         currentSubtitle = mediaPlayer.currentVideoSubTitleIndex
@@ -257,13 +259,14 @@ struct VLCPlayerScreen: View {
 
             HStack(spacing: 48) {
                 Button { model.jump(seconds: -10); scheduleHide() } label: { Image(systemName: "gobackward.10") }
+                    .disabled(!model.isSeekable)
                 Button { model.togglePlay(); scheduleHide() } label: {
                     Image(systemName: model.isPlaying ? "pause.fill" : "play.fill").font(.system(size: 44))
                 }
                 Button { model.jump(seconds: 30); scheduleHide() } label: { Image(systemName: "goforward.30") }
+                    .disabled(!model.isSeekable)
             }
             .font(.system(size: 30))
-            .disabled(!model.isSeekable && !model.isPlaying)
 
             Spacer()
 
@@ -353,6 +356,7 @@ struct VLCPlayerScreen: View {
 /// Conteneur UIKit plein écran (présenté comme le lecteur AVPlayer, au-dessus de tout).
 final class VLCPlayerHostingController: UIHostingController<VLCPlayerScreen> {
     override var prefersHomeIndicatorAutoHidden: Bool { true }
+    override var prefersStatusBarHidden: Bool { true }
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask { .allButUpsideDown }
 }
 #endif
