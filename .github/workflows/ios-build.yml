@@ -56,8 +56,33 @@ jobs:
           path: ios/OndeTV.ipa
           retention-days: 30
 
+      # Version simulateur : à téléverser sur appetize.io pour tester l'app dans le navigateur.
+      - name: Compilation simulateur (Appetize)
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -workspace OndeTV.xcworkspace \
+            -scheme OndeTV \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build-sim \
+            ARCHS="arm64 x86_64" ONLY_ACTIVE_ARCH=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            build | tee xcodebuild-sim.log | grep -E "error:|BUILD (SUCCEEDED|FAILED)" || true
+          grep -q "BUILD SUCCEEDED" xcodebuild-sim.log
+          cd build-sim/Build/Products/Release-iphonesimulator
+          zip -qry "$GITHUB_WORKSPACE/ios/OndeTV-simulateur.zip" OndeTV.app
+          ls -lh "$GITHUB_WORKSPACE/ios/OndeTV-simulateur.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: OndeTV-simulateur
+          path: ios/OndeTV-simulateur.zip
+          retention-days: 30
+
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: xcodebuild-log
-          path: ios/xcodebuild.log
+          path: ios/xcodebuild*.log
