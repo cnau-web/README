@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>OndeTV</title>
+  <meta name="theme-color" content="#0d0f17">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="OndeTV">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="icon" href="icon-192.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app"></div>
+
+  <div id="player" class="player hidden" aria-hidden="true">
+    <video id="video" playsinline webkit-playsinline autoplay controls></video>
+    <div class="player-top">
+      <button id="player-close" class="icon-btn" aria-label="Fermer">✕</button>
+      <div class="player-title">
+        <strong id="player-title"></strong>
+        <span id="player-subtitle"></span>
+      </div>
+      <button id="player-fav" class="icon-btn hidden" aria-label="Favori">☆</button>
+    </div>
+    <div id="player-live" class="player-live hidden">
+      <button id="zap-prev" class="icon-btn big" aria-label="Chaîne précédente">▲</button>
+      <div class="player-epg">
+        <div><span class="live-badge">DIRECT</span> <span id="epg-now">—</span></div>
+        <div class="bar"><i id="epg-progress"></i></div>
+        <div id="epg-next" class="muted"></div>
+      </div>
+      <button id="zap-next" class="icon-btn big" aria-label="Chaîne suivante">▼</button>
+    </div>
+    <div id="player-status" class="player-status hidden"></div>
+  </div>
+
+  <div id="sheet" class="sheet hidden" aria-hidden="true">
+    <div class="sheet-backdrop" data-close></div>
+    <div class="sheet-panel">
+      <button class="icon-btn sheet-close" data-close aria-label="Fermer">✕</button>
+      <div id="sheet-content"></div>
+    </div>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

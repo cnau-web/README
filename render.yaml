@@ -1,0 +1,13 @@
+# Déploiement en un clic de la version web d'OndeTV sur Render (offre gratuite).
+services:
+  - type: web
+    name: ondetv
+    runtime: docker
+    plan: free
+    rootDir: web
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      - key: PROXY_SECRET
+        generateValue: true
