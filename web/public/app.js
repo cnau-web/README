@@ -16,15 +16,39 @@ const store = {
   del(key) { try { localStorage.removeItem(key); } catch {} },
 };
 
-let account = store.get("ondetv.account", null);
-const libKey = () => `ondetv.library.${account?.server}|${account?.username}`;
-let library = loadLibrary();
+// Plusieurs sources (abonnements Xtream) comme dans TiviMate : leur contenu est fusionné.
+// Chaque élément a un identifiant unique « source:id » (id) et son id d'origine (sid).
+let sources = store.get("ondetv.sources", null);
+let library;
+migrateSingleAccount();
+library ??= { favChannels: [], favMovies: [], favSeries: [], recents: [], progress: {}, ...store.get("ondetv.library.v2", {}) };
 
-function loadLibrary() {
-  const l = account ? store.get(libKey(), {}) : {};
-  return { favChannels: [], favMovies: [], favSeries: [], recents: [], progress: {}, ...l };
+function migrateSingleAccount() {
+  if (sources) return;
+  sources = [];
+  const old = store.get("ondetv.account", null);
+  if (old?.password) {
+    const src = { id: "s1", name: hostLabel(old.server), server: old.server, username: old.username, password: old.password, timezone: old.timezone, info: old.info, enabled: true };
+    sources.push(src);
+    // Reprise des favoris / récents / reprises de lecture de l'ancienne version (une seule source).
+    const l = store.get(`ondetv.library.${old.server}|${old.username}`, {});
+    const k = (id) => `s1:${id}`;
+    library = {
+      favChannels: (l.favChannels || []).map(k), favMovies: (l.favMovies || []).map(k), favSeries: (l.favSeries || []).map(k),
+      recents: (l.recents || []).map(k), progress: {},
+    };
+    for (const [key, v] of Object.entries(l.progress || {})) library.progress[key.replace(/^(movie|episode)-/, "$1-s1:")] = v;
+    store.set("ondetv.library.v2", library);
+  }
+  store.set("ondetv.sources", sources);
 }
-function saveLibrary() { store.set(libKey(), library); }
+function hostLabel(server) { try { return new URL(server).hostname; } catch { return "Source"; } }
+function saveSources() { store.set("ondetv.sources", sources); }
+const activeSources = () => sources.filter((x) => x.enabled !== false && x.password);
+const sourceOf = (item) => sources.find((x) => x.id === (item.src ?? item));
+const multiSource = () => activeSources().length > 1;
+const sourceName = (item) => sourceOf(item)?.name || "";
+function saveLibrary() { store.set("ondetv.library.v2", library); }
 function toggle(list, id) {
   const i = library[list].indexOf(id);
   if (i >= 0) library[list].splice(i, 1); else library[list].push(id);
@@ -43,7 +67,8 @@ function normalizeServer(raw) {
   return `${u.protocol}//${u.host}${path}`;
 }
 
-async function api(action, params = {}, acc = account) {
+async function api(action, params, acc) {
+  params ??= {};
   const u = new URL(`${acc.server}/player_api.php`);
   u.searchParams.set("username", acc.username);
   u.searchParams.set("password", acc.password);
@@ -64,20 +89,22 @@ async function api(action, params = {}, acc = account) {
 const asList = (v) => Array.isArray(v) ? v : (v && typeof v === "object" ? Object.values(v) : []);
 const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : null; };
 const enc = encodeURIComponent;
-const userPath = () => `${enc(account.username)}/${enc(account.password)}`;
+const base = (item) => { const a = sourceOf(item); return `${a.server}/%s/${enc(a.username)}/${enc(a.password)}`; };
 
+// Les fonctions prennent l'élément (qui porte sa source « src » et son id d'origine « sid »).
 const urls = {
-  live: (id) => `${account.server}/live/${userPath()}/${id}.m3u8`,
-  movie: (id, ext) => `${account.server}/movie/${userPath()}/${id}.${ext || "mp4"}`,
-  episode: (id, ext) => `${account.server}/series/${userPath()}/${id}.${ext || "mp4"}`,
-  catchup(streamId, program) {
-    const tz = account.timezone || undefined;
+  live: (s) => `${base(s).replace("%s", "live")}/${s.sid}.m3u8`,
+  movie: (m, ext) => `${base(m).replace("%s", "movie")}/${m.sid}.${ext || m.ext || "mp4"}`,
+  episode: (e) => `${base(e).replace("%s", "series")}/${e.sid}.${e.ext || "mp4"}`,
+  catchup(stream, program) {
+    const acc = sourceOf(stream);
+    const tz = acc.timezone || undefined;
     const parts = Object.fromEntries(new Intl.DateTimeFormat("en-GB", {
       timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23",
     }).formatToParts(program.start).map((p) => [p.type, p.value]));
     const start = `${parts.year}-${parts.month}-${parts.day}:${parts.hour}-${parts.minute}`;
     const minutes = Math.max(1, Math.ceil((program.end - program.start) / 60000));
-    return `${account.server}/timeshift/${userPath()}/${minutes}/${start}/${streamId}.m3u8`;
+    return `${base(stream).replace("%s", "timeshift")}/${minutes}/${start}/${stream.sid}.m3u8`;
   },
 };
 
@@ -113,16 +140,30 @@ const content = {
   epg: new Map(), epgPending: new Set(),
 };
 
+let liveLoading = null;
 async function loadLive(force = false) {
   if (content.live && !force) return;
-  const [cats, streams] = await Promise.all([api("get_live_categories"), api("get_live_streams")]);
-  content.liveCats = asList(cats).map((c) => ({ id: String(c.category_id), name: c.category_name || "Sans nom" }));
-  content.live = asList(streams).filter((s) => num(s.stream_id) !== null).map((s) => ({
-    id: num(s.stream_id), num: num(s.num), name: String(s.name ?? "").trim() || `Chaîne ${s.stream_id}`,
-    icon: s.stream_icon, cat: String(s.category_id ?? ""),
-    archive: Number(s.tv_archive) === 1 && num(s.tv_archive_duration) > 0, archiveDays: num(s.tv_archive_duration) || 0,
-  })).sort((a, b) => (a.num ?? 1e9) - (b.num ?? 1e9) || a.name.localeCompare(b.name));
-  content.liveById = new Map(content.live.map((s) => [s.id, s]));
+  if (liveLoading && !force) return liveLoading;
+  liveLoading = (async () => {
+    const results = await Promise.allSettled(activeSources().map(async (src) => {
+      const [cats, streams] = await Promise.all([api("get_live_categories", {}, src), api("get_live_streams", {}, src)]);
+      return {
+        cats: asList(cats).map((c) => ({ id: `${src.id}:${c.category_id}`, src: src.id, name: c.category_name || "Sans nom" })),
+        live: asList(streams).filter((x) => num(x.stream_id) !== null).map((x) => ({
+          id: `${src.id}:${x.stream_id}`, sid: num(x.stream_id), src: src.id, num: num(x.num),
+          name: String(x.name ?? "").trim() || `Chaîne ${x.stream_id}`, icon: x.stream_icon, cat: `${src.id}:${x.category_id ?? ""}`,
+          archive: Number(x.tv_archive) === 1 && num(x.tv_archive_duration) > 0, archiveDays: num(x.tv_archive_duration) || 0,
+        })).sort((a, b) => (a.num ?? 1e9) - (b.num ?? 1e9) || a.name.localeCompare(b.name)),
+      };
+    }));
+    content.liveErrors = results.map((r, i) => r.status === "rejected" ? `${activeSources()[i].name} : ${r.reason.message}` : null).filter(Boolean);
+    const ok = results.filter((r) => r.status === "fulfilled").map((r) => r.value);
+    if (!ok.length && content.liveErrors.length) throw new Error(content.liveErrors.join("\n"));
+    content.liveCats = ok.flatMap((r) => r.cats);
+    content.live = ok.flatMap((r) => r.live);
+    content.liveById = new Map(content.live.map((x) => [x.id, x]));
+  })();
+  try { await liveLoading; } finally { liveLoading = null; }
 }
 
 // EPG court, chargé à la demande (4 requêtes en parallèle au maximum).
@@ -138,7 +179,9 @@ function pumpEPG() {
   while (epgRunning < 4 && epgQueue.length) {
     const id = epgQueue.shift();
     epgRunning++;
-    api("get_short_epg", { stream_id: id, limit: 6 })
+    const stream = content.liveById.get(id);
+    if (!stream) { epgRunning--; content.epgPending.delete(id); continue; }
+    api("get_short_epg", { stream_id: stream.sid, limit: 6 }, sourceOf(stream))
       .then((d) => { content.epg.set(id, parseEPG(d)); document.dispatchEvent(new CustomEvent("epg", { detail: id })); })
       .catch(() => content.epg.set(id, []))
       .finally(() => { epgRunning--; content.epgPending.delete(id); pumpEPG(); });
@@ -214,11 +257,23 @@ $("#sheet").addEventListener("click", (e) => { if (e.target.closest("[data-close
 // ---------------------------------------------------------------- connexion
 
 function renderLogin(error = "") {
-  const server = h("input", { class: "field", placeholder: "http://serveur.com:8080", inputmode: "url", autocapitalize: "off", autocorrect: "off", value: account?.server || "" });
-  const user = h("input", { class: "field", placeholder: "Nom d'utilisateur", autocapitalize: "off", autocorrect: "off", value: account?.username || "" });
+  const form = sourceForm({ onDone: () => renderShell(), error });
+  form.prepend(h("div", { class: "logo" }, h("img", { src: "icon-192.png", alt: "" }), h("h1", {}, "OndeTV"),
+    h("div", { class: "muted" }, "Connectez votre abonnement Xtream Codes")));
+  form.append(h("p", { class: "muted", style: { fontSize: "13px", textAlign: "center" } },
+    "Astuce : Partager → « Sur l'écran d'accueil » pour l'utiliser comme une app. D'autres sources pourront être ajoutées dans Réglages."));
+  app.replaceChildren(h("div", { class: "login" }, form));
+}
+
+/** Formulaire d'ajout (ou de modification) d'une source Xtream. */
+function sourceForm({ onDone, error = "", existing = null }) {
+  const name = h("input", { class: "field", placeholder: "Nom de la source (facultatif)", value: existing?.name || "" });
+  const server = h("input", { class: "field", placeholder: "http://serveur.com:8080", inputmode: "url", autocapitalize: "off", autocorrect: "off", value: existing?.server || "" });
+  const user = h("input", { class: "field", placeholder: "Nom d'utilisateur", autocapitalize: "off", autocorrect: "off", value: existing?.username || "" });
   const pass = h("input", { class: "field", placeholder: "Mot de passe", type: "password", autocomplete: "current-password" });
   const err = h("div", { class: "error" }, error);
-  const submit = h("button", { class: "btn primary", type: "submit" }, "Se connecter");
+  const submitLabel = existing ? "Enregistrer" : sources.length ? "Ajouter la source" : "Se connecter";
+  const submit = h("button", { class: "btn primary", type: "submit" }, submitLabel);
 
   const form = h("form", {
     async onsubmit(e) {
@@ -227,7 +282,7 @@ function renderLogin(error = "") {
       submit.disabled = true;
       submit.textContent = "Connexion…";
       try {
-        const acc = { server: normalizeServer(server.value), username: user.value.trim(), password: pass.value.trim() };
+        const acc = { server: normalizeServer(server.value), username: user.value.trim(), password: pass.value.trim() || existing?.password || "" };
         if (!acc.username || !acc.password) throw new Error("Nom d'utilisateur et mot de passe requis.");
         const auth = await api(null, {}, acc);
         const info = auth?.user_info;
@@ -235,25 +290,33 @@ function renderLogin(error = "") {
         if (info.status && info.status.toLowerCase() !== "active") throw new Error(`Abonnement non actif (statut : ${info.status}).`);
         acc.timezone = auth.server_info?.timezone || null;
         acc.info = info;
-        account = acc;
-        store.set("ondetv.account", account);
-        library = loadLibrary();
-        renderShell();
+        acc.name = name.value.trim() || existing?.name || hostLabel(acc.server);
+        acc.enabled = existing?.enabled ?? true;
+        if (existing) Object.assign(existing, acc);
+        else {
+          if (sources.some((x) => x.server === acc.server && x.username === acc.username)) throw new Error("Cette source est déjà ajoutée.");
+          acc.id = `s${Date.now().toString(36)}`;
+          sources.push(acc);
+        }
+        saveSources();
+        resetContent();
+        onDone();
       } catch (e2) {
         err.textContent = e2.message;
       } finally {
         submit.disabled = false;
-        submit.textContent = "Se connecter";
+        submit.textContent = submitLabel;
       }
     },
-  },
-    h("div", { class: "logo" }, h("img", { src: "icon-192.png", alt: "" }), h("h1", {}, "OndeTV"),
-      h("div", { class: "muted" }, "Connectez votre abonnement Xtream Codes")),
-    server, user, pass, err, submit,
-    h("p", { class: "muted", style: { fontSize: "13px", textAlign: "center" } },
-      "Astuce : Partager → « Sur l'écran d'accueil » pour l'utiliser comme une app."));
+  }, name, server, user, pass, err, submit);
+  if (existing) pass.placeholder = "Mot de passe (inchangé si vide)";
+  return form;
+}
 
-  app.replaceChildren(h("div", { class: "login" }, form));
+function resetContent() {
+  content.live = null; content.liveCats = null; content.liveById = new Map();
+  content.vod.clear(); content.series.clear(); content.vodCats = content.seriesCats = null;
+  content.epg.clear(); content.epgPending.clear();
 }
 
 // ---------------------------------------------------------------- structure à onglets
@@ -262,6 +325,7 @@ const TABS = [
   { id: "live", label: "Direct", icon: "📺", render: renderLive },
   { id: "movies", label: "Films", icon: "🎬", render: renderMovies },
   { id: "series", label: "Séries", icon: "🎞️", render: renderSeries },
+  { id: "search", label: "Recherche", icon: "🔍", render: renderSearch },
   { id: "settings", label: "Réglages", icon: "⚙️", render: renderSettings },
 ];
 let currentTab = store.get("ondetv.tab", "live");
@@ -299,12 +363,13 @@ async function renderLive(top, main) {
   top.append(h("h2", {}, "Direct"));
   main.replaceChildren(h("div", { class: "loading" }, "Chargement des chaînes…"));
   try { await loadLive(); } catch (e) { return failure(main, e, () => renderShell()); }
+  if (content.liveErrors?.length) toastPage(`Source indisponible : ${content.liveErrors.join(" · ")}`);
 
   const select = h("select", { onchange: () => { liveCategory = select.value; store.set("ondetv.liveCat", liveCategory); draw(); } },
     h("option", { value: "__fav" }, `★ Favoris (${library.favChannels.length})`),
     h("option", { value: "__recent" }, "Récents"),
     h("option", { value: "__all" }, `Toutes les chaînes (${content.live.length})`),
-    content.liveCats.map((c) => h("option", { value: c.id }, c.name)));
+    categoryOptions(content.liveCats));
   select.value = liveCategory;
   if (select.value !== liveCategory) { liveCategory = "__all"; select.value = "__all"; }
   const search = h("input", { type: "search", placeholder: "Rechercher", oninput: () => draw() });
@@ -317,7 +382,7 @@ async function renderLive(top, main) {
   cleanup = () => { document.removeEventListener("epg", onEPG); stopChunks?.(); io.disconnect(); };
 
   const io = new IntersectionObserver((entries) => {
-    for (const e of entries) if (e.isIntersecting) { requestEPG(Number(e.target.dataset.id)); io.unobserve(e.target); }
+    for (const e of entries) if (e.isIntersecting) { requestEPG(e.target.dataset.id); io.unobserve(e.target); }
   }, { root: main, rootMargin: "200px" });
 
   function updateNow(row, id) {
@@ -333,8 +398,8 @@ async function renderLive(top, main) {
     stopChunks?.();
     rows.clear();
     const q = search.value.trim().toLowerCase();
-    let list = channelsFor(liveCategory);
-    if (q) list = list.filter((s) => s.name.toLowerCase().includes(q));
+    // La recherche porte sur toutes les chaînes de toutes les sources.
+    let list = q ? content.live.filter((s) => s.name.toLowerCase().includes(q) || String(s.num) === q) : channelsFor(liveCategory);
     main.replaceChildren();
     main.scrollTop = 0;
     if (!list.length) {
@@ -353,6 +418,7 @@ async function renderLive(top, main) {
         logoBox(s),
         h("button", { class: "info", style: { textAlign: "left" }, onclick: () => playLive(s, list, liveCategory) },
           h("div", { class: "name" }, s.name, library.favChannels.includes(s.id) ? h("span", { class: "star" }, " ★") : null, s.archive ? h("span", { class: "muted" }, " ⟲") : null),
+          multiSource() ? h("div", { class: "src-tag" }, sourceName(s)) : null,
           h("div", { class: "now" }), h("div", { class: "bar hidden" }, h("i"))),
         h("button", { class: "info-btn", "aria-label": "Programme", onclick: () => openChannel(s, list) }, "ⓘ"));
       rows.set(s.id, row);
@@ -370,13 +436,13 @@ function openChannel(stream, list) {
     const header = h("div", { class: "detail", style: { marginTop: "16px" } },
       h("div", { style: { display: "flex", gap: "12px", alignItems: "center", marginBottom: "14px" } }, logoBox(stream),
         h("div", {}, h("h3", {}, stream.name), h("div", { class: "facts", style: { margin: 0 } },
-          [stream.num ? `N° ${stream.num}` : null, stream.archive ? `Replay ${stream.archiveDays} j` : null].filter(Boolean).join(" · ")))),
+          [stream.num ? `N° ${stream.num}` : null, stream.archive ? `Replay ${stream.archiveDays} j` : null, multiSource() ? sourceName(stream) : null].filter(Boolean).join(" · ")))),
       h("div", { class: "actions" }, h("button", { class: "btn primary", onclick: () => { closeSheet(); playLive(stream, list, liveCategory); } }, "▶ Regarder"), favBtn));
     const epgBox = h("div", { class: "detail", style: { marginTop: 0 } }, h("div", { class: "loading" }, "Programme…"));
     target.replaceChildren(header, epgBox);
 
-    let programs = parseEPG(await api("get_simple_data_table", { stream_id: stream.id }).catch(() => null));
-    if (!programs.length) programs = parseEPG(await api("get_short_epg", { stream_id: stream.id, limit: 20 }).catch(() => null));
+    const programs0 = await fullEPG(stream);
+    let programs = programs0;
     const now = new Date();
     const horizon = now - (stream.archiveDays * 86400000 + 3600000);
     programs = programs.filter((p) => p.end > horizon);
@@ -415,27 +481,44 @@ function openChannel(stream, list) {
 let vodCategory = store.get("ondetv.vodCat", "__all");
 let seriesCategory = store.get("ondetv.seriesCat", "__all");
 
-async function fetchVOD(cat) {
-  if (!content.vod.has(cat)) {
-    const data = await api("get_vod_streams", cat === "__all" ? {} : { category_id: cat });
-    content.vod.set(cat, asList(data).filter((m) => num(m.stream_id) !== null).map((m) => ({
-      id: num(m.stream_id), name: String(m.name ?? "").trim(), icon: m.stream_icon, rating: num(m.rating) || null,
-      ext: m.container_extension || "mp4", added: num(m.added) || 0,
-    })).sort((a, b) => b.added - a.added));
+/** Catégorie « src:id » d'une source, ou « __all » = toutes les sources fusionnées. */
+async function fetchCatalog(cache, cat, action, map, sortKey) {
+  if (!cache.has(cat)) {
+    const targets = cat === "__all" ? activeSources().map((src) => [src, {}])
+      : [[sourceOf(cat.split(":")[0]), { category_id: cat.slice(cat.indexOf(":") + 1) }]];
+    const results = await Promise.allSettled(targets.filter(([src]) => src).map(async ([src, params]) =>
+      asList(await api(action, params, src)).map((x) => map(x, src)).filter(Boolean)));
+    const ok = results.filter((r) => r.status === "fulfilled");
+    if (!ok.length && results.length) throw results[0].reason;
+    cache.set(cat, ok.flatMap((r) => r.value).sort((a, b) => b[sortKey] - a[sortKey]));
   }
-  return content.vod.get(cat);
+  return cache.get(cat);
 }
 
-async function fetchSeries(cat) {
-  if (!content.series.has(cat)) {
-    const data = await api("get_series", cat === "__all" ? {} : { category_id: cat });
-    content.series.set(cat, asList(data).filter((s) => num(s.series_id) !== null).map((s) => ({
-      id: num(s.series_id), name: String(s.name ?? "").trim(), icon: s.cover, rating: num(s.rating) || null,
-      plot: s.plot, genre: s.genre, cast: s.cast, year: (s.releaseDate || s.release_date || "").slice(0, 4),
-      backdrop: Array.isArray(s.backdrop_path) ? s.backdrop_path[0] : s.backdrop_path, modified: num(s.last_modified) || 0,
-    })).sort((a, b) => b.modified - a.modified));
-  }
-  return content.series.get(cat);
+const fetchVOD = (cat) => fetchCatalog(content.vod, cat, "get_vod_streams", (m, src) => num(m.stream_id) === null ? null : ({
+  id: `${src.id}:${m.stream_id}`, sid: num(m.stream_id), src: src.id, name: String(m.name ?? "").trim(), icon: m.stream_icon,
+  rating: num(m.rating) || null, ext: m.container_extension || "mp4", added: num(m.added) || 0,
+}), "added");
+
+const fetchSeries = (cat) => fetchCatalog(content.series, cat, "get_series", (x, src) => num(x.series_id) === null ? null : ({
+  id: `${src.id}:${x.series_id}`, sid: num(x.series_id), src: src.id, name: String(x.name ?? "").trim(), icon: x.cover,
+  rating: num(x.rating) || null, plot: x.plot, genre: x.genre, cast: x.cast, year: (x.releaseDate || x.release_date || "").slice(0, 4),
+  backdrop: Array.isArray(x.backdrop_path) ? x.backdrop_path[0] : x.backdrop_path, modified: num(x.last_modified) || 0,
+}), "modified");
+
+async function fetchCategories(action) {
+  const results = await Promise.allSettled(activeSources().map(async (src) =>
+    asList(await api(action, {}, src)).map((c) => ({ id: `${src.id}:${c.category_id}`, src: src.id, name: c.category_name || "Sans nom" }))));
+  const ok = results.filter((r) => r.status === "fulfilled");
+  if (!ok.length && results.length) throw results[0].reason;
+  return ok.flatMap((r) => r.value);
+}
+
+/** Options de catégories, groupées par source quand il y en a plusieurs. */
+function categoryOptions(cats) {
+  if (!multiSource()) return cats.map((c) => h("option", { value: c.id }, c.name));
+  return activeSources().map((src) => h("optgroup", { label: src.name },
+    cats.filter((c) => c.src === src.id).map((c) => h("option", { value: c.id }, c.name))));
 }
 
 function poster(item, onclick, progressFraction) {
@@ -444,6 +527,7 @@ function poster(item, onclick, progressFraction) {
   if (src) img.style.backgroundImage = `url("${src}")`;
   if (item.rating) img.append(h("span", { class: "rating" }, `★ ${item.rating.toFixed(1)}`));
   if (progressFraction) img.append(h("div", { class: "bar" }, h("i", { style: { width: `${progressFraction * 100}%` } })));
+  if (multiSource() && item.src) img.append(h("span", { class: "src-badge" }, sourceName(item)));
   return h("button", { class: "poster", onclick }, img, h("div", { class: "title" }, item.name));
 }
 
@@ -453,15 +537,18 @@ async function renderCatalog(top, main, kind) {
   main.replaceChildren(h("div", { class: "loading" }, "Chargement…"));
   let cats;
   try {
-    if (isMovies) content.vodCats ??= asList(await api("get_vod_categories")).map((c) => ({ id: String(c.category_id), name: c.category_name }));
-    else content.seriesCats ??= asList(await api("get_series_categories")).map((c) => ({ id: String(c.category_id), name: c.category_name }));
+    if (isMovies) content.vodCats ??= await fetchCategories("get_vod_categories");
+    else content.seriesCats ??= await fetchCategories("get_series_categories");
     cats = isMovies ? content.vodCats : content.seriesCats;
   } catch (e) { return failure(main, e, () => renderShell()); }
 
   let selected = isMovies ? vodCategory : seriesCategory;
-  const chipsDef = [{ id: "__fav", name: "★ Favoris" }, ...(isMovies ? [{ id: "__resume", name: "Reprendre" }] : []), { id: "__all", name: "Tout" }, ...cats];
+  if (!["__fav", "__resume", "__all"].includes(selected) && !cats.some((c) => c.id === selected)) selected = "__all";
+  const chipsDef = [{ id: "__fav", name: "★ Favoris" }, ...(isMovies ? [{ id: "__resume", name: "Reprendre" }] : []), { id: "__all", name: "Tout" },
+    ...cats.map((c) => ({ id: c.id, name: multiSource() ? `${sourceName(c)} · ${c.name}` : c.name }))];
   const chips = h("div", { class: "chips" });
-  const search = h("input", { type: "search", placeholder: isMovies ? "Rechercher un film" : "Rechercher une série", oninput: () => draw() });
+  let searchTimer = null;
+  const search = h("input", { type: "search", placeholder: isMovies ? "Rechercher un film" : "Rechercher une série", oninput: () => { clearTimeout(searchTimer); searchTimer = setTimeout(draw, 250); } });
   top.append(chips, h("div", { class: "row" }, search));
 
   const drawChips = () => chips.replaceChildren(...chipsDef.map((c) => h("button", {
@@ -485,7 +572,7 @@ async function renderCatalog(top, main, kind) {
         let ids;
         if (selected === "__fav") ids = isMovies ? library.favMovies : library.favSeries;
         else ids = Object.entries(library.progress).filter(([k, v]) => k.startsWith("movie-") && v.pos / v.dur < 0.95)
-          .sort((a, b) => b[1].t - a[1].t).map(([k]) => Number(k.slice(6)));
+          .sort((a, b) => b[1].t - a[1].t).map(([k]) => k.slice(6));
         items = ids.map((id) => byId.get(id)).filter(Boolean);
       } else {
         items = await fetcher(selected);
@@ -494,13 +581,23 @@ async function renderCatalog(top, main, kind) {
     } catch (e) { failure(main, e, load); }
   }
 
-  function draw() {
+  let searchToken = 0;
+  async function draw() {
     stopChunks?.();
     const q = search.value.trim().toLowerCase();
-    const list = q ? items.filter((x) => x.name.toLowerCase().includes(q)) : items;
+    let list = items;
+    if (q) {
+      // Comme TiviMate : la recherche porte sur tout le catalogue, toutes sources confondues.
+      const token = ++searchToken;
+      main.replaceChildren(h("div", { class: "loading" }, "Recherche dans toutes les sources…"));
+      const all = await (isMovies ? fetchVOD : fetchSeries)("__all").catch(() => items);
+      if (token !== searchToken) return;
+      list = all.filter((x) => x.name.toLowerCase().includes(q));
+    }
     main.replaceChildren();
     main.scrollTop = 0;
     if (!list.length) { main.append(h("div", { class: "empty" }, q ? "Aucun résultat." : "Rien à afficher.")); return; }
+    if (q) main.append(h("div", { class: "section-label" }, `${list.length} résultat${list.length > 1 ? "s" : ""}${multiSource() ? " · toutes sources" : ""}`));
     const grid = h("div", { class: "grid" });
     main.append(grid);
     stopChunks = renderChunked(grid, list, (x) => isMovies
@@ -527,12 +624,12 @@ function hero(url) {
 
 function openMovie(movie) {
   openSheet(async (target) => {
-    const data = await api("get_vod_info", { vod_id: movie.id }).catch(() => ({}));
+    const data = await api("get_vod_info", { vod_id: movie.sid }, sourceOf(movie)).catch(() => ({}));
     const info = data && !Array.isArray(data.info) ? data.info || {} : {};
     const ext = data?.movie_data?.container_extension || movie.ext;
     const key = `movie-${movie.id}`;
     const facts = [(info.releasedate || "").slice(0, 4), num(info.duration_secs) ? durationText(num(info.duration_secs)) : null,
-      movie.rating ? `★ ${movie.rating.toFixed(1)}` : null, ext.toUpperCase()].filter(Boolean).join(" · ");
+      movie.rating ? `★ ${movie.rating.toFixed(1)}` : null, ext.toUpperCase(), multiSource() ? sourceName(movie) : null].filter(Boolean).join(" · ");
     const resume = progressFraction(key) > 0 && progressFraction(key) < 0.95;
     const fav = () => library.favMovies.includes(movie.id);
     const favBtn = h("button", { class: "btn", onclick: () => { toggle("favMovies", movie.id); favBtn.textContent = fav() ? "★" : "☆"; } }, fav() ? "★" : "☆");
@@ -542,8 +639,8 @@ function openMovie(movie) {
       h("div", { class: "detail" },
         h("h3", {}, movie.name), h("div", { class: "facts" }, facts),
         h("div", { class: "actions" },
-          h("button", { class: "btn primary", onclick: () => { closeSheet(); playVOD(urls.movie(movie.id, ext), movie.name, null, key); } }, resume ? "▶ Reprendre" : "▶ Lecture"),
-          resume ? h("button", { class: "btn", onclick: () => { delete library.progress[key]; saveLibrary(); closeSheet(); playVOD(urls.movie(movie.id, ext), movie.name, null, key); } }, "⟲") : null,
+          h("button", { class: "btn primary", onclick: () => { closeSheet(); playVOD(urls.movie(movie, ext), movie.name, null, key); } }, resume ? "▶ Reprendre" : "▶ Lecture"),
+          resume ? h("button", { class: "btn", onclick: () => { delete library.progress[key]; saveLibrary(); closeSheet(); playVOD(urls.movie(movie, ext), movie.name, null, key); } }, "⟲") : null,
           favBtn),
         !nativeFormat(ext) ? h("p", { class: "error" }, `Format ${ext.toUpperCase()} : peut ne pas être lisible dans le navigateur.`) : null,
         info.plot ? h("p", {}, info.plot) : null,
@@ -555,13 +652,13 @@ function openMovie(movie) {
 
 function openSeries(series) {
   openSheet(async (target) => {
-    const data = await api("get_series_info", { series_id: series.id });
+    const data = await api("get_series_info", { series_id: series.sid }, sourceOf(series));
     const bySeason = new Map();
     const addEp = (e, seasonKey) => {
       const s = num(e.season) ?? num(seasonKey) ?? 0;
       if (!bySeason.has(s)) bySeason.set(s, []);
       bySeason.get(s).push({
-        id: String(e.id), num: num(e.episode_num) ?? 0, season: s, title: e.title || `Épisode ${e.episode_num}`,
+        id: `${series.src}:${e.id}`, sid: String(e.id), src: series.src, num: num(e.episode_num) ?? 0, season: s, title: e.title || `Épisode ${e.episode_num}`,
         ext: e.container_extension || "mp4", plot: e.info?.plot, image: e.info?.movie_image, duration: num(e.info?.duration_secs),
       });
     };
@@ -591,7 +688,7 @@ function openSeries(series) {
         if (src) thumb.style.backgroundImage = `url("${src}")`;
         const f = progressFraction(key);
         if (f) thumb.append(h("div", { class: "bar" }, h("i", { style: { width: `${f * 100}%` } })));
-        return h("button", { class: "episode", onclick: () => { closeSheet(); playVOD(urls.episode(e.id, e.ext), e.title, `${series.name} · S${e.season} E${e.num}`, key); } },
+        return h("button", { class: "episode", onclick: () => { closeSheet(); playVOD(urls.episode(e), e.title, `${series.name} · S${e.season} E${e.num}`, key); } },
           thumb,
           h("div", { style: { minWidth: 0 } },
             h("div", { class: "t" }, `${e.num}. ${e.title}`, f >= 0.95 ? " ✓" : ""),
@@ -604,7 +701,7 @@ function openSeries(series) {
       hero((Array.isArray(info.backdrop_path) ? info.backdrop_path[0] : info.backdrop_path) || series.backdrop || series.icon),
       h("div", { class: "detail" },
         h("h3", {}, series.name),
-        h("div", { class: "facts" }, [series.year, `${seasons.length} saison${seasons.length > 1 ? "s" : ""}`, series.rating ? `★ ${series.rating.toFixed(1)}` : null].filter(Boolean).join(" · ")),
+        h("div", { class: "facts" }, [series.year, `${seasons.length} saison${seasons.length > 1 ? "s" : ""}`, series.rating ? `★ ${series.rating.toFixed(1)}` : null, multiSource() ? sourceName(series) : null].filter(Boolean).join(" · ")),
         h("div", { class: "actions" }, favBtn),
         (info.plot || series.plot) ? h("p", {}, info.plot || series.plot) : null,
         seasons.length ? [seasonSelect, list] : h("div", { class: "empty" }, "Aucun épisode disponible.")));
@@ -616,25 +713,43 @@ function openSeries(series) {
 
 function renderSettings(top, main) {
   top.append(h("h2", {}, "Réglages"));
-  const info = account.info || {};
-  const exp = num(info.exp_date) ? new Date(num(info.exp_date) * 1000).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) : "Illimité";
+  const fmtDate = (v) => num(v) ? new Date(num(v) * 1000).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }) : "Illimité";
   main.append(
+    h("div", { class: "section-label" }, `Sources (${sources.length})`),
     h("div", { class: "list" },
-      item("Serveur", account.server), item("Utilisateur", account.username),
-      item("Statut", info.status || "—"), item("Expiration", exp),
-      num(info.max_connections) ? item("Connexions", `${info.active_cons ?? 0} / ${info.max_connections}`) : null),
+      sources.map((src) => {
+        const info = src.info || {};
+        const enabled = src.enabled !== false;
+        const row = h("div", { class: "source-row" },
+          h("button", { class: `toggle${enabled ? " on" : ""}`, style: { borderBottom: 0 }, onclick: () => {
+            if (enabled && activeSources().length === 1) { alert("Gardez au moins une source active."); return; }
+            src.enabled = !enabled; saveSources(); resetContent(); renderShell();
+          } },
+            h("span", {}, h("strong", {}, src.name), h("small", {}, `${src.username} · ${hostLabel(src.server)}`),
+              h("small", {}, `${info.status || "—"} · expire : ${fmtDate(info.exp_date)}${num(info.max_connections) ? ` · ${info.active_cons ?? 0}/${info.max_connections} connexions` : ""}`)),
+            h("span", { class: "switch" })),
+          h("div", { class: "source-actions" },
+            h("button", { onclick: () => openSheet((t) => { t.replaceChildren(h("div", { class: "detail", style: { marginTop: "48px" } },
+              h("h3", {}, "Modifier la source"), sourceForm({ existing: src, onDone: () => { closeSheet(); renderShell(); } }))); }) }, "Modifier"),
+            h("button", { style: { color: "var(--live)" }, onclick: () => {
+              if (!confirm(`Supprimer la source « ${src.name} » ?`)) return;
+              sources = sources.filter((x) => x !== src); saveSources(); resetContent();
+              if (!sources.length) renderLogin(); else renderShell();
+            } }, "Supprimer")));
+        return row;
+      }),
+      h("button", { class: "item", style: { width: "100%", color: "var(--accent)" }, onclick: () => openSheet((t) => {
+        t.replaceChildren(h("div", { class: "detail", style: { marginTop: "48px" } }, h("h3", {}, "Ajouter une source"),
+          h("p", { class: "muted" }, "Ses chaînes, films et séries s'ajoutent à ceux des autres sources."),
+          sourceForm({ onDone: () => { closeSheet(); renderShell(); } })));
+      }) }, h("span", {}, "＋ Ajouter une source"), h("span", {}, ""))),
     h("div", { class: "list" },
       h("button", { class: "item", style: { width: "100%" }, onclick: async () => {
-        content.live = null; content.vod.clear(); content.series.clear(); content.epg.clear(); content.vodCats = content.seriesCats = null;
-        try { const a = await api(null); account.info = a.user_info; store.set("ondetv.account", account); } catch {}
+        resetContent();
+        await Promise.allSettled(sources.map(async (src) => { const a = await api(null, {}, src); src.info = a.user_info; }));
+        saveSources();
         renderShell();
-      } }, h("span", {}, "Actualiser chaînes et catalogue"), h("span", {}, "↻")),
-      h("button", { class: "item", style: { width: "100%", color: "var(--live)" }, onclick: () => {
-        if (!confirm("Se déconnecter ?")) return;
-        store.del("ondetv.account");
-        account = { server: account.server, username: account.username };
-        renderLogin();
-      } }, h("span", {}, "Se déconnecter"), h("span", {}, ""))),
+      } }, h("span", {}, "Actualiser chaînes et catalogue"), h("span", {}, "↻"))),
     h("div", { class: "section-label" }, "Lecteur du direct"),
     h("div", { class: "list" }, PREF_LABELS.map(([key, label]) => {
       const row = h("button", { class: `toggle${prefs[key] ? " on" : ""}`, onclick: () => {
@@ -646,8 +761,81 @@ function renderSettings(top, main) {
     h("p", { class: "note" }, "Version web d'OndeTV. Le direct, le replay et les films MP4 se lisent dans Safari ; les fichiers MKV/AVI ne sont pas pris en charge par le navigateur."),
     h("p", { class: "note" }, "Installer : bouton Partager de Safari → « Sur l'écran d'accueil »."),
     h("p", { class: "note" }, "OndeTV est un lecteur : il ne fournit aucun contenu. Utilisez uniquement des abonnements légaux."));
+}
 
-  function item(label, value) { return h("div", { class: "item" }, h("span", {}, label), h("span", {}, value)); }
+// ---------------------------------------------------------------- recherche globale (toutes sources)
+
+let globalQuery = "";
+function renderSearch(top, main) {
+  top.append(h("h2", {}, "Recherche"));
+  let timer = null;
+  let token = 0;
+  const input = h("input", { type: "search", placeholder: "Chaînes, films, séries…", value: globalQuery, autofocus: true,
+    oninput: () => { globalQuery = input.value; clearTimeout(timer); timer = setTimeout(run, 300); } });
+  top.append(h("div", { class: "row" }, input));
+  cleanup = () => clearTimeout(timer);
+
+  async function run() {
+    const q = globalQuery.trim().toLowerCase();
+    const my = ++token;
+    if (q.length < 2) {
+      main.replaceChildren(h("div", { class: "empty" }, multiSource()
+        ? `Tapez au moins 2 lettres. La recherche porte sur vos ${activeSources().length} sources.`
+        : "Tapez au moins 2 lettres pour chercher une chaîne, un film ou une série."));
+      return;
+    }
+    main.replaceChildren(h("div", { class: "loading" }, "Recherche…"));
+    const [live, vod, series] = await Promise.all([
+      loadLive().then(() => content.live).catch(() => []),
+      fetchVOD("__all").catch(() => []),
+      fetchSeries("__all").catch(() => []),
+    ]);
+    if (my !== token) return;
+    const match = (x) => x.name.toLowerCase().includes(q);
+    const ch = live.filter((x) => match(x) || String(x.num) === q);
+    const mv = vod.filter(match);
+    const se = series.filter(match);
+    main.replaceChildren();
+    if (!ch.length && !mv.length && !se.length) { main.append(h("div", { class: "empty" }, "Aucun résultat.")); return; }
+    if (ch.length) {
+      main.append(h("div", { class: "section-label" }, `Chaînes (${ch.length})`));
+      ch.slice(0, 60).forEach((s) => main.append(h("button", { class: "channel", onclick: () => playLive(s, ch, "__all") },
+        h("span", { class: "num" }, s.num ?? ""), logoBox(s),
+        h("div", { class: "info" }, h("div", { class: "name" }, s.name), multiSource() ? h("div", { class: "src-tag" }, sourceName(s)) : null))));
+    }
+    if (mv.length) {
+      main.append(h("div", { class: "section-label" }, `Films (${mv.length})`));
+      const grid = h("div", { class: "grid" });
+      main.append(grid);
+      mv.slice(0, 60).forEach((m) => grid.append(poster(m, () => openMovie(m), progressFraction(`movie-${m.id}`))));
+    }
+    if (se.length) {
+      main.append(h("div", { class: "section-label" }, `Séries (${se.length})`));
+      const grid = h("div", { class: "grid" });
+      main.append(grid);
+      se.slice(0, 60).forEach((x) => grid.append(poster(x, () => openSeries(x))));
+    }
+  }
+  run();
+  setTimeout(() => input.focus(), 50);
+}
+
+let pageToastTimer = null;
+function toastPage(message) {
+  let t = $("#page-toast");
+  if (!t) { t = h("div", { id: "page-toast", class: "page-toast" }); document.body.append(t); }
+  t.textContent = message;
+  t.classList.remove("hidden");
+  clearTimeout(pageToastTimer);
+  pageToastTimer = setTimeout(() => t.classList.add("hidden"), 5000);
+}
+
+/** EPG complet d'une chaîne (passé inclus, pour le replay). */
+async function fullEPG(stream) {
+  const acc = sourceOf(stream);
+  let programs = parseEPG(await api("get_simple_data_table", { stream_id: stream.sid }, acc).catch(() => null));
+  if (!programs.length) programs = parseEPG(await api("get_short_epg", { stream_id: stream.sid, limit: 20 }, acc).catch(() => null));
+  return programs;
 }
 
 // ---------------------------------------------------------------- préférences
@@ -821,7 +1009,7 @@ function playLive(stream, list, groupId) {
   library.lastChannel = { id: stream.id, groupId: player.groupId };
   saveLibrary();
 
-  openPlayer("live", stream.name, stream.num ? `Chaîne ${stream.num}` : (groupTitle(player.groupId) || ""));
+  openPlayer("live", stream.name, [stream.num ? `Chaîne ${stream.num}` : groupTitle(player.groupId), multiSource() ? sourceName(stream) : null].filter(Boolean).join(" · "));
   $("#player-logo").replaceChildren(logoBox(stream));
   $("#player-fav").textContent = library.favChannels.includes(stream.id) ? "★" : "☆";
   $("#banner-num").textContent = stream.num ?? "";
@@ -829,7 +1017,7 @@ function playLive(stream, list, groupId) {
   if (!content.epg.has(stream.id)) requestEPG(stream.id);
   markPlayingInPanel();
   if (prefs.bannerOnZap) wake(4000); else hideUI();
-  startVideo(urls.live(stream.id));
+  startVideo(urls.live(stream));
 }
 
 function updateLiveEPG() {
@@ -863,7 +1051,8 @@ function groupTitle(id) {
   if (id === "__fav") return "Favoris";
   if (id === "__recent") return "Récents";
   if (id === "__all") return "Toutes les chaînes";
-  return content.liveCats?.find((c) => c.id === id)?.name || "";
+  const cat = content.liveCats?.find((c) => c.id === id);
+  return cat ? (multiSource() ? `${sourceName(cat)} · ${cat.name}` : cat.name) : "";
 }
 
 // --- liste des chaînes dépliante (style TiviMate)
@@ -883,6 +1072,8 @@ function openChannelPanel(focus) {
 
 function closePanels() {
   for (const id of ["#channel-panel", "#guide-panel", "#numpad", "#menu"]) $(id).classList.add("hidden");
+  clearTimeout(numpad.timer);
+  numpad.value = "";
   player.panelObserver?.disconnect();
 }
 
@@ -893,7 +1084,7 @@ function drawPanel() {
   panel.rows.clear();
   list.replaceChildren();
   player.panelObserver = new IntersectionObserver((entries) => {
-    for (const e of entries) if (e.isIntersecting) { requestEPG(Number(e.target.dataset.id)); player.panelObserver.unobserve(e.target); }
+    for (const e of entries) if (e.isIntersecting) { requestEPG(e.target.dataset.id); player.panelObserver.unobserve(e.target); }
   }, { root: list, rootMargin: "150px" });
 
   if (q) {
@@ -903,13 +1094,19 @@ function drawPanel() {
     return;
   }
 
+  // Comme TiviMate : les groupes de toutes les sources dans une seule liste, séparés par source.
   const groups = [
     { id: "__recent", name: "🕘 Récents" },
     { id: "__fav", name: "★ Favoris" },
-    ...content.liveCats.map((c) => ({ id: c.id, name: c.name })),
+    ...activeSources().flatMap((src) => [
+      ...(multiSource() ? [{ label: src.name }] : []),
+      ...content.liveCats.filter((c) => c.src === src.id).map((c) => ({ id: c.id, name: c.name })),
+    ]),
+    ...(multiSource() ? [{ label: "Toutes les sources" }] : []),
     { id: "__all", name: "Toutes les chaînes" },
   ];
   for (const g of groups) {
+    if (g.label) { list.append(h("div", { class: "source-label" }, g.label)); continue; }
     const channels = groupList(g.id);
     if (!channels.length && g.id !== "__fav") continue;
     const open = panel.expanded.has(g.id);
@@ -951,7 +1148,8 @@ function panelRow(s, channels, groupId) {
     onclick: () => { playLive(s, channels, groupId); if (prefs.closeListOnSelect) closePanels(); else wake(); },
   },
     h("span", { class: "num" }, s.num ?? ""), logoBox(s),
-    h("div", { class: "info" }, h("div", { class: "name" }, s.name), h("div", { class: "now" }), h("div", { class: "bar hidden" }, h("i"))),
+    h("div", { class: "info" }, h("div", { class: "name" }, s.name), h("div", { class: "now" }), h("div", { class: "bar hidden" }, h("i")),
+      groupId === "__all" || groupId === "__fav" || groupId === "__recent" ? (multiSource() ? h("div", { class: "src-tag" }, sourceName(s)) : null) : null),
     favBtn);
   panel.rows.set(s.id, [...(panel.rows.get(s.id) || []), row]);
   if (content.epg.has(s.id)) fillPanelRow(row, s.id); else player.panelObserver.observe(row);
@@ -984,8 +1182,7 @@ async function openGuidePanel() {
   list.replaceChildren(h("div", { class: "loading" }, "Programme…"));
   el.classList.remove("hidden");
   wake();
-  let programs = parseEPG(await api("get_simple_data_table", { stream_id: stream.id }).catch(() => null));
-  if (!programs.length) programs = parseEPG(await api("get_short_epg", { stream_id: stream.id, limit: 20 }).catch(() => null));
+  let programs = await fullEPG(stream);
   const now = new Date();
   programs = programs.filter((p) => p.end > now - (stream.archiveDays * 86400000 + 3600000));
   if (!programs.length) { list.replaceChildren(h("div", { class: "empty" }, "Aucun programme disponible.")); return; }
@@ -1029,8 +1226,13 @@ function openNumpad(firstDigit = "") {
 }
 function updateNumpad() {
   $("#numpad-display").textContent = numpad.value || "—";
-  const match = numpad.value && content.live.find((s) => String(s.num) === numpad.value);
+  // Numéro cherché d'abord dans la source de la chaîne en cours (les numéros se répètent entre sources).
+  const match = numpad.value && findByNumber(numpad.value);
   $("#numpad-hint").textContent = numpad.value ? (match ? match.name : "Aucune chaîne") : "Numéro de chaîne";
+}
+function findByNumber(n) {
+  const same = content.live.find((s) => String(s.num) === n && s.src === player.stream?.src);
+  return same || content.live.find((s) => String(s.num) === n);
 }
 function typeDigit(d) {
   if (numpad.value.length >= 5) return;
@@ -1041,9 +1243,12 @@ function typeDigit(d) {
 }
 function confirmNumber() {
   clearTimeout(numpad.timer);
-  const match = numpad.value && content.live.find((s) => String(s.num) === numpad.value);
+  const match = numpad.value && findByNumber(numpad.value);
   $("#numpad").classList.add("hidden");
-  if (match) playLive(match, player.groupId === "__all" || groupList(player.groupId).some((s) => s.id === match.id) ? null : content.live, player.groupId === "__all" ? "__all" : undefined);
+  if (match) {
+    const inGroup = groupList(player.groupId).some((s) => s.id === match.id);
+    if (inGroup) playLive(match); else playLive(match, content.live, "__all");
+  }
   else if (numpad.value) toast(`Chaîne ${numpad.value} introuvable`);
   numpad.value = "";
 }
@@ -1263,7 +1468,7 @@ document.addEventListener("visibilitychange", () => { if (document.hidden) saveV
 
 // ---------------------------------------------------------------- démarrage
 
-if (account?.password) {
+if (activeSources().length) {
   renderShell();
   if (prefs.resumeLastChannel && library.lastChannel) {
     loadLive().then(() => {
