@@ -50,7 +50,13 @@ async function api(action, params = {}, acc = account) {
   if (action) u.searchParams.set("action", action);
   for (const [k, v] of Object.entries(params)) u.searchParams.set(k, v);
   const res = await fetch(proxy(u.href));
-  if (!res.ok) throw new Error(res.status === 502 ? "Serveur injoignable." : `Erreur serveur (HTTP ${res.status}).`);
+  if (res.status === 502) {
+    const detail = await res.text().catch(() => "");
+    throw new Error(/dns|resolve|lookup|not known/i.test(detail)
+      ? `Adresse introuvable : « ${new URL(acc.server).hostname} » n'existe pas sur Internet. Vérifiez l'orthographe et le port fournis par votre abonnement.`
+      : `Serveur injoignable (${new URL(acc.server).host}). Vérifiez l'adresse et le port (souvent :8080).`);
+  }
+  if (!res.ok) throw new Error(`Erreur serveur (HTTP ${res.status}).`);
   const text = await res.text();
   try { return JSON.parse(text); } catch { throw new Error("Réponse illisible : vérifiez l'adresse du serveur (http/https, port)."); }
 }
