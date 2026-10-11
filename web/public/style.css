@@ -232,3 +232,21 @@ input, select { font: inherit; color: var(--text); }
 .guide-days { display: flex; gap: 8px; overflow-x: auto; padding: 4px 16px 10px; scrollbar-width: none; }
 .guide-days::-webkit-scrollbar { display: none; }
 .guide-note { margin: 4px 16px 10px; padding: 10px 12px; border-radius: 10px; background: var(--surface); font-size: 13px; color: var(--muted); }
+
+/* Barre de position glissable (style TiviMate) */
+.shift-bar { gap: 12px; margin-bottom: 10px; }
+.shift-time { min-width: 46px; max-width: 45%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+#shift-range { -webkit-appearance: none; appearance: none; height: 28px; background: transparent; touch-action: none; --pos: 0%; --avail: 100%; }
+#shift-range::-webkit-slider-runnable-track { height: 6px; border-radius: 3px;
+  background: linear-gradient(to right, var(--accent) 0 var(--pos), #ffffff70 var(--pos) var(--avail), #ffffff22 var(--avail) 100%); }
+#shift-range::-moz-range-track { height: 6px; border-radius: 3px;
+  background: linear-gradient(to right, var(--accent) 0 var(--pos), #ffffff70 var(--pos) var(--avail), #ffffff22 var(--avail) 100%); }
+#shift-range::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; margin-top: -8px; border-radius: 50%; background: #fff; box-shadow: 0 1px 6px #000a; }
+#shift-range::-moz-range-thumb { width: 22px; height: 22px; border: 0; border-radius: 50%; background: #fff; }
+
+/* Programme d'une chaîne depuis la liste */
+.p-channel .epg-btn { font-size: 17px; padding: 4px 6px; flex: none; opacity: .8; }
+.p-channel.focused { background: #ffffff14; }
+@media (min-width: 760px) {
+  .side-panel.right.beside { left: min(420px, 92vw); right: auto; width: min(460px, calc(100vw - 420px)); box-shadow: none; border-left: 1px solid #ffffff14; }
+}
