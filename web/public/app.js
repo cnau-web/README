@@ -952,12 +952,18 @@ function openPlayer(mode, title, subtitle) {
   $("#player-subtitle").textContent = subtitle || "";
   if (mode !== "live") $("#player-logo").replaceChildren();
   applyAspect();
+  player.minimized = false;
   player.el.classList.remove("hidden");
   player.el.setAttribute("aria-hidden", "false");
   wake();
 }
 
 function closePlayer() {
+  player.minimized = false;
+  if (isPiP()) {
+    if (document.pictureInPictureElement) document.exitPictureInPicture().catch(() => {});
+    else video.webkitSetPresentationMode?.("inline");
+  }
   saveVODProgress();
   clearInterval(player.saveTimer);
   setSleep(0, true);
@@ -1176,31 +1182,61 @@ function togglePause() {
 
 // ---------------------------------------------------------------- image dans l'image (PiP)
 
+const isPiP = () => document.pictureInPictureElement === video || video.webkitPresentationMode === "picture-in-picture";
+
+function waitFor(test, ms) {
+  return new Promise((resolve) => {
+    const t0 = Date.now();
+    const tick = () => (test() ? resolve(true) : Date.now() - t0 > ms ? resolve(false) : setTimeout(tick, 100));
+    tick();
+  });
+}
+
 async function togglePiP() {
+  if (isPiP()) {
+    if (document.pictureInPictureElement) await document.exitPictureInPicture().catch(() => {});
+    else video.webkitSetPresentationMode("inline");
+    return;
+  }
   try {
-    if (document.pictureInPictureElement) { await document.exitPictureInPicture(); return; }
-    if (video.webkitPresentationMode === "picture-in-picture") { video.webkitSetPresentationMode("inline"); return; }
     if (video.paused) await video.play().catch(() => {});
-    if (video.webkitSupportsPresentationMode?.("picture-in-picture")) {
-      video.webkitSetPresentationMode("picture-in-picture");
-      // iOS refuse parfois en silence (app sur l'écran d'accueil) : on vérifie.
-      await new Promise((r) => setTimeout(r, 700));
-      if (video.webkitPresentationMode === "picture-in-picture") return;
-    } else if (video.requestPictureInPicture && document.pictureInPictureEnabled) {
-      await video.requestPictureInPicture();
-      return;
-    }
-    throw new Error("refusé");
+    if (video.webkitSupportsPresentationMode?.("picture-in-picture")) video.webkitSetPresentationMode("picture-in-picture");
+    else if (video.requestPictureInPicture) await video.requestPictureInPicture();
+    else throw new Error("non pris en charge");
+    // L'animation d'iOS prend un moment : on attend jusqu'à 2,5 s avant de conclure.
+    if (!(await waitFor(isPiP, 2500))) throw new Error("refusé");
   } catch {
-    // Repli : lecteur plein écran natif d'iOS, qui a son propre bouton PiP.
-    if (video.webkitEnterFullscreen) {
-      video.webkitEnterFullscreen();
-      toast("Touchez l'icône PiP en haut du lecteur iOS");
-    } else {
-      toast("Image dans l'image indisponible sur cet appareil");
-    }
+    toast("iOS n'a pas ouvert le PiP · essayez Options → Lecteur plein écran iOS");
   }
 }
+
+// Fermer le lecteur pendant le PiP : la vidéo continue dans la fenêtre flottante.
+// Sortie du PiP : « agrandir » rouvre le lecteur, « fermer » arrête la lecture.
+function onPiPChange() {
+  if (isPiP()) return;
+  if (!player.minimized) return;
+  player.minimized = false;
+  setTimeout(() => {
+    if (!video.paused && video.currentSrc) {
+      player.el.classList.remove("hidden");
+      player.el.setAttribute("aria-hidden", "false");
+      wake();
+    } else {
+      closePlayer();
+    }
+  }, 300);
+}
+video.addEventListener("webkitpresentationmodechanged", onPiPChange);
+video.addEventListener("leavepictureinpicture", onPiPChange);
+
+function minimizeToPiP() {
+  closePanels();
+  player.minimized = true;
+  player.el.classList.add("hidden");
+  player.el.setAttribute("aria-hidden", "true");
+  if (currentTab === "live") renderShell();
+}
+
 document.addEventListener("epg", (e) => { if (e.detail === player.stream?.id) updateLiveEPG(); });
 setInterval(updateLiveEPG, 30000);
 
@@ -1542,7 +1578,7 @@ function toggleCurrentFav() {
 
 function playCatchup(stream, program) {
   player.catchupFrom = stream;
-  playVOD(urls.catchup(stream.id, program), program.title,
+  playVOD(urls.catchup(stream, program), program.title,
     `${stream.name} · ${program.start.toLocaleString("fr-FR", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}`, null);
 }
 
@@ -1566,6 +1602,7 @@ function saveVODProgress() {
 // --- commandes et gestes
 
 $("#player-close").addEventListener("click", () => {
+  if (isPiP()) { minimizeToPiP(); return; }
   // Depuis un replay, on revient au direct de la chaîne (comme TiviMate).
   if (player.mode === "vod" && player.catchupFrom) { const s = player.catchupFrom; player.catchupFrom = null; saveVODProgress(); playLive(s); return; }
   player.catchupFrom = null;
