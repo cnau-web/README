@@ -221,3 +221,14 @@ input, select { font: inherit; color: var(--text); }
 .source-actions { display: flex; gap: 18px; padding: 0 16px 12px; font-size: 14px; color: var(--accent); }
 .page-toast { position: fixed; z-index: 40; left: 50%; bottom: calc(80px + var(--safe-bottom)); transform: translateX(-50%); max-width: 92vw;
   padding: 10px 16px; border-radius: 12px; background: #2a1013; color: #ffb3b8; font-size: 13px; }
+
+/* Retour en arrière dans le direct (timeshift) */
+.shift-bar { display: flex; align-items: center; gap: 10px; max-width: 760px; margin: 0 auto 8px; font-size: 12px; font-variant-numeric: tabular-nums; }
+.shift-bar input[type=range] { flex: 1; accent-color: var(--accent); }
+.shift-time { min-width: 40px; }
+.shift-delay { min-width: 64px; text-align: right; color: #ffcf5c; font-weight: 700; }
+.live-controls button.live-btn { background: var(--live); }
+.live-badge.shifted { background: #c98a00; }
+.guide-days { display: flex; gap: 8px; overflow-x: auto; padding: 4px 16px 10px; scrollbar-width: none; }
+.guide-days::-webkit-scrollbar { display: none; }
+.guide-note { margin: 4px 16px 10px; padding: 10px 12px; border-radius: 10px; background: var(--surface); font-size: 13px; color: var(--muted); }

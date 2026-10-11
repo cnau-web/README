@@ -96,14 +96,14 @@ const urls = {
   live: (s) => `${base(s).replace("%s", "live")}/${s.sid}.m3u8`,
   movie: (m, ext) => `${base(m).replace("%s", "movie")}/${m.sid}.${ext || m.ext || "mp4"}`,
   episode: (e) => `${base(e).replace("%s", "series")}/${e.sid}.${e.ext || "mp4"}`,
-  catchup(stream, program) {
+  catchup: (stream, program) => urls.timeshift(stream, program.start, Math.max(1, Math.ceil((program.end - program.start) / 60000))),
+  timeshift(stream, startDate, minutes) {
     const acc = sourceOf(stream);
     const tz = acc.timezone || undefined;
     const parts = Object.fromEntries(new Intl.DateTimeFormat("en-GB", {
       timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23",
-    }).formatToParts(program.start).map((p) => [p.type, p.value]));
+    }).formatToParts(startDate).map((p) => [p.type, p.value]));
     const start = `${parts.year}-${parts.month}-${parts.day}:${parts.hour}-${parts.minute}`;
-    const minutes = Math.max(1, Math.ceil((program.end - program.start) / 60000));
     return `${base(stream).replace("%s", "timeshift")}/${minutes}/${start}/${stream.sid}.m3u8`;
   },
 };
@@ -356,6 +356,7 @@ function channelsFor(cat) {
   if (cat === "__fav") return library.favChannels.map((id) => content.liveById.get(id)).filter(Boolean);
   if (cat === "__recent") return library.recents.map((id) => content.liveById.get(id)).filter(Boolean);
   if (cat === "__all") return content.live;
+  if (cat === "__replay") return content.live.filter((x) => x.archive);
   return content.live.filter((s) => s.cat === cat);
 }
 
@@ -368,6 +369,7 @@ async function renderLive(top, main) {
   const select = h("select", { onchange: () => { liveCategory = select.value; store.set("ondetv.liveCat", liveCategory); draw(); } },
     h("option", { value: "__fav" }, `★ Favoris (${library.favChannels.length})`),
     h("option", { value: "__recent" }, "Récents"),
+    h("option", { value: "__replay" }, `⟲ Chaînes avec replay (${content.live.filter((x) => x.archive).length})`),
     h("option", { value: "__all" }, `Toutes les chaînes (${content.live.length})`),
     categoryOptions(content.liveCats));
   select.value = liveCategory;
@@ -915,7 +917,11 @@ async function startVideo(url, startAt = 0) {
   } else {
     video.src = src;
   }
-  video.onloadedmetadata = () => { if (startAt > 0 && Number.isFinite(video.duration)) video.currentTime = startAt; };
+  video.onloadedmetadata = () => {
+    if (startAt <= 0) return;
+    const end = Number.isFinite(video.duration) ? video.duration : (video.seekable.length ? video.seekable.end(video.seekable.length - 1) : 0);
+    if (end > startAt) video.currentTime = startAt;
+  };
   video.play().catch(() => status("Touchez ▶ pour lancer la lecture.", [h("button", { class: "btn primary", onclick: () => video.play() }, "▶ Lecture")]));
 }
 
@@ -929,7 +935,10 @@ function onVideoError() {
   if (player.mode === "live") actions.push(h("button", { class: "btn", style: { marginLeft: "8px" }, onclick: () => zap(1) }, "Chaîne suivante"));
   status(player.mode === "live" ? "Chaîne indisponible pour le moment." : "Lecture impossible (format non pris en charge par le navigateur ou flux indisponible).", actions);
 }
-function retry() { if (player.mode === "live") playLive(player.stream); else if (player.lastVOD) playVOD(...player.lastVOD); }
+function retry() {
+  if (player.mode === "live") { if (player.shift) shiftTo(watchedTime()); else playLive(player.stream); }
+  else if (player.lastVOD) playVOD(...player.lastVOD);
+}
 
 function openPlayer(mode, title, subtitle) {
   player.mode = mode;
@@ -938,7 +947,6 @@ function openPlayer(mode, title, subtitle) {
   $("#tap-layer").classList.toggle("hidden", mode === "vod");
   $("#live-ui").classList.toggle("hidden", mode !== "live");
   $("#player-fav").classList.toggle("hidden", mode !== "live");
-  $("#btn-pip").classList.toggle("hidden", !(video.webkitSupportsPresentationMode?.("picture-in-picture") || document.pictureInPictureEnabled));
   $("#btn-airplay").classList.toggle("hidden", !video.webkitShowPlaybackTargetPicker);
   $("#player-title").textContent = title;
   $("#player-subtitle").textContent = subtitle || "";
@@ -1001,6 +1009,8 @@ function groupList(groupId) {
 function playLive(stream, list, groupId) {
   if (!stream) return;
   if (player.stream && player.stream.id !== stream.id) player.previous = { stream: player.stream, playlist: player.playlist, groupId: player.groupId };
+  player.shift = null;
+  player.pausedAt = null;
   player.stream = stream;
   if (groupId) player.groupId = groupId;
   if (list?.length) player.playlist = list;
@@ -1016,19 +1026,180 @@ function playLive(stream, list, groupId) {
   updateLiveEPG();
   if (!content.epg.has(stream.id)) requestEPG(stream.id);
   markPlayingInPanel();
+  updateShiftUI();
   if (prefs.bannerOnZap) wake(4000); else hideUI();
   startVideo(urls.live(stream));
+  if (stream.archive) loadFullEPG(stream);
 }
 
 function updateLiveEPG() {
   if (player.mode !== "live" || !player.stream) return;
-  const now = nowProgram(player.stream.id);
-  const next = nextProgram(player.stream.id);
+  const t = watchedTime();
+  const now = programAt(player.stream, t);
+  const next = programAfter(player.stream, t);
   $("#epg-now").textContent = now ? now.title : "Pas d'information de programme";
   $("#epg-start").textContent = now ? hm(now.start) : "";
   $("#epg-end").textContent = now ? hm(now.end) : "";
-  $("#epg-progress").style.width = now ? `${progress(now)}%` : "0";
+  $("#epg-progress").style.width = now ? `${progress(now, t)}%` : "0";
   $("#epg-next").textContent = next ? `Ensuite ${hm(next.start)} · ${next.title}` : "";
+  const badge = document.querySelector("#live-banner .live-badge");
+  badge.textContent = player.shift ? "DIFFÉRÉ" : "DIRECT";
+  badge.classList.toggle("shifted", !!player.shift);
+}
+
+// ---------------------------------------------------------------- retour en arrière dans le direct (timeshift)
+// Utilise l'archive du fournisseur (chaînes « replay ») : /timeshift/…/<durée>/<début>/<id>.m3u8
+
+const fullEPGCache = new Map();
+async function loadFullEPG(stream) {
+  const cached = fullEPGCache.get(stream.id);
+  if (cached && Date.now() - cached.at < 10 * 60000) return cached.programs;
+  const programs = await fullEPG(stream).catch(() => []);
+  fullEPGCache.set(stream.id, { at: Date.now(), programs });
+  if (player.stream?.id === stream.id) { updateLiveEPG(); updateShiftUI(); }
+  return programs;
+}
+const knownPrograms = (stream) => {
+  const full = fullEPGCache.get(stream.id)?.programs || [];
+  return full.length ? full : (content.epg.get(stream.id) || []);
+};
+const programAt = (stream, t) => knownPrograms(stream).find((p) => p.start <= t && t < p.end);
+const programAfter = (stream, t) => knownPrograms(stream).find((p) => p.start > t);
+
+/** Heure réelle de l'image affichée (maintenant en direct, plus tôt en différé). */
+function watchedTime() {
+  if (!player.shift) return new Date();
+  return new Date(player.shift.start.getTime() + (video.currentTime || 0) * 1000);
+}
+
+function loadedEnd() {
+  if (Number.isFinite(video.duration)) return video.duration;
+  return video.seekable.length ? video.seekable.end(video.seekable.length - 1) : 0;
+}
+
+function shiftTo(target) {
+  const s = player.stream;
+  if (!s) return;
+  if (!s.archive) { toast("Retour en arrière impossible : pas de replay sur cette chaîne"); return; }
+  const now = Date.now();
+  if (target.getTime() >= now - 20000) { goLive(); return; }
+  const oldest = now - s.archiveDays * 86400000 + 60000;
+  if (target.getTime() < oldest) target = new Date(oldest);
+
+  // Déjà dans le flux différé chargé ? On se déplace sans recharger.
+  if (player.shift) {
+    const offset = (target - player.shift.start) / 1000;
+    if (offset >= 0 && offset < loadedEnd() - 2) {
+      video.currentTime = offset;
+      updateShiftUI();
+      updateLiveEPG();
+      return;
+    }
+  }
+  const start = new Date(Math.floor(target.getTime() / 60000) * 60000);
+  const prog = programAt(s, target);
+  const until = Math.max(prog ? prog.end.getTime() : 0, now + 3 * 3600000);
+  const minutes = Math.max(5, Math.ceil((until - start) / 60000));
+  player.shift = { start, minutes };
+  startVideo(urls.timeshift(s, start, minutes), (target - start) / 1000);
+  updateShiftUI();
+  updateLiveEPG();
+  wake();
+}
+
+function goLive() {
+  if (!player.stream) return;
+  const wasShifted = !!player.shift;
+  player.shift = null;
+  player.pausedAt = null;
+  if (wasShifted) startVideo(urls.live(player.stream));
+  else if (video.paused) video.play();
+  updateShiftUI();
+  updateLiveEPG();
+  toast("Retour au direct");
+}
+
+const skip = (seconds) => shiftTo(new Date(watchedTime().getTime() + seconds * 1000));
+
+function restartProgram() {
+  const s = player.stream;
+  if (!s?.archive) { toast("Reprise du début impossible : pas de replay sur cette chaîne"); return; }
+  const p = programAt(s, watchedTime());
+  if (!p) { toast("Programme inconnu : recul de 10 minutes"); skip(-600); return; }
+  shiftTo(new Date(p.start.getTime() + 1000));
+  toast(`Reprise au début : ${p.title}`);
+}
+
+function updateShiftUI() {
+  const shifted = !!player.shift;
+  $("#btn-golive").classList.toggle("hidden", !shifted);
+  $("#btn-forward").classList.toggle("hidden", !shifted);
+  const bar = $("#shift-bar");
+  const s = player.stream;
+  if (!s || !s.archive || player.mode !== "live") { bar.classList.add("hidden"); return; }
+  const t = watchedTime();
+  const p = programAt(s, t);
+  bar.classList.toggle("hidden", !shifted && !p);
+  const winStart = p ? p.start : new Date(Date.now() - 3600000);
+  const winEnd = p ? p.end : new Date();
+  const range = $("#shift-range");
+  if (!range.matches(":active")) range.value = Math.round(((t - winStart) / (winEnd - winStart)) * 1000);
+  range.dataset.start = winStart.getTime();
+  range.dataset.end = winEnd.getTime();
+  $("#shift-time").textContent = hm(t);
+  const delay = Math.round((Date.now() - t) / 60000);
+  $("#shift-delay").textContent = shifted ? (delay >= 1 ? `−${delay} min` : "−<1 min") : "DIRECT";
+}
+setInterval(() => { if (player.mode === "live") { updateShiftUI(); if (player.shift) updateLiveEPG(); } }, 1000);
+
+const rangeTime = (r) => new Date(Number(r.dataset.start) + (Number(r.value) / 1000) * (Number(r.dataset.end) - Number(r.dataset.start)));
+$("#shift-range").addEventListener("change", (e) => shiftTo(rangeTime(e.target)));
+$("#shift-range").addEventListener("input", (e) => { $("#shift-time").textContent = hm(rangeTime(e.target)); wake(); });
+
+// Pause du direct : à la reprise, on repart de l'instant de la pause (chaînes avec replay).
+function togglePause() {
+  if (player.mode !== "live") { video.paused ? video.play() : video.pause(); return; }
+  if (!video.paused) {
+    video.pause();
+    if (!player.shift) player.pausedAt = new Date();
+    return;
+  }
+  if (player.pausedAt && player.stream?.archive && Date.now() - player.pausedAt > 15000) {
+    const at = player.pausedAt;
+    player.pausedAt = null;
+    shiftTo(at);
+  } else {
+    player.pausedAt = null;
+    video.play();
+  }
+}
+
+// ---------------------------------------------------------------- image dans l'image (PiP)
+
+async function togglePiP() {
+  try {
+    if (document.pictureInPictureElement) { await document.exitPictureInPicture(); return; }
+    if (video.webkitPresentationMode === "picture-in-picture") { video.webkitSetPresentationMode("inline"); return; }
+    if (video.paused) await video.play().catch(() => {});
+    if (video.webkitSupportsPresentationMode?.("picture-in-picture")) {
+      video.webkitSetPresentationMode("picture-in-picture");
+      // iOS refuse parfois en silence (app sur l'écran d'accueil) : on vérifie.
+      await new Promise((r) => setTimeout(r, 700));
+      if (video.webkitPresentationMode === "picture-in-picture") return;
+    } else if (video.requestPictureInPicture && document.pictureInPictureEnabled) {
+      await video.requestPictureInPicture();
+      return;
+    }
+    throw new Error("refusé");
+  } catch {
+    // Repli : lecteur plein écran natif d'iOS, qui a son propre bouton PiP.
+    if (video.webkitEnterFullscreen) {
+      video.webkitEnterFullscreen();
+      toast("Touchez l'icône PiP en haut du lecteur iOS");
+    } else {
+      toast("Image dans l'image indisponible sur cet appareil");
+    }
+  }
 }
 document.addEventListener("epg", (e) => { if (e.detail === player.stream?.id) updateLiveEPG(); });
 setInterval(updateLiveEPG, 30000);
@@ -1051,6 +1222,7 @@ function groupTitle(id) {
   if (id === "__fav") return "Favoris";
   if (id === "__recent") return "Récents";
   if (id === "__all") return "Toutes les chaînes";
+  if (id === "__replay") return "Chaînes avec replay";
   const cat = content.liveCats?.find((c) => c.id === id);
   return cat ? (multiSource() ? `${sourceName(cat)} · ${cat.name}` : cat.name) : "";
 }
@@ -1098,6 +1270,7 @@ function drawPanel() {
   const groups = [
     { id: "__recent", name: "🕘 Récents" },
     { id: "__fav", name: "★ Favoris" },
+    { id: "__replay", name: "⟲ Chaînes avec replay" },
     ...activeSources().flatMap((src) => [
       ...(multiSource() ? [{ label: src.name }] : []),
       ...content.liveCats.filter((c) => c.src === src.id).map((c) => ({ id: c.id, name: c.name })),
@@ -1176,22 +1349,43 @@ async function openGuidePanel() {
   if (!player.stream) return;
   closePanels();
   const stream = player.stream;
-  const el = $("#guide-panel");
   const list = $("#guide-list");
-  $("#guide-title").textContent = stream.name;
+  $("#guide-title").textContent = stream.archive ? `Replay · ${stream.name}` : stream.name;
   list.replaceChildren(h("div", { class: "loading" }, "Programme…"));
-  el.classList.remove("hidden");
+  $("#guide-panel").classList.remove("hidden");
   wake();
-  let programs = await fullEPG(stream);
+  const all = await loadFullEPG(stream);
+  if (player.stream?.id !== stream.id) return;
   const now = new Date();
-  programs = programs.filter((p) => p.end > now - (stream.archiveDays * 86400000 + 3600000));
-  if (!programs.length) { list.replaceChildren(h("div", { class: "empty" }, "Aucun programme disponible.")); return; }
-  list.replaceChildren();
+  const programs = all.filter((p) => p.end > now - (stream.archiveDays * 86400000 + 3600000));
+  list.replaceChildren(h("div", { class: "guide-note" }, stream.archive
+    ? `Replay disponible sur ${stream.archiveDays} jour${stream.archiveDays > 1 ? "s" : ""} : touchez un programme passé (▶) pour le revoir, ou le programme en cours pour le reprendre au début.`
+    : "Cette chaîne ne propose pas de replay chez votre fournisseur. Les chaînes avec replay sont marquées ⟲ (catégorie « Chaînes avec replay »)."));
+  if (!programs.length) { list.append(h("div", { class: "empty" }, "Aucun programme disponible.")); return; }
+
+  // Raccourcis par jour, comme le guide de TiviMate
+  const dayKey = (d) => d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+  const today = dayKey(now);
+  const yesterday = dayKey(new Date(now - 86400000));
+  const days = [...new Set(programs.map((p) => dayKey(p.start)))];
+  const dayLabel = (d) => d === today ? "Aujourd'hui" : d === yesterday ? "Hier" : d.split(" ").slice(0, 2).join(" ");
+  const anchors = new Map();
+  if (days.length > 1) {
+    list.append(h("div", { class: "guide-days" }, days.map((d) => h("button", {
+      class: `chip${d === today ? " active" : ""}`,
+      onclick: (e) => {
+        list.querySelectorAll(".guide-days .chip").forEach((c) => c.classList.remove("active"));
+        e.currentTarget.classList.add("active");
+        anchors.get(d)?.scrollIntoView({ block: "start" });
+      },
+    }, dayLabel(d)))));
+  }
+
   let lastDay = "";
   let liveRow = null;
   for (const p of programs) {
-    const day = p.start.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
-    if (day !== lastDay) { list.append(h("div", { class: "day", style: { padding: "0 16px" } }, day)); lastDay = day; }
+    const day = dayKey(p.start);
+    if (day !== lastDay) { const head = h("div", { class: "day", style: { padding: "0 16px" } }, day); anchors.set(day, head); list.append(head); lastDay = day; }
     const live = p.start <= now && now < p.end;
     const past = p.end <= now;
     const replay = past && stream.archive && (p.archive || p.start > now - stream.archiveDays * 86400000);
@@ -1199,13 +1393,16 @@ async function openGuidePanel() {
       class: `program${live ? " live" : ""}${past ? " past" : ""}${replay ? " replay" : ""}`, style: { padding: "10px 16px" },
       onclick: () => {
         if (replay) { closePanels(); playCatchup(stream, p); }
-        else if (live) closePanels();
+        else if (live && stream.archive) { closePanels(); shiftTo(new Date(p.start.getTime() + 1000)); toast(`Reprise au début : ${p.title}`); }
+        else if (live) { closePanels(); goLive(); }
         else row.querySelector(".d")?.classList.toggle("open");
       },
     },
       h("span", { class: "time" }, hm(p.start)),
       h("span", { style: { flex: 1, minWidth: 0 } },
-        h("div", {}, p.title, live ? h("span", { class: "tag" }, "EN DIRECT") : replay ? h("span", { class: "tag" }, "▶ REVOIR") : null),
+        h("div", {}, p.title,
+          live ? h("span", { class: "tag" }, stream.archive ? "EN DIRECT · ⏮ reprendre au début" : "EN DIRECT")
+            : replay ? h("span", { class: "tag" }, "▶ REVOIR") : null),
         p.description ? h("div", { class: "d muted", style: { fontSize: "13px" } }, p.description) : null));
     if (live) liveRow = row;
     list.append(row);
@@ -1294,6 +1491,8 @@ function openOptions() {
       label: m ? `${m} minutes` : "Désactivée", selected: m === 0 && !player.sleepAt, action: () => setSleep(m),
     }))) },
     stream ? { label: library.favChannels.includes(stream.id) ? "Retirer des favoris" : "Ajouter aux favoris", action: toggleCurrentFav } : null,
+    { label: "Image dans l'image (PiP)", action: togglePiP },
+    { label: "Lecteur plein écran iOS", action: () => video.webkitEnterFullscreen ? video.webkitEnterFullscreen() : video.requestFullscreen?.() },
     { label: "Recharger la chaîne", action: retry },
     { label: "Informations du flux", action: () => toast(video.videoWidth ? `${video.videoWidth}×${video.videoHeight}${player.hls ? " · hls.js" : " · HLS natif"}` : "Flux non chargé") },
     { label: "Préférences du lecteur", action: openPrefsMenu },
@@ -1373,13 +1572,7 @@ $("#player-close").addEventListener("click", () => {
   closePlayer();
 });
 $("#player-fav").addEventListener("click", toggleCurrentFav);
-$("#btn-pip").addEventListener("click", () => {
-  if (video.webkitSupportsPresentationMode?.("picture-in-picture")) {
-    video.webkitSetPresentationMode(video.webkitPresentationMode === "picture-in-picture" ? "inline" : "picture-in-picture");
-  } else if (document.pictureInPictureEnabled) {
-    (document.pictureInPictureElement ? document.exitPictureInPicture() : video.requestPictureInPicture()).catch(() => toast("PiP indisponible"));
-  }
-});
+$("#btn-pip").addEventListener("click", togglePiP);
 $("#btn-airplay").addEventListener("click", () => video.webkitShowPlaybackTargetPicker?.());
 player.el.addEventListener("click", (e) => { if (e.target.closest("[data-panel-close]")) { closePanels(); wake(); } });
 
@@ -1393,7 +1586,11 @@ $("#live-ui").addEventListener("click", (e) => {
     previous: goPrevious,
     guide: openGuidePanel,
     number: () => openNumpad(),
-    pause: () => (video.paused ? video.play() : video.pause()),
+    pause: togglePause,
+    back: () => skip(-30),
+    forward: () => skip(30),
+    restart: restartProgram,
+    golive: goLive,
     aspect: cycleAspect,
     more: openOptions,
   })[b.dataset.act]?.();
@@ -1458,8 +1655,12 @@ document.addEventListener("keydown", (e) => {
     confirmNumber();
   } else if (live && e.key === "Enter" && !anyOverlayOpen()) {
     openChannelPanel();
+  } else if (live && (e.key === "j" || e.key === "J")) {
+    skip(-30);
+  } else if (live && (e.key === "l" || e.key === "L")) {
+    skip(30);
   } else if (e.key === " ") {
-    video.paused ? video.play() : video.pause();
+    togglePause();
   } else return;
   e.preventDefault();
   wake();

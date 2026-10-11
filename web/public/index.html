@@ -18,7 +18,7 @@
   <div id="app"></div>
 
   <div id="player" class="player hidden" aria-hidden="true">
-    <video id="video" playsinline webkit-playsinline autoplay x-webkit-airplay="allow"></video>
+    <video id="video" playsinline webkit-playsinline autoplay autopictureinpicture x-webkit-airplay="allow"></video>
     <div id="tap-layer" class="tap-layer"></div>
 
     <div class="player-top">
@@ -28,12 +28,17 @@
         <strong id="player-title"></strong>
         <span id="player-subtitle"></span>
       </div>
-      <button id="btn-pip" class="icon-btn hidden" aria-label="Image dans l'image">⧉</button>
+      <button id="btn-pip" class="icon-btn" aria-label="Image dans l'image">⧉</button>
       <button id="btn-airplay" class="icon-btn hidden" aria-label="AirPlay">⎚</button>
       <button id="player-fav" class="icon-btn hidden" aria-label="Favori">☆</button>
     </div>
 
     <div id="live-ui" class="live-ui hidden">
+      <div id="shift-bar" class="shift-bar hidden">
+        <span id="shift-time" class="shift-time"></span>
+        <input id="shift-range" type="range" min="0" max="1000" value="1000" aria-label="Position dans le programme">
+        <span id="shift-delay" class="shift-delay"></span>
+      </div>
       <div id="live-banner" class="live-banner">
         <div class="banner-num" id="banner-num"></div>
         <div class="banner-body">
@@ -44,9 +49,13 @@
       </div>
       <div class="live-controls">
         <button data-act="list"><span>☰</span>Chaînes</button>
+        <button data-act="back"><span>⏪</span>−30 s</button>
+        <button data-act="restart"><span>⏮</span>Début</button>
+        <button data-act="forward" id="btn-forward" class="hidden"><span>⏩</span>+30 s</button>
+        <button data-act="golive" id="btn-golive" class="hidden live-btn"><span>●</span>Direct</button>
+        <button data-act="guide"><span>⟲</span>Replay</button>
         <button data-act="recents"><span>🕘</span>Récents</button>
         <button data-act="previous"><span>⇆</span>Précédente</button>
-        <button data-act="guide"><span>📅</span>Guide</button>
         <button data-act="number"><span>#</span>N°</button>
         <button data-act="pause" id="btn-pause"><span>⏸</span>Pause</button>
         <button data-act="aspect" id="btn-aspect"><span>⤢</span>Ajusté</button>
