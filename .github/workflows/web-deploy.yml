@@ -1,0 +1,25 @@
+name: Web — déploiement Render
+
+# Déclenche le déploiement de la version web sur Render à chaque modification de web/.
+# Secret requis : RENDER_DEPLOY_HOOK (Render → service ondetv → Settings → Deploy Hook).
+
+on:
+  push:
+    branches: [claude/ios-xtream-player]
+    paths: ["web/**", "render.yaml", ".github/workflows/web-deploy.yml"]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Déclencher Render
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "::notice::Secret RENDER_DEPLOY_HOOK absent : déploiement automatique ignoré."
+            exit 0
+          fi
+          curl -fsS -X POST "$HOOK" > /dev/null
+          echo "::notice::Déploiement Render lancé."
