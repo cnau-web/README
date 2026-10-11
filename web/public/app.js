@@ -341,11 +341,17 @@ async function renderLive(top, main) {
       main.append(h("div", { class: "empty" }, q ? "Aucun résultat." : liveCategory === "__fav" ? "Aucun favori. Ouvrez une chaîne (ⓘ) pour l'ajouter." : "Aucune chaîne."));
       return;
     }
+    const recents = library.recents.map((id) => content.liveById.get(id)).filter(Boolean).slice(0, 12);
+    if (!q && liveCategory !== "__recent" && recents.length) {
+      main.append(h("div", { class: "section-label" }, "Derniers visionnages"),
+        h("div", { class: "recent-strip" }, recents.map((s) => h("button", { class: "recent-card", onclick: () => playLive(s, recents, "__recent") }, logoBox(s), h("span", {}, s.name)))),
+        h("div", { class: "section-label" }, groupTitle(liveCategory)));
+    }
     stopChunks = renderChunked(main, list, (s) => {
       const row = h("div", { class: "channel", "data-id": s.id },
         h("span", { class: "num" }, s.num ?? ""),
         logoBox(s),
-        h("button", { class: "info", style: { textAlign: "left" }, onclick: () => playLive(s, list) },
+        h("button", { class: "info", style: { textAlign: "left" }, onclick: () => playLive(s, list, liveCategory) },
           h("div", { class: "name" }, s.name, library.favChannels.includes(s.id) ? h("span", { class: "star" }, " ★") : null, s.archive ? h("span", { class: "muted" }, " ⟲") : null),
           h("div", { class: "now" }), h("div", { class: "bar hidden" }, h("i"))),
         h("button", { class: "info-btn", "aria-label": "Programme", onclick: () => openChannel(s, list) }, "ⓘ"));
@@ -365,7 +371,7 @@ function openChannel(stream, list) {
       h("div", { style: { display: "flex", gap: "12px", alignItems: "center", marginBottom: "14px" } }, logoBox(stream),
         h("div", {}, h("h3", {}, stream.name), h("div", { class: "facts", style: { margin: 0 } },
           [stream.num ? `N° ${stream.num}` : null, stream.archive ? `Replay ${stream.archiveDays} j` : null].filter(Boolean).join(" · ")))),
-      h("div", { class: "actions" }, h("button", { class: "btn primary", onclick: () => { closeSheet(); playLive(stream, list); } }, "▶ Regarder"), favBtn));
+      h("div", { class: "actions" }, h("button", { class: "btn primary", onclick: () => { closeSheet(); playLive(stream, list, liveCategory); } }, "▶ Regarder"), favBtn));
     const epgBox = h("div", { class: "detail", style: { marginTop: 0 } }, h("div", { class: "loading" }, "Programme…"));
     target.replaceChildren(header, epgBox);
 
@@ -388,7 +394,7 @@ function openChannel(stream, list) {
       const row = h("button", {
         class: `program${live ? " live" : ""}${past ? " past" : ""}${replay ? " replay" : ""}`,
         onclick: () => {
-          if (live) { closeSheet(); playLive(stream, list); }
+          if (live) { closeSheet(); playLive(stream, list, liveCategory); }
           else if (replay) { closeSheet(); playCatchup(stream, p); }
           else row.querySelector(".d")?.classList.toggle("open");
         },
@@ -629,6 +635,14 @@ function renderSettings(top, main) {
         account = { server: account.server, username: account.username };
         renderLogin();
       } }, h("span", {}, "Se déconnecter"), h("span", {}, ""))),
+    h("div", { class: "section-label" }, "Lecteur du direct"),
+    h("div", { class: "list" }, PREF_LABELS.map(([key, label]) => {
+      const row = h("button", { class: `toggle${prefs[key] ? " on" : ""}`, onclick: () => {
+        prefs[key] = !prefs[key]; savePrefs(); row.classList.toggle("on", prefs[key]);
+      } }, h("span", {}, label), h("span", { class: "switch" }));
+      return row;
+    })),
+    h("p", { class: "note" }, "Pendant le direct : glisser haut/bas = zapper, glisser vers la droite = liste des chaînes, vers la gauche = guide, double toucher = chaîne précédente. Clavier : flèches, chiffres, Entrée."),
     h("p", { class: "note" }, "Version web d'OndeTV. Le direct, le replay et les films MP4 se lisent dans Safari ; les fichiers MKV/AVI ne sont pas pris en charge par le navigateur."),
     h("p", { class: "note" }, "Installer : bouton Partager de Safari → « Sur l'écran d'accueil »."),
     h("p", { class: "note" }, "OndeTV est un lecteur : il ne fournit aucun contenu. Utilisez uniquement des abonnements légaux."));
@@ -636,13 +650,38 @@ function renderSettings(top, main) {
   function item(label, value) { return h("div", { class: "item" }, h("span", {}, label), h("span", {}, value)); }
 }
 
+// ---------------------------------------------------------------- préférences
+
+const PREF_DEFAULTS = {
+  tapOpensList: false,     // toucher la vidéo : ouvre la liste des chaînes (sinon affiche les commandes)
+  invertZap: false,        // inverser le sens du zapping (glisser / flèches)
+  swipeZap: true,          // zapper en glissant vers le haut / le bas
+  bannerOnZap: true,       // bandeau d'infos à chaque changement de chaîne
+  closeListOnSelect: true, // fermer la liste après avoir choisi une chaîne
+  resumeLastChannel: false,// relancer la dernière chaîne à l'ouverture de l'app
+  aspect: "contain",       // format d'image par défaut
+};
+const prefs = { ...PREF_DEFAULTS, ...store.get("ondetv.prefs", {}) };
+const savePrefs = () => store.set("ondetv.prefs", prefs);
+
+const ASPECTS = [
+  { id: "contain", label: "Ajusté" },
+  { id: "cover", label: "Remplir" },
+  { id: "fill", label: "Étiré" },
+  { id: "zoom", label: "Zoom" },
+];
+
 // ---------------------------------------------------------------- lecteur
 
 const player = {
-  el: $("#player"), video: $("#video"), hls: null, mode: null, stream: null, playlist: [], progressKey: null, idleTimer: null, saveTimer: null,
+  el: $("#player"), video: $("#video"), hls: null, mode: null,
+  stream: null, previous: null, playlist: [], groupId: "__all",
+  progressKey: null, lastVOD: null, idleTimer: null, saveTimer: null, sleepTimer: null, sleepAt: null,
+  aspect: prefs.aspect, panelObserver: null,
 };
+const video = player.video;
 const nativeFormat = (ext) => ["mp4", "m4v", "mov", "m3u8"].includes(String(ext).toLowerCase());
-const canNativeHLS = () => player.video.canPlayType("application/vnd.apple.mpegurl") !== "";
+const canNativeHLS = () => video.canPlayType("application/vnd.apple.mpegurl") !== "";
 
 let hlsLoader = null;
 function loadHlsJs() {
@@ -663,44 +702,60 @@ function status(message, actions = []) {
   box.classList.remove("hidden");
 }
 
+let toastTimer = null;
+function toast(message) {
+  const t = $("#toast");
+  t.textContent = message;
+  t.classList.remove("hidden");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.add("hidden"), 2200);
+}
+
 async function startVideo(url, startAt = 0) {
-  const v = player.video;
   player.hls?.destroy();
   player.hls = null;
   status("Chargement…");
   const src = proxy(url);
-  const isHLS = /\.m3u8(\?|$)/i.test(url);
-  if (isHLS && !canNativeHLS()) {
+  if (/\.m3u8(\?|$)/i.test(url) && !canNativeHLS()) {
     try {
       const Hls = await loadHlsJs();
-      player.hls = new Hls({ lowLatencyMode: false });
+      player.hls = new Hls();
       player.hls.on(Hls.Events.ERROR, (_, d) => { if (d.fatal) onVideoError(); });
       player.hls.loadSource(src);
-      player.hls.attachMedia(v);
+      player.hls.attachMedia(video);
     } catch (e) { status(e.message); return; }
   } else {
-    v.src = src;
+    video.src = src;
   }
-  v.onloadedmetadata = () => { if (startAt > 0 && Number.isFinite(v.duration)) v.currentTime = startAt; };
-  v.play().catch(() => status("Touchez ▶ pour lancer la lecture."));
+  video.onloadedmetadata = () => { if (startAt > 0 && Number.isFinite(video.duration)) video.currentTime = startAt; };
+  video.play().catch(() => status("Touchez ▶ pour lancer la lecture.", [h("button", { class: "btn primary", onclick: () => video.play() }, "▶ Lecture")]));
 }
 
-player.video.addEventListener("playing", () => status(""));
-player.video.addEventListener("waiting", () => status("Chargement…"));
-player.video.addEventListener("error", () => onVideoError());
+video.addEventListener("playing", () => { status(""); updatePauseButton(); });
+video.addEventListener("pause", updatePauseButton);
+video.addEventListener("waiting", () => status("Chargement…"));
+video.addEventListener("error", () => { if (player.mode) onVideoError(); });
 
 function onVideoError() {
-  const actions = [h("button", { class: "btn primary", onclick: () => retry() }, "Réessayer")];
+  const actions = [h("button", { class: "btn primary", onclick: retry }, "Réessayer")];
   if (player.mode === "live") actions.push(h("button", { class: "btn", style: { marginLeft: "8px" }, onclick: () => zap(1) }, "Chaîne suivante"));
   status(player.mode === "live" ? "Chaîne indisponible pour le moment." : "Lecture impossible (format non pris en charge par le navigateur ou flux indisponible).", actions);
 }
-function retry() { if (player.mode === "live") playLive(player.stream, player.playlist); else if (player.lastVOD) playVOD(...player.lastVOD); }
+function retry() { if (player.mode === "live") playLive(player.stream); else if (player.lastVOD) playVOD(...player.lastVOD); }
 
-function showPlayer(title, subtitle, live) {
+function openPlayer(mode, title, subtitle) {
+  player.mode = mode;
+  player.el.classList.toggle("vod", mode === "vod");
+  video.controls = mode === "vod";
+  $("#tap-layer").classList.toggle("hidden", mode === "vod");
+  $("#live-ui").classList.toggle("hidden", mode !== "live");
+  $("#player-fav").classList.toggle("hidden", mode !== "live");
+  $("#btn-pip").classList.toggle("hidden", !(video.webkitSupportsPresentationMode?.("picture-in-picture") || document.pictureInPictureEnabled));
+  $("#btn-airplay").classList.toggle("hidden", !video.webkitShowPlaybackTargetPicker);
   $("#player-title").textContent = title;
   $("#player-subtitle").textContent = subtitle || "";
-  $("#player-live").classList.toggle("hidden", !live);
-  $("#player-fav").classList.toggle("hidden", !live);
+  if (mode !== "live") $("#player-logo").replaceChildren();
+  applyAspect();
   player.el.classList.remove("hidden");
   player.el.setAttribute("aria-hidden", "false");
   wake();
@@ -709,11 +764,13 @@ function showPlayer(title, subtitle, live) {
 function closePlayer() {
   saveVODProgress();
   clearInterval(player.saveTimer);
+  setSleep(0, true);
   player.hls?.destroy();
   player.hls = null;
-  player.video.pause();
-  player.video.removeAttribute("src");
-  player.video.load();
+  video.pause();
+  video.removeAttribute("src");
+  video.load();
+  closePanels();
   player.el.classList.add("hidden");
   player.el.setAttribute("aria-hidden", "true");
   status("");
@@ -721,22 +778,57 @@ function closePlayer() {
   if (currentTab === "live") renderShell();
 }
 
-function wake() {
+// --- interface : apparition / masquage
+
+const anyOverlayOpen = () => !$("#channel-panel").classList.contains("hidden") || !$("#guide-panel").classList.contains("hidden")
+  || !$("#numpad").classList.contains("hidden") || !$("#menu").classList.contains("hidden");
+
+function wake(duration = 5000) {
   player.el.classList.remove("idle");
   clearTimeout(player.idleTimer);
-  player.idleTimer = setTimeout(() => { if (!player.video.paused) player.el.classList.add("idle"); }, 4000);
+  player.idleTimer = setTimeout(() => {
+    if (!video.paused && !anyOverlayOpen() && player.mode) player.el.classList.add("idle");
+  }, duration);
+}
+function hideUI() { clearTimeout(player.idleTimer); player.el.classList.add("idle"); }
+
+function updatePauseButton() {
+  const b = $("#btn-pause");
+  b.innerHTML = video.paused ? "<span>▶</span>Lecture" : "<span>⏸</span>Pause";
 }
 
-function playLive(stream, list) {
-  player.mode = "live";
+function applyAspect() {
+  const a = player.mode === "live" ? player.aspect : "contain";
+  video.style.objectFit = a === "zoom" ? "cover" : a;
+  video.style.transform = a === "zoom" ? "scale(1.18)" : "";
+  $("#btn-aspect").innerHTML = `<span>⤢</span>${ASPECTS.find((x) => x.id === player.aspect)?.label || "Ajusté"}`;
+}
+
+// --- direct
+
+function groupList(groupId) {
+  return channelsFor(groupId) || [];
+}
+
+function playLive(stream, list, groupId) {
+  if (!stream) return;
+  if (player.stream && player.stream.id !== stream.id) player.previous = { stream: player.stream, playlist: player.playlist, groupId: player.groupId };
   player.stream = stream;
+  if (groupId) player.groupId = groupId;
   if (list?.length) player.playlist = list;
+  else if (!player.playlist.some((s) => s.id === stream.id)) player.playlist = groupList(player.groupId).some((s) => s.id === stream.id) ? groupList(player.groupId) : [stream];
   library.recents = [stream.id, ...library.recents.filter((id) => id !== stream.id)].slice(0, 30);
+  library.lastChannel = { id: stream.id, groupId: player.groupId };
   saveLibrary();
-  showPlayer(stream.name, stream.num ? `Chaîne ${stream.num}` : "", true);
+
+  openPlayer("live", stream.name, stream.num ? `Chaîne ${stream.num}` : (groupTitle(player.groupId) || ""));
+  $("#player-logo").replaceChildren(logoBox(stream));
   $("#player-fav").textContent = library.favChannels.includes(stream.id) ? "★" : "☆";
+  $("#banner-num").textContent = stream.num ?? "";
   updateLiveEPG();
   if (!content.epg.has(stream.id)) requestEPG(stream.id);
+  markPlayingInPanel();
+  if (prefs.bannerOnZap) wake(4000); else hideUI();
   startVideo(urls.live(stream.id));
 }
 
@@ -744,7 +836,9 @@ function updateLiveEPG() {
   if (player.mode !== "live" || !player.stream) return;
   const now = nowProgram(player.stream.id);
   const next = nextProgram(player.stream.id);
-  $("#epg-now").textContent = now ? `${now.title}  ·  ${hm(now.start)}–${hm(now.end)}` : "Pas d'information de programme";
+  $("#epg-now").textContent = now ? now.title : "Pas d'information de programme";
+  $("#epg-start").textContent = now ? hm(now.start) : "";
+  $("#epg-end").textContent = now ? hm(now.end) : "";
   $("#epg-progress").style.width = now ? `${progress(now)}%` : "0";
   $("#epg-next").textContent = next ? `Ensuite ${hm(next.start)} · ${next.title}` : "";
 }
@@ -755,20 +849,304 @@ function zap(offset) {
   const list = player.playlist;
   if (!list.length || !player.stream) return;
   const i = list.findIndex((s) => s.id === player.stream.id);
-  playLive(list[(i + offset + list.length) % list.length], list);
+  playLive(list[(i + offset + list.length) % list.length]);
+}
+const zapDirection = (dir) => zap(prefs.invertZap ? -dir : dir);
+
+function goPrevious() {
+  if (!player.previous) { toast("Pas de chaîne précédente"); return; }
+  const { stream, playlist, groupId } = player.previous;
+  playLive(stream, playlist, groupId);
 }
 
+function groupTitle(id) {
+  if (id === "__fav") return "Favoris";
+  if (id === "__recent") return "Récents";
+  if (id === "__all") return "Toutes les chaînes";
+  return content.liveCats?.find((c) => c.id === id)?.name || "";
+}
+
+// --- liste des chaînes dépliante (style TiviMate)
+
+const panel = { expanded: new Set(), rows: new Map() };
+
+function openChannelPanel(focus) {
+  closePanels();
+  const el = $("#channel-panel");
+  el.classList.remove("hidden");
+  $("#panel-search").value = "";
+  panel.expanded = new Set([focus === "__recent" ? "__recent" : player.groupId]);
+  $("#channel-panel-title").textContent = focus === "__recent" ? "Récents" : "Chaînes";
+  drawPanel();
+  wake();
+}
+
+function closePanels() {
+  for (const id of ["#channel-panel", "#guide-panel", "#numpad", "#menu"]) $(id).classList.add("hidden");
+  player.panelObserver?.disconnect();
+}
+
+function drawPanel() {
+  const list = $("#panel-list");
+  const q = $("#panel-search").value.trim().toLowerCase();
+  player.panelObserver?.disconnect();
+  panel.rows.clear();
+  list.replaceChildren();
+  player.panelObserver = new IntersectionObserver((entries) => {
+    for (const e of entries) if (e.isIntersecting) { requestEPG(Number(e.target.dataset.id)); player.panelObserver.unobserve(e.target); }
+  }, { root: list, rootMargin: "150px" });
+
+  if (q) {
+    const found = content.live.filter((s) => s.name.toLowerCase().includes(q) || String(s.num) === q);
+    if (!found.length) list.append(h("div", { class: "empty" }, "Aucune chaîne trouvée."));
+    renderChunked(list, found, (s) => panelRow(s, found, "__all"), list, 80);
+    return;
+  }
+
+  const groups = [
+    { id: "__recent", name: "🕘 Récents" },
+    { id: "__fav", name: "★ Favoris" },
+    ...content.liveCats.map((c) => ({ id: c.id, name: c.name })),
+    { id: "__all", name: "Toutes les chaînes" },
+  ];
+  for (const g of groups) {
+    const channels = groupList(g.id);
+    if (!channels.length && g.id !== "__fav") continue;
+    const open = panel.expanded.has(g.id);
+    const head = h("button", {
+      class: `group-head${open ? " open" : ""}${g.id === player.groupId ? " current" : ""}`,
+      onclick: () => { if (open) panel.expanded.delete(g.id); else panel.expanded.add(g.id); const top = head.offsetTop; drawPanel(); restoreGroup(g.id, top); },
+    }, h("span", { class: "chev" }, "›"), g.name, h("span", { class: "count" }, channels.length));
+    head.dataset.group = g.id;
+    list.append(head);
+    if (open) {
+      if (!channels.length) list.append(h("div", { class: "empty", style: { padding: "16px" } }, "Touchez ☆ à côté d'une chaîne pour l'ajouter."));
+      const box = h("div");
+      list.append(box);
+      renderChunked(box, channels, (s) => panelRow(s, channels, g.id), list, 80);
+    }
+  }
+  requestAnimationFrame(() => list.querySelector(".p-channel.playing")?.scrollIntoView({ block: "center" }));
+}
+
+function restoreGroup(groupId, top) {
+  const head = $(`#panel-list [data-group="${CSS.escape(groupId)}"]`);
+  if (head) $("#panel-list").scrollTop += head.offsetTop - top;
+}
+
+function panelRow(s, channels, groupId) {
+  const isFav = library.favChannels.includes(s.id);
+  const favBtn = h("span", { class: `fav${isFav ? " on" : ""}`, role: "button", "aria-label": "Favori" }, isFav ? "★" : "☆");
+  favBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    toggle("favChannels", s.id);
+    const on = library.favChannels.includes(s.id);
+    favBtn.textContent = on ? "★" : "☆";
+    favBtn.classList.toggle("on", on);
+    if (player.stream?.id === s.id) $("#player-fav").textContent = on ? "★" : "☆";
+    toast(on ? "Ajoutée aux favoris" : "Retirée des favoris");
+  });
+  const row = h("button", {
+    class: `p-channel${player.stream?.id === s.id ? " playing" : ""}`, "data-id": s.id,
+    onclick: () => { playLive(s, channels, groupId); if (prefs.closeListOnSelect) closePanels(); else wake(); },
+  },
+    h("span", { class: "num" }, s.num ?? ""), logoBox(s),
+    h("div", { class: "info" }, h("div", { class: "name" }, s.name), h("div", { class: "now" }), h("div", { class: "bar hidden" }, h("i"))),
+    favBtn);
+  panel.rows.set(s.id, [...(panel.rows.get(s.id) || []), row]);
+  if (content.epg.has(s.id)) fillPanelRow(row, s.id); else player.panelObserver.observe(row);
+  return row;
+}
+
+function fillPanelRow(row, id) {
+  const p = nowProgram(id);
+  row.querySelector(".now").textContent = p ? `${hm(p.start)} ${p.title}` : "";
+  row.querySelector(".bar").classList.toggle("hidden", !p);
+  if (p) row.querySelector(".bar i").style.width = `${progress(p)}%`;
+}
+document.addEventListener("epg", (e) => panel.rows.get(e.detail)?.forEach((r) => fillPanelRow(r, e.detail)));
+
+function markPlayingInPanel() {
+  for (const [id, rows] of panel.rows) rows.forEach((r) => r.classList.toggle("playing", id === player.stream?.id));
+}
+
+$("#panel-search").addEventListener("input", () => drawPanel());
+
+// --- guide de la chaîne en cours (avec replay)
+
+async function openGuidePanel() {
+  if (!player.stream) return;
+  closePanels();
+  const stream = player.stream;
+  const el = $("#guide-panel");
+  const list = $("#guide-list");
+  $("#guide-title").textContent = stream.name;
+  list.replaceChildren(h("div", { class: "loading" }, "Programme…"));
+  el.classList.remove("hidden");
+  wake();
+  let programs = parseEPG(await api("get_simple_data_table", { stream_id: stream.id }).catch(() => null));
+  if (!programs.length) programs = parseEPG(await api("get_short_epg", { stream_id: stream.id, limit: 20 }).catch(() => null));
+  const now = new Date();
+  programs = programs.filter((p) => p.end > now - (stream.archiveDays * 86400000 + 3600000));
+  if (!programs.length) { list.replaceChildren(h("div", { class: "empty" }, "Aucun programme disponible.")); return; }
+  list.replaceChildren();
+  let lastDay = "";
+  let liveRow = null;
+  for (const p of programs) {
+    const day = p.start.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+    if (day !== lastDay) { list.append(h("div", { class: "day", style: { padding: "0 16px" } }, day)); lastDay = day; }
+    const live = p.start <= now && now < p.end;
+    const past = p.end <= now;
+    const replay = past && stream.archive && (p.archive || p.start > now - stream.archiveDays * 86400000);
+    const row = h("button", {
+      class: `program${live ? " live" : ""}${past ? " past" : ""}${replay ? " replay" : ""}`, style: { padding: "10px 16px" },
+      onclick: () => {
+        if (replay) { closePanels(); playCatchup(stream, p); }
+        else if (live) closePanels();
+        else row.querySelector(".d")?.classList.toggle("open");
+      },
+    },
+      h("span", { class: "time" }, hm(p.start)),
+      h("span", { style: { flex: 1, minWidth: 0 } },
+        h("div", {}, p.title, live ? h("span", { class: "tag" }, "EN DIRECT") : replay ? h("span", { class: "tag" }, "▶ REVOIR") : null),
+        p.description ? h("div", { class: "d muted", style: { fontSize: "13px" } }, p.description) : null));
+    if (live) liveRow = row;
+    list.append(row);
+  }
+  liveRow?.scrollIntoView({ block: "center" });
+}
+
+// --- saisie du numéro de chaîne
+
+const numpad = { value: "", timer: null };
+function openNumpad(firstDigit = "") {
+  closePanels();
+  numpad.value = "";
+  $("#numpad").classList.remove("hidden");
+  updateNumpad();
+  if (firstDigit) typeDigit(firstDigit);
+  wake();
+}
+function updateNumpad() {
+  $("#numpad-display").textContent = numpad.value || "—";
+  const match = numpad.value && content.live.find((s) => String(s.num) === numpad.value);
+  $("#numpad-hint").textContent = numpad.value ? (match ? match.name : "Aucune chaîne") : "Numéro de chaîne";
+}
+function typeDigit(d) {
+  if (numpad.value.length >= 5) return;
+  numpad.value += d;
+  updateNumpad();
+  clearTimeout(numpad.timer);
+  numpad.timer = setTimeout(confirmNumber, 2000);
+}
+function confirmNumber() {
+  clearTimeout(numpad.timer);
+  const match = numpad.value && content.live.find((s) => String(s.num) === numpad.value);
+  $("#numpad").classList.add("hidden");
+  if (match) playLive(match, player.groupId === "__all" || groupList(player.groupId).some((s) => s.id === match.id) ? null : content.live, player.groupId === "__all" ? "__all" : undefined);
+  else if (numpad.value) toast(`Chaîne ${numpad.value} introuvable`);
+  numpad.value = "";
+}
+$("#numpad").addEventListener("click", (e) => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  wake();
+  if (b.dataset.key === "del") { numpad.value = numpad.value.slice(0, -1); updateNumpad(); clearTimeout(numpad.timer); }
+  else if (b.dataset.key === "ok") confirmNumber();
+  else typeDigit(b.textContent);
+});
+
+// --- menus (options, format, veille)
+
+function openMenu(title, items) {
+  closePanels();
+  const m = $("#menu");
+  m.replaceChildren(h("div", { class: "menu-title" }, title), ...items.map((it) => h("button", {
+    class: it.selected ? "sel" : "",
+    onclick: () => { m.classList.add("hidden"); it.action(); wake(); },
+  }, h("span", {}, it.label), it.value != null ? h("span", { class: "val" }, it.value) : (it.selected ? h("span", {}, "✓") : null))));
+  m.classList.remove("hidden");
+  wake();
+}
+
+function setSleep(minutes, silent = false) {
+  clearTimeout(player.sleepTimer);
+  player.sleepTimer = null;
+  player.sleepAt = null;
+  if (minutes > 0) {
+    player.sleepAt = Date.now() + minutes * 60000;
+    player.sleepTimer = setTimeout(() => { closePlayer(); }, minutes * 60000);
+    if (!silent) toast(`Arrêt automatique dans ${minutes} min`);
+  } else if (!silent) toast("Minuterie désactivée");
+}
+
+function openOptions() {
+  const sleepLeft = player.sleepAt ? `${Math.ceil((player.sleepAt - Date.now()) / 60000)} min` : "Désactivée";
+  const stream = player.stream;
+  openMenu("Options", [
+    { label: "Format d'image", value: ASPECTS.find((a) => a.id === player.aspect).label, action: openAspectMenu },
+    { label: "Minuterie de mise en veille", value: sleepLeft, action: () => openMenu("Mise en veille", [0, 15, 30, 60, 90, 120].map((m) => ({
+      label: m ? `${m} minutes` : "Désactivée", selected: m === 0 && !player.sleepAt, action: () => setSleep(m),
+    }))) },
+    stream ? { label: library.favChannels.includes(stream.id) ? "Retirer des favoris" : "Ajouter aux favoris", action: toggleCurrentFav } : null,
+    { label: "Recharger la chaîne", action: retry },
+    { label: "Informations du flux", action: () => toast(video.videoWidth ? `${video.videoWidth}×${video.videoHeight}${player.hls ? " · hls.js" : " · HLS natif"}` : "Flux non chargé") },
+    { label: "Préférences du lecteur", action: openPrefsMenu },
+  ].filter(Boolean));
+}
+
+function openAspectMenu() {
+  openMenu("Format d'image", ASPECTS.map((a) => ({
+    label: a.label, selected: a.id === player.aspect,
+    action: () => { player.aspect = a.id; prefs.aspect = a.id; savePrefs(); applyAspect(); toast(`Format : ${a.label}`); },
+  })));
+}
+
+function cycleAspect() {
+  const i = ASPECTS.findIndex((a) => a.id === player.aspect);
+  player.aspect = ASPECTS[(i + 1) % ASPECTS.length].id;
+  prefs.aspect = player.aspect;
+  savePrefs();
+  applyAspect();
+  toast(`Format : ${ASPECTS.find((a) => a.id === player.aspect).label}`);
+}
+
+const PREF_LABELS = [
+  ["tapOpensList", "Toucher la vidéo ouvre la liste des chaînes"],
+  ["swipeZap", "Zapper en glissant haut / bas"],
+  ["invertZap", "Inverser le sens du zapping"],
+  ["bannerOnZap", "Bandeau d'infos au changement de chaîne"],
+  ["closeListOnSelect", "Fermer la liste après sélection"],
+  ["resumeLastChannel", "Relancer la dernière chaîne au démarrage"],
+];
+function openPrefsMenu() {
+  openMenu("Préférences du lecteur", PREF_LABELS.map(([key, label]) => ({
+    label, value: prefs[key] ? "Oui" : "Non",
+    action: () => { prefs[key] = !prefs[key]; savePrefs(); openPrefsMenu(); },
+  })));
+}
+
+function toggleCurrentFav() {
+  if (!player.stream) return;
+  toggle("favChannels", player.stream.id);
+  const on = library.favChannels.includes(player.stream.id);
+  $("#player-fav").textContent = on ? "★" : "☆";
+  toast(on ? "Ajoutée aux favoris" : "Retirée des favoris");
+}
+
+// --- films, épisodes, replay
+
 function playCatchup(stream, program) {
+  player.catchupFrom = stream;
   playVOD(urls.catchup(stream.id, program), program.title,
     `${stream.name} · ${program.start.toLocaleString("fr-FR", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}`, null);
 }
 
 function playVOD(url, title, subtitle, progressKey) {
-  player.mode = "vod";
-  player.stream = null;
+  closePanels();
   player.progressKey = progressKey;
   player.lastVOD = [url, title, subtitle, progressKey];
-  showPlayer(title, subtitle, false);
+  openPlayer("vod", title, subtitle);
   const p = progressKey ? library.progress[progressKey] : null;
   startVideo(url, p && p.pos / p.dur < 0.95 ? p.pos : 0);
   clearInterval(player.saveTimer);
@@ -776,39 +1154,121 @@ function playVOD(url, title, subtitle, progressKey) {
 }
 
 function saveVODProgress() {
-  const v = player.video;
-  if (player.mode !== "vod" || !player.progressKey || !Number.isFinite(v.duration) || v.currentTime < 10) return;
-  library.progress[player.progressKey] = { pos: v.currentTime, dur: v.duration, t: Date.now() };
+  if (player.mode !== "vod" || !player.progressKey || !Number.isFinite(video.duration) || video.currentTime < 10) return;
+  library.progress[player.progressKey] = { pos: video.currentTime, dur: video.duration, t: Date.now() };
   saveLibrary();
 }
 
-$("#player-close").addEventListener("click", closePlayer);
-$("#zap-prev").addEventListener("click", () => zap(-1));
-$("#zap-next").addEventListener("click", () => zap(1));
-$("#player-fav").addEventListener("click", () => {
-  if (!player.stream) return;
-  toggle("favChannels", player.stream.id);
-  $("#player-fav").textContent = library.favChannels.includes(player.stream.id) ? "★" : "☆";
-});
-["pointerdown", "pointermove", "touchstart"].forEach((ev) => player.el.addEventListener(ev, wake, { passive: true }));
+// --- commandes et gestes
 
-// Zapping par glissement vertical (en direct)
-let touchY = null;
-player.el.addEventListener("touchstart", (e) => { touchY = e.touches[0].clientY; }, { passive: true });
-player.el.addEventListener("touchend", (e) => {
-  if (player.mode !== "live" || touchY == null) return;
-  const dy = e.changedTouches[0].clientY - touchY;
-  touchY = null;
-  if (Math.abs(dy) > 90) zap(dy < 0 ? 1 : -1);
-}, { passive: true });
+$("#player-close").addEventListener("click", () => {
+  // Depuis un replay, on revient au direct de la chaîne (comme TiviMate).
+  if (player.mode === "vod" && player.catchupFrom) { const s = player.catchupFrom; player.catchupFrom = null; saveVODProgress(); playLive(s); return; }
+  player.catchupFrom = null;
+  closePlayer();
+});
+$("#player-fav").addEventListener("click", toggleCurrentFav);
+$("#btn-pip").addEventListener("click", () => {
+  if (video.webkitSupportsPresentationMode?.("picture-in-picture")) {
+    video.webkitSetPresentationMode(video.webkitPresentationMode === "picture-in-picture" ? "inline" : "picture-in-picture");
+  } else if (document.pictureInPictureEnabled) {
+    (document.pictureInPictureElement ? document.exitPictureInPicture() : video.requestPictureInPicture()).catch(() => toast("PiP indisponible"));
+  }
+});
+$("#btn-airplay").addEventListener("click", () => video.webkitShowPlaybackTargetPicker?.());
+player.el.addEventListener("click", (e) => { if (e.target.closest("[data-panel-close]")) { closePanels(); wake(); } });
+
+$("#live-ui").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-act]");
+  if (!b) return;
+  wake();
+  ({
+    list: () => openChannelPanel(),
+    recents: () => openChannelPanel("__recent"),
+    previous: goPrevious,
+    guide: openGuidePanel,
+    number: () => openNumpad(),
+    pause: () => (video.paused ? video.play() : video.pause()),
+    aspect: cycleAspect,
+    more: openOptions,
+  })[b.dataset.act]?.();
+});
+
+// Toucher la vidéo : commandes ou liste ; double toucher : chaîne précédente ; glisser : zapping.
+const tap = $("#tap-layer");
+let touchStart = null;
+let lastTap = 0;
+let singleTapTimer = null;
+tap.addEventListener("touchstart", (e) => { const t = e.touches[0]; touchStart = { x: t.clientX, y: t.clientY, time: Date.now() }; }, { passive: true });
+tap.addEventListener("touchend", (e) => {
+  if (!touchStart) return;
+  const t = e.changedTouches[0];
+  const dx = t.clientX - touchStart.x;
+  const dy = t.clientY - touchStart.y;
+  touchStart = null;
+  if (prefs.swipeZap && player.mode === "live" && Math.abs(dy) > 70 && Math.abs(dy) > Math.abs(dx) * 1.5) {
+    zapDirection(dy < 0 ? 1 : -1);
+    e.preventDefault();
+    return;
+  }
+  if (player.mode === "live" && Math.abs(dx) > 90 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+    if (dx > 0) openChannelPanel(); else openGuidePanel();
+    e.preventDefault();
+    return;
+  }
+  e.preventDefault();
+  handleTap();
+});
+tap.addEventListener("click", () => handleTap());
+
+function handleTap() {
+  const now = Date.now();
+  if (now - lastTap < 300) { clearTimeout(singleTapTimer); lastTap = 0; goPrevious(); return; }
+  lastTap = now;
+  clearTimeout(singleTapTimer);
+  singleTapTimer = setTimeout(() => {
+    if (anyOverlayOpen()) { closePanels(); wake(); return; }
+    if (prefs.tapOpensList && player.mode === "live") { openChannelPanel(); return; }
+    if (player.el.classList.contains("idle")) wake(); else hideUI();
+  }, 260);
+}
+["pointermove", "touchstart"].forEach((ev) => $("#live-ui").addEventListener(ev, () => wake(), { passive: true }));
+$("#channel-panel").addEventListener("scroll", () => wake(), { passive: true, capture: true });
+
+// Clavier (iPad avec clavier, télécommande Bluetooth, ordinateur)
 document.addEventListener("keydown", (e) => {
-  if (player.el.classList.contains("hidden")) return;
-  if (e.key === "Escape") closePlayer();
-  if (player.mode === "live" && e.key === "ArrowUp") zap(-1);
-  if (player.mode === "live" && e.key === "ArrowDown") zap(1);
+  if (player.el.classList.contains("hidden") || e.target.matches("input")) return;
+  const live = player.mode === "live";
+  if (e.key === "Escape" || e.key === "Backspace") {
+    if (anyOverlayOpen()) closePanels(); else $("#player-close").click();
+  } else if (live && /^[0-9]$/.test(e.key)) {
+    if ($("#numpad").classList.contains("hidden")) openNumpad(e.key); else typeDigit(e.key);
+  } else if (live && !anyOverlayOpen() && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+    zapDirection(e.key === "ArrowUp" ? -1 : 1);
+  } else if (live && !anyOverlayOpen() && e.key === "ArrowLeft") {
+    openChannelPanel();
+  } else if (live && !anyOverlayOpen() && e.key === "ArrowRight") {
+    openGuidePanel();
+  } else if (live && e.key === "Enter" && !$("#numpad").classList.contains("hidden")) {
+    confirmNumber();
+  } else if (live && e.key === "Enter" && !anyOverlayOpen()) {
+    openChannelPanel();
+  } else if (e.key === " ") {
+    video.paused ? video.play() : video.pause();
+  } else return;
+  e.preventDefault();
+  wake();
 });
 document.addEventListener("visibilitychange", () => { if (document.hidden) saveVODProgress(); });
 
 // ---------------------------------------------------------------- démarrage
 
-if (account?.password) renderShell(); else renderLogin();
+if (account?.password) {
+  renderShell();
+  if (prefs.resumeLastChannel && library.lastChannel) {
+    loadLive().then(() => {
+      const s = content.liveById.get(library.lastChannel.id);
+      if (s) playLive(s, channelsFor(library.lastChannel.groupId), library.lastChannel.groupId);
+    }).catch(() => {});
+  }
+} else renderLogin();
