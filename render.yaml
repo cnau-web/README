@@ -4,6 +4,8 @@ services:
     name: ondetv
     runtime: docker
     plan: free
+    # Europe : plus proche des serveurs IPTV et des utilisateurs (moins de coupures).
+    region: frankfurt
     rootDir: web
     dockerfilePath: ./Dockerfile
     healthCheckPath: /
