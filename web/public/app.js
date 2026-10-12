@@ -960,6 +960,8 @@ function openPlayer(mode, title, subtitle) {
 
 function closePlayer() {
   player.minimized = false;
+  if (fsElement()) (document.exitFullscreen || document.webkitExitFullscreen)?.call(document);
+  player.el.classList.remove("rotated");
   if (isPiP()) {
     if (document.pictureInPictureElement) document.exitPictureInPicture().catch(() => {});
     else video.webkitSetPresentationMode?.("inline");
@@ -1253,6 +1255,43 @@ function togglePause() {
   }
 }
 
+// ---------------------------------------------------------------- plein écran (avec les boutons d'OndeTV)
+
+const fsElement = () => document.fullscreenElement || document.webkitFullscreenElement;
+const isFullscreen = () => !!fsElement() || player.el.classList.contains("rotated");
+
+async function toggleFullscreen() {
+  if (fsElement()) { (document.exitFullscreen || document.webkitExitFullscreen)?.call(document); return; }
+  if (player.el.classList.contains("rotated")) { setRotated(false); return; }
+  // iPad / ordinateur : vrai plein écran de tout le lecteur (vidéo + boutons).
+  const el = player.el;
+  const request = el.requestFullscreen || el.webkitRequestFullscreen;
+  if (request && (document.fullscreenEnabled || document.webkitFullscreenEnabled)) {
+    try {
+      await request.call(el);
+      screen.orientation?.lock?.("landscape").catch(() => {});
+      return;
+    } catch { /* on passe au mode paysage simulé */ }
+  }
+  // iPhone : Safari n'autorise le plein écran que pour son propre lecteur → paysage simulé.
+  if (innerHeight > innerWidth) setRotated(true);
+  else toast("Astuce : ajoutez OndeTV à l'écran d'accueil pour masquer les barres de Safari");
+}
+
+function setRotated(on) {
+  player.el.classList.toggle("rotated", on);
+  updateFullscreenButton();
+  wake();
+}
+
+function updateFullscreenButton() {
+  $("#btn-fs").innerHTML = isFullscreen() ? "<span>⛶</span>Quitter" : "<span>⛶</span>Plein écran";
+}
+document.addEventListener("fullscreenchange", updateFullscreenButton);
+document.addEventListener("webkitfullscreenchange", updateFullscreenButton);
+// Téléphone tourné en paysage : plus besoin de simuler.
+addEventListener("resize", () => { if (player.el.classList.contains("rotated") && innerWidth > innerHeight) setRotated(false); });
+
 // ---------------------------------------------------------------- image dans l'image (PiP)
 
 const isPiP = () => document.pictureInPictureElement === video || video.webkitPresentationMode === "picture-in-picture";
@@ -1279,7 +1318,7 @@ async function togglePiP() {
     // L'animation d'iOS prend un moment : on attend jusqu'à 2,5 s avant de conclure.
     if (!(await waitFor(isPiP, 2500))) throw new Error("refusé");
   } catch {
-    toast("iOS n'a pas ouvert le PiP · essayez Options → Lecteur plein écran iOS");
+    toast("iOS n'a pas ouvert le PiP · essayez Options → Lecteur iOS natif");
   }
 }
 
@@ -1338,7 +1377,30 @@ function groupTitle(id) {
 
 // --- liste des chaînes dépliante (style TiviMate)
 
-const panel = { expanded: new Set(), rows: new Map() };
+const panel = { expanded: new Set(), rows: new Map(), source: store.get("ondetv.panelSource", "__all") };
+
+function drawPanelSources() {
+  const box = $("#panel-sources");
+  const show = multiSource();
+  box.classList.toggle("hidden", !show);
+  if (!show) { panel.source = "__all"; return; }
+  if (panel.source !== "__all" && !activeSources().some((x) => x.id === panel.source)) panel.source = "__all";
+  box.replaceChildren(...[{ id: "__all", name: "Toutes les sources" }, ...activeSources()].map((src) => h("button", {
+    class: `chip${panel.source === src.id ? " active" : ""}`,
+    onclick: () => {
+      panel.source = src.id;
+      store.set("ondetv.panelSource", src.id);
+      // On déplie directement la première catégorie de la source choisie.
+      const first = content.liveCats.find((c) => src.id === "__all" || c.src === src.id);
+      panel.expanded = new Set(first && src.id !== "__all" ? [first.id] : [player.groupId]);
+      drawPanelSources();
+      drawPanel();
+      $("#panel-list").scrollTop = 0;
+      wake();
+    },
+  }, src.name)));
+}
+const inPanelSource = (x) => panel.source === "__all" || x.src === panel.source;
 
 function openChannelPanel(focus) {
   closePanels();
@@ -1347,6 +1409,9 @@ function openChannelPanel(focus) {
   $("#panel-search").value = "";
   panel.expanded = new Set([focus === "__recent" ? "__recent" : player.groupId]);
   $("#channel-panel-title").textContent = focus === "__recent" ? "Récents" : "Chaînes";
+  // La source de la chaîne en cours est présélectionnée.
+  if (multiSource() && panel.source !== "__all" && player.stream && focus !== "__recent") panel.source = player.stream.src;
+  drawPanelSources();
   drawPanel();
   wake();
 }
@@ -1369,7 +1434,7 @@ function drawPanel() {
   }, { root: list, rootMargin: "150px" });
 
   if (q) {
-    const found = content.live.filter((s) => s.name.toLowerCase().includes(q) || String(s.num) === q);
+    const found = content.live.filter((s) => inPanelSource(s) && (s.name.toLowerCase().includes(q) || String(s.num) === q));
     if (!found.length) list.append(h("div", { class: "empty" }, "Aucune chaîne trouvée."));
     renderChunked(list, found, (s) => panelRow(s, found, "__all"), list, 80);
     return;
@@ -1380,16 +1445,16 @@ function drawPanel() {
     { id: "__recent", name: "🕘 Récents" },
     { id: "__fav", name: "★ Favoris" },
     { id: "__replay", name: "⟲ Chaînes avec replay" },
-    ...activeSources().flatMap((src) => [
-      ...(multiSource() ? [{ label: src.name }] : []),
+    ...activeSources().filter((src) => inPanelSource({ src: src.id })).flatMap((src) => [
+      ...(multiSource() && panel.source === "__all" ? [{ label: src.name }] : []),
       ...content.liveCats.filter((c) => c.src === src.id).map((c) => ({ id: c.id, name: c.name })),
     ]),
-    ...(multiSource() ? [{ label: "Toutes les sources" }] : []),
-    { id: "__all", name: "Toutes les chaînes" },
+    ...(multiSource() && panel.source === "__all" ? [{ label: "Toutes les sources" }] : []),
+    { id: "__all", name: panel.source === "__all" ? "Toutes les chaînes" : `Toutes les chaînes · ${sourceName(panel.source)}` },
   ];
   for (const g of groups) {
     if (g.label) { list.append(h("div", { class: "source-label" }, g.label)); continue; }
-    const channels = groupList(g.id);
+    const channels = groupList(g.id).filter(inPanelSource);
     if (!channels.length && g.id !== "__fav") continue;
     const open = panel.expanded.has(g.id);
     const head = h("button", {
@@ -1614,7 +1679,8 @@ function openOptions() {
     }))) },
     stream ? { label: library.favChannels.includes(stream.id) ? "Retirer des favoris" : "Ajouter aux favoris", action: toggleCurrentFav } : null,
     { label: "Image dans l'image (PiP)", action: togglePiP },
-    { label: "Lecteur plein écran iOS", action: () => video.webkitEnterFullscreen ? video.webkitEnterFullscreen() : video.requestFullscreen?.() },
+    { label: isFullscreen() ? "Quitter le plein écran" : "Plein écran", action: toggleFullscreen },
+    { label: "Lecteur iOS natif (PiP, AirPlay)", action: () => video.webkitEnterFullscreen ? video.webkitEnterFullscreen() : video.requestFullscreen?.() },
     { label: "Recharger la chaîne", action: retry },
     { label: "Informations du flux", action: () => toast(video.videoWidth ? `${video.videoWidth}×${video.videoHeight}${player.hls ? " · hls.js" : " · HLS natif"}` : "Flux non chargé") },
     { label: "Préférences du lecteur", action: openPrefsMenu },
@@ -1724,6 +1790,7 @@ $("#live-ui").addEventListener("click", (e) => {
     forward: () => skip(30),
     restart: restartProgram,
     golive: goLive,
+    fullscreen: toggleFullscreen,
     aspect: cycleAspect,
     more: openOptions,
   })[b.dataset.act]?.();
@@ -1738,8 +1805,9 @@ tap.addEventListener("touchstart", (e) => { const t = e.touches[0]; touchStart =
 tap.addEventListener("touchend", (e) => {
   if (!touchStart) return;
   const t = e.changedTouches[0];
-  const dx = t.clientX - touchStart.x;
-  const dy = t.clientY - touchStart.y;
+  let dx = t.clientX - touchStart.x;
+  let dy = t.clientY - touchStart.y;
+  if (player.el.classList.contains("rotated")) [dx, dy] = [dy, -dx];
   touchStart = null;
   if (prefs.swipeZap && player.mode === "live" && Math.abs(dy) > 70 && Math.abs(dy) > Math.abs(dx) * 1.5) {
     zapDirection(dy < 0 ? 1 : -1);
@@ -1792,6 +1860,8 @@ document.addEventListener("keydown", (e) => {
     skip(-30);
   } else if (live && (e.key === "l" || e.key === "L")) {
     skip(30);
+  } else if (e.key === "f" || e.key === "F") {
+    toggleFullscreen();
   } else if (e.key === " ") {
     togglePause();
   } else return;
