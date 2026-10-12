@@ -751,7 +751,8 @@ function renderSettings(top, main) {
         await Promise.allSettled(sources.map(async (src) => { const a = await api(null, {}, src); src.info = a.user_info; }));
         saveSources();
         renderShell();
-      } }, h("span", {}, "Actualiser chaînes et catalogue"), h("span", {}, "↻"))),
+      } }, h("span", {}, "Actualiser chaînes et catalogue"), h("span", {}, "↻")),
+      h("button", { class: "item", style: { width: "100%" }, onclick: runDiagnostic }, h("span", {}, "Tester la connexion"), h("span", {}, "📶"))),
     h("div", { class: "section-label" }, "Lecteur du direct"),
     h("div", { class: "list" }, PREF_LABELS.map(([key, label]) => {
       const row = h("button", { class: `toggle${prefs[key] ? " on" : ""}`, onclick: () => {
@@ -763,6 +764,29 @@ function renderSettings(top, main) {
     h("p", { class: "note" }, "Version web d'OndeTV. Le direct, le replay et les films MP4 se lisent dans Safari ; les fichiers MKV/AVI ne sont pas pris en charge par le navigateur."),
     h("p", { class: "note" }, "Installer : bouton Partager de Safari → « Sur l'écran d'accueil »."),
     h("p", { class: "note" }, "OndeTV est un lecteur : il ne fournit aucun contenu. Utilisez uniquement des abonnements légaux."));
+}
+
+async function runDiagnostic() {
+  openSheet(async (target) => {
+    const lines = h("div", { class: "list" });
+    target.replaceChildren(h("div", { class: "detail", style: { marginTop: "48px" } }, h("h3", {}, "Test de connexion"),
+      h("p", { class: "muted" }, "Mesure le trajet iPhone → relais → serveurs IPTV."), lines));
+    const row = (label, value) => { const r = h("div", { class: "item" }, h("span", {}, label), h("span", {}, value)); lines.append(r); return r; };
+    const t0 = performance.now();
+    const diag = await fetch("/diag").then((r) => r.json()).catch(() => null);
+    row("Relais (Render)", diag?.location || "inconnu");
+    row("iPhone → relais", `${Math.round(performance.now() - t0)} ms`);
+    for (const src of activeSources()) {
+      const r = row(src.name, "…");
+      const t = performance.now();
+      try { await api(null, {}, src); r.lastChild.textContent = `${Math.round(performance.now() - t)} ms`; }
+      catch (e) { r.lastChild.textContent = e.message; }
+    }
+    const far = diag?.country && !["FR", "DE", "NL", "BE", "GB", "ES", "IT", "CH", "LU"].includes(diag.country);
+    lines.after(h("p", { class: "note", style: { margin: "12px 0" } }, far
+      ? "Le relais est loin de vous (hors Europe) : chaque image fait un long trajet, ce qui peut causer des coupures. Recréer le service Render dans la région Frankfurt améliorera la fluidité."
+      : "Au-delà de 400 ms vers une source, le serveur IPTV ou le réseau est lent : des coupures peuvent venir de là."));
+  });
 }
 
 // ---------------------------------------------------------------- recherche globale (toutes sources)
@@ -849,6 +873,7 @@ const PREF_DEFAULTS = {
   bannerOnZap: true,       // bandeau d'infos à chaque changement de chaîne
   closeListOnSelect: true, // fermer la liste après avoir choisi une chaîne
   resumeLastChannel: false,// relancer la dernière chaîne à l'ouverture de l'app
+  nativeEngine: false,     // lecteur natif de Safari (AirPlay) au lieu du lecteur stable hls.js
   aspect: "contain",       // format d'image par défaut
 };
 const prefs = { ...PREF_DEFAULTS, ...store.get("ondetv.prefs", {}) };
@@ -901,24 +926,70 @@ function toast(message) {
   toastTimer = setTimeout(() => t.classList.add("hidden"), 2200);
 }
 
+// Moteur « stable » : hls.js sur MediaSource / ManagedMediaSource (iOS 17.1+), réglé comme TiviMate :
+// grosse réserve, démarrage en retrait du direct, jamais de saut forcé vers le direct.
+const mseAvailable = () => !!(globalThis.ManagedMediaSource || globalThis.MediaSource);
+const HLS_CONFIG = {
+  enableWorker: true,
+  lowLatencyMode: false,
+  liveSyncDurationCount: 4,           // démarre 4 segments derrière le direct (réserve dès le départ)
+  liveMaxLatencyDurationCount: Infinity, // ne jamais sauter en avant pour « rattraper » le direct
+  maxBufferLength: 45,
+  maxMaxBufferLength: 90,
+  backBufferLength: 90,               // permet de reculer un peu même sans replay
+  maxBufferHole: 0.6,
+  nudgeMaxRetry: 6,
+  manifestLoadingMaxRetry: 6,
+  levelLoadingMaxRetry: 6,
+  fragLoadingMaxRetry: 8,
+  fragLoadingRetryDelay: 500,
+  startFragPrefetch: true,
+  preferManagedMediaSource: true,
+};
+
 async function startVideo(url, startAt = 0) {
   player.hls?.destroy();
   player.hls = null;
+  player.mediaRecoveries = 0;
   status("Chargement…");
   const src = proxy(url);
-  if (/\.m3u8(\?|$)/i.test(url) && !canNativeHLS()) {
+  const isHLS = /\.m3u8(\?|$)/i.test(url);
+  const wantHlsJs = isHLS && (prefs.nativeEngine ? !canNativeHLS() : mseAvailable());
+  let usedHlsJs = false;
+  if (wantHlsJs) {
     try {
       const Hls = await loadHlsJs();
-      player.hls = new Hls();
-      player.hls.on(Hls.Events.ERROR, (_, d) => { if (d.fatal) onVideoError(); });
-      player.hls.loadSource(src);
-      player.hls.attachMedia(video);
-    } catch (e) { status(e.message); return; }
-  } else {
+      if (Hls.isSupported()) {
+        video.removeAttribute("src");
+        // ManagedMediaSource (iOS) exige de désactiver AirPlay pour ce mode.
+        if (globalThis.ManagedMediaSource) video.disableRemotePlayback = true;
+        const hls = new Hls({ ...HLS_CONFIG, startPosition: startAt > 0 ? startAt : -1 });
+        player.hls = hls;
+        hls.on(Hls.Events.ERROR, (_, d) => {
+          if (!d.fatal || player.hls !== hls) return;
+          if (d.type === Hls.ErrorTypes.NETWORK_ERROR) {
+            status("Connexion instable… reprise");
+            setTimeout(() => { if (player.hls === hls) hls.startLoad(); }, 1000);
+          } else if (d.type === Hls.ErrorTypes.MEDIA_ERROR && player.mediaRecoveries++ < 3) {
+            hls.recoverMediaError();
+          } else {
+            onVideoError();
+          }
+        });
+        hls.loadSource(src);
+        hls.attachMedia(video);
+        usedHlsJs = true;
+      }
+    } catch { /* hls.js indisponible : lecteur natif */ }
+  }
+  if (!usedHlsJs) {
+    video.disableRemotePlayback = false;
+    if (isHLS && !canNativeHLS()) { status("Ce navigateur ne peut pas lire ce flux."); return; }
     video.src = src;
   }
+  $("#btn-airplay").classList.toggle("hidden", !video.webkitShowPlaybackTargetPicker || video.disableRemotePlayback);
   video.onloadedmetadata = () => {
-    if (startAt <= 0) return;
+    if (startAt <= 0 || usedHlsJs) return; // hls.js gère startPosition
     const end = Number.isFinite(video.duration) ? video.duration : (video.seekable.length ? video.seekable.end(video.seekable.length - 1) : 0);
     if (end > startAt) video.currentTime = startAt;
   };
@@ -929,6 +1000,12 @@ video.addEventListener("playing", () => { status(""); updatePauseButton(); });
 video.addEventListener("pause", updatePauseButton);
 video.addEventListener("waiting", () => status("Chargement…"));
 video.addEventListener("error", () => { if (player.mode) onVideoError(); });
+
+function bufferAhead() {
+  const b = video.buffered;
+  for (let i = 0; i < b.length; i++) if (b.start(i) <= video.currentTime + 0.5 && video.currentTime <= b.end(i)) return b.end(i) - video.currentTime;
+  return 0;
+}
 
 function onVideoError() {
   const actions = [h("button", { class: "btn primary", onclick: retry }, "Réessayer")];
@@ -1682,7 +1759,7 @@ function openOptions() {
     { label: isFullscreen() ? "Quitter le plein écran" : "Plein écran", action: toggleFullscreen },
     { label: "Lecteur iOS natif (PiP, AirPlay)", action: () => video.webkitEnterFullscreen ? video.webkitEnterFullscreen() : video.requestFullscreen?.() },
     { label: "Recharger la chaîne", action: retry },
-    { label: "Informations du flux", action: () => toast(video.videoWidth ? `${video.videoWidth}×${video.videoHeight}${player.hls ? " · hls.js" : " · HLS natif"}` : "Flux non chargé") },
+    { label: "Informations du flux", action: () => toast(video.videoWidth ? `${video.videoWidth}×${video.videoHeight} · ${player.hls ? `lecteur stable · réserve ${Math.round(bufferAhead())} s` : "lecteur natif Safari"}` : "Flux non chargé") },
     { label: "Préférences du lecteur", action: openPrefsMenu },
   ].filter(Boolean));
 }
@@ -1710,6 +1787,7 @@ const PREF_LABELS = [
   ["bannerOnZap", "Bandeau d'infos au changement de chaîne"],
   ["closeListOnSelect", "Fermer la liste après sélection"],
   ["resumeLastChannel", "Relancer la dernière chaîne au démarrage"],
+  ["nativeEngine", "Lecteur natif Safari (AirPlay, mais moins stable)"],
 ];
 function openPrefsMenu() {
   openMenu("Préférences du lecteur", PREF_LABELS.map(([key, label]) => ({

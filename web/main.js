@@ -36,9 +36,19 @@ async function serveStatic(pathname) {
   }
 }
 
+let diagCache = null;
+async function diag() {
+  if (!diagCache) {
+    const info = await fetch("https://ipinfo.io/json", { signal: AbortSignal.timeout(5000) }).then((r) => r.json()).catch(() => ({}));
+    diagCache = { location: [info.city, info.region, info.country].filter(Boolean).join(", ") || "inconnu", country: info.country || null };
+  }
+  return Response.json(diagCache, { headers: { "cache-control": "no-store" } });
+}
+
 export async function handler(request) {
   const { pathname } = new URL(request.url);
   if (pathname === "/x") return handleProxy(request, config);
+  if (pathname === "/diag") return diag();
   return serveStatic(pathname);
 }
 
