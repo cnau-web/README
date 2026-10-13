@@ -261,3 +261,22 @@ input, select { font: inherit; color: var(--text); }
 .player.rotated .player-top { padding-top: 10px; }
 .player.rotated .live-ui { padding-bottom: 10px; }
 .player:fullscreen, .player:-webkit-full-screen { width: 100%; height: 100%; }
+
+/* Films / séries / replay : mêmes commandes que le direct */
+.vod-seek { display: flex; align-items: center; gap: 10px; max-width: 760px; margin: 0 auto 10px; font-size: 12px; font-variant-numeric: tabular-nums; }
+#vod-range { flex: 1; -webkit-appearance: none; appearance: none; height: 28px; background: transparent; touch-action: none; --pos: 0%; --avail: 0%; }
+#vod-range::-webkit-slider-runnable-track { height: 6px; border-radius: 3px;
+  background: linear-gradient(to right, var(--accent) 0 var(--pos), #ffffff70 var(--pos) var(--avail), #ffffff22 var(--avail) 100%); }
+#vod-range::-moz-range-track { height: 6px; border-radius: 3px; background: #ffffff33; }
+#vod-range::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; margin-top: -8px; border-radius: 50%; background: #fff; box-shadow: 0 1px 6px #000a; }
+.player.idle .vod-ui { opacity: 0; pointer-events: none; }
+
+/* Catégorie d'une chaîne (listes mélangées : replay, favoris, récents…) */
+.cat-tag { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cat-tag b { color: var(--accent); font-weight: 600; }
+.list-group { padding: 14px 16px 4px; font-size: 12px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .04em; }
+
+/* Boutons VLC */
+.btn.vlc { background: #e85e00; color: #fff; }
+.episode-actions { display: flex; flex-direction: column; justify-content: center; }
+.episode-actions .vlc-mini { font-size: 11px; font-weight: 700; padding: 6px 8px; border-radius: 8px; background: #e85e0033; color: #ff9a4d; }

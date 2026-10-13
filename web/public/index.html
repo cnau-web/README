@@ -58,9 +58,29 @@
         <button data-act="previous"><span>⇆</span>Précédente</button>
         <button data-act="number"><span>#</span>N°</button>
         <button data-act="pause" id="btn-pause"><span>⏸</span>Pause</button>
-        <button data-act="fullscreen" id="btn-fs"><span>⛶</span>Plein écran</button>
-        <button data-act="aspect" id="btn-aspect"><span>⤢</span>Ajusté</button>
+        <button data-act="fullscreen" id="btn-fs" class="btn-fs"><span>⛶</span>Plein écran</button>
+        <button data-act="aspect" id="btn-aspect" class="btn-aspect"><span>⤢</span>Ajusté</button>
+        <button data-act="vlc"><span>🔶</span>VLC</button>
         <button data-act="more"><span>⋯</span>Options</button>
+      </div>
+    </div>
+
+    <div id="vod-ui" class="live-ui vod-ui hidden">
+      <div class="vod-seek">
+        <span id="vod-time">0:00</span>
+        <input id="vod-range" type="range" min="0" max="1000" value="0" aria-label="Position">
+        <span id="vod-duration">0:00</span>
+      </div>
+      <div class="live-controls">
+        <button data-vod="back"><span>⏪</span>−10 s</button>
+        <button data-vod="play" id="vod-play"><span>⏸</span>Pause</button>
+        <button data-vod="forward"><span>⏩</span>+30 s</button>
+        <button data-vod="tracks"><span>💬</span>Pistes</button>
+        <button data-vod="speed" id="vod-speed"><span>⏱</span>×1</button>
+        <button data-vod="fullscreen" class="btn-fs"><span>⛶</span>Plein écran</button>
+        <button data-vod="aspect" class="btn-aspect"><span>⤢</span>Ajusté</button>
+        <button data-vod="vlc"><span>🔶</span>VLC</button>
+        <button data-vod="more"><span>⋯</span>Options</button>
       </div>
     </div>
 

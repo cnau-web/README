@@ -352,6 +352,14 @@ function failure(main, e, retry) {
 
 let liveCategory = store.get("ondetv.liveCat", "__all");
 
+/** Nom de la catégorie (groupe) d'une chaîne, avec sa source s'il y en a plusieurs. */
+function categoryLabel(stream) {
+  const cat = content.liveCats?.find((c) => c.id === stream.cat);
+  const name = cat?.name || "Sans catégorie";
+  return multiSource() ? `${name} · ${sourceName(stream)}` : name;
+}
+const mixedGroup = (id) => ["__replay", "__fav", "__recent", "__all"].includes(id);
+
 function channelsFor(cat) {
   if (cat === "__fav") return library.favChannels.map((id) => content.liveById.get(id)).filter(Boolean);
   if (cat === "__recent") return library.recents.map((id) => content.liveById.get(id)).filter(Boolean);
@@ -414,15 +422,26 @@ async function renderLive(top, main) {
         h("div", { class: "recent-strip" }, recents.map((s) => h("button", { class: "recent-card", onclick: () => playLive(s, recents, "__recent") }, logoBox(s), h("span", {}, s.name)))),
         h("div", { class: "section-label" }, groupTitle(liveCategory)));
     }
+    // « Chaînes avec replay » : classées par groupe, avec un titre par groupe.
+    if (liveCategory === "__replay" && !q) {
+      const order = new Map((content.liveCats || []).map((c, i) => [c.id, i]));
+      list = [...list].sort((a, b) => (order.get(a.cat) ?? 1e9) - (order.get(b.cat) ?? 1e9) || (a.num ?? 1e9) - (b.num ?? 1e9));
+      const withHeaders = [];
+      let last = null;
+      for (const s of list) { if (s.cat !== last) { withHeaders.push({ header: categoryLabel(s) }); last = s.cat; } withHeaders.push(s); }
+      list = withHeaders;
+    }
+    const playable = list.filter((x) => !x.header);
     stopChunks = renderChunked(main, list, (s) => {
+      if (s.header) return h("div", { class: "list-group" }, `⟲ ${s.header}`);
       const row = h("div", { class: "channel", "data-id": s.id },
         h("span", { class: "num" }, s.num ?? ""),
         logoBox(s),
-        h("button", { class: "info", style: { textAlign: "left" }, onclick: () => playLive(s, list, liveCategory) },
+        h("button", { class: "info", style: { textAlign: "left" }, onclick: () => playLive(s, playable, liveCategory) },
           h("div", { class: "name" }, s.name, library.favChannels.includes(s.id) ? h("span", { class: "star" }, " ★") : null, s.archive ? h("span", { class: "muted" }, " ⟲") : null),
-          multiSource() ? h("div", { class: "src-tag" }, sourceName(s)) : null,
+          (q || mixedGroup(liveCategory)) && liveCategory !== "__replay" ? h("div", { class: "cat-tag" }, categoryLabel(s)) : (multiSource() && !mixedGroup(liveCategory) ? null : null),
           h("div", { class: "now" }), h("div", { class: "bar hidden" }, h("i"))),
-        h("button", { class: "info-btn", "aria-label": "Programme", onclick: () => openChannel(s, list) }, "ⓘ"));
+        h("button", { class: "info-btn", "aria-label": "Programme", onclick: () => openChannel(s, playable) }, "ⓘ"));
       rows.set(s.id, row);
       if (content.epg.has(s.id)) updateNow(row, s.id); else io.observe(row);
       return row;
@@ -643,8 +662,11 @@ function openMovie(movie) {
         h("div", { class: "actions" },
           h("button", { class: "btn primary", onclick: () => { closeSheet(); playVOD(urls.movie(movie, ext), movie.name, null, key); } }, resume ? "▶ Reprendre" : "▶ Lecture"),
           resume ? h("button", { class: "btn", onclick: () => { delete library.progress[key]; saveLibrary(); closeSheet(); playVOD(urls.movie(movie, ext), movie.name, null, key); } }, "⟲") : null,
+          h("button", { class: "btn vlc", onclick: () => { closeSheet(); openInVLC(urls.movie(movie, ext)); } }, "VLC"),
           favBtn),
-        !nativeFormat(ext) ? h("p", { class: "error" }, `Format ${ext.toUpperCase()} : peut ne pas être lisible dans le navigateur.`) : null,
+        !nativeFormat(ext) ? h("p", { class: "muted", style: { fontSize: "13px" } }, prefs.vlcForSpecial
+          ? `Format ${ext.toUpperCase()} : la lecture s'ouvre dans VLC (réglable dans Réglages).`
+          : `Format ${ext.toUpperCase()} : peut ne pas être lisible ici. Utilisez le bouton VLC.`) : null,
         info.plot ? h("p", {}, info.plot) : null,
         info.genre ? [h("div", { class: "label" }, "Genre"), h("div", {}, info.genre)] : null,
         info.director ? [h("div", { class: "label" }, "Réalisation"), h("div", {}, info.director)] : null,
@@ -692,10 +714,11 @@ function openSeries(series) {
         if (f) thumb.append(h("div", { class: "bar" }, h("i", { style: { width: `${f * 100}%` } })));
         return h("button", { class: "episode", onclick: () => { closeSheet(); playVOD(urls.episode(e), e.title, `${series.name} · S${e.season} E${e.num}`, key); } },
           thumb,
-          h("div", { style: { minWidth: 0 } },
+          h("div", { style: { minWidth: 0, flex: 1 } },
             h("div", { class: "t" }, `${e.num}. ${e.title}`, f >= 0.95 ? " ✓" : ""),
-            e.duration ? h("div", { class: "d" }, durationText(e.duration)) : null,
-            e.plot ? h("div", { class: "d" }, e.plot) : null));
+            h("div", { class: "d" }, [e.duration ? durationText(e.duration) : null, isSpecialFormat(e.ext) ? e.ext.toUpperCase() : null].filter(Boolean).join(" · ")),
+            e.plot ? h("div", { class: "d" }, e.plot) : null),
+          h("span", { class: "episode-actions" }, h("span", { class: "vlc-mini", role: "button", onclick: (ev) => { ev.stopPropagation(); closeSheet(); openInVLC(urls.episode(e)); } }, "VLC")));
       }));
     }
 
@@ -874,6 +897,7 @@ const PREF_DEFAULTS = {
   closeListOnSelect: true, // fermer la liste après avoir choisi une chaîne
   resumeLastChannel: false,// relancer la dernière chaîne à l'ouverture de l'app
   nativeEngine: false,     // lecteur natif de Safari (AirPlay) au lieu du lecteur stable hls.js
+  vlcForSpecial: true,     // films / épisodes MKV, AVI… ouverts directement dans VLC
   aspect: "contain",       // format d'image par défaut
 };
 const prefs = { ...PREF_DEFAULTS, ...store.get("ondetv.prefs", {}) };
@@ -1010,7 +1034,8 @@ function bufferAhead() {
 function onVideoError() {
   const actions = [h("button", { class: "btn primary", onclick: retry }, "Réessayer")];
   if (player.mode === "live") actions.push(h("button", { class: "btn", style: { marginLeft: "8px" }, onclick: () => zap(1) }, "Chaîne suivante"));
-  status(player.mode === "live" ? "Chaîne indisponible pour le moment." : "Lecture impossible (format non pris en charge par le navigateur ou flux indisponible).", actions);
+  actions.push(h("button", { class: "btn vlc", style: { marginLeft: "8px" }, onclick: () => openInVLC(currentDirectURL()) }, "Ouvrir dans VLC"));
+  status(player.mode === "live" ? "Chaîne indisponible pour le moment." : "Lecture impossible ici (format non pris en charge par le navigateur ou flux indisponible). VLC lit tous les formats.", actions);
 }
 function retry() {
   if (player.mode === "live") { if (player.shift) shiftTo(watchedTime()); else playLive(player.stream); }
@@ -1020,9 +1045,12 @@ function retry() {
 function openPlayer(mode, title, subtitle) {
   player.mode = mode;
   player.el.classList.toggle("vod", mode === "vod");
-  video.controls = mode === "vod";
-  $("#tap-layer").classList.toggle("hidden", mode === "vod");
+  video.controls = false;
+  $("#tap-layer").classList.remove("hidden");
   $("#live-ui").classList.toggle("hidden", mode !== "live");
+  $("#vod-ui").classList.toggle("hidden", mode !== "vod");
+  video.playbackRate = 1;
+  $("#vod-speed").innerHTML = "<span>⏱</span>×1";
   $("#player-fav").classList.toggle("hidden", mode !== "live");
   $("#btn-airplay").classList.toggle("hidden", !video.webkitShowPlaybackTargetPicker);
   $("#player-title").textContent = title;
@@ -1038,7 +1066,7 @@ function openPlayer(mode, title, subtitle) {
 function closePlayer() {
   player.minimized = false;
   if (fsElement()) (document.exitFullscreen || document.webkitExitFullscreen)?.call(document);
-  player.el.classList.remove("rotated");
+  player.el.classList.remove("rotated", "immersive");
   if (isPiP()) {
     if (document.pictureInPictureElement) document.exitPictureInPicture().catch(() => {});
     else video.webkitSetPresentationMode?.("inline");
@@ -1079,10 +1107,11 @@ function updatePauseButton() {
 }
 
 function applyAspect() {
-  const a = player.mode === "live" ? player.aspect : "contain";
+  const a = player.aspect;
   video.style.objectFit = a === "zoom" ? "cover" : a;
   video.style.transform = a === "zoom" ? "scale(1.18)" : "";
-  $("#btn-aspect").innerHTML = `<span>⤢</span>${ASPECTS.find((x) => x.id === player.aspect)?.label || "Ajusté"}`;
+  const label = ASPECTS.find((x) => x.id === player.aspect)?.label || "Ajusté";
+  document.querySelectorAll(".btn-aspect").forEach((b) => { b.innerHTML = `<span>⤢</span>${label}`; });
 }
 
 // --- direct
@@ -1332,27 +1361,62 @@ function togglePause() {
   }
 }
 
+// ---------------------------------------------------------------- lecture dans VLC (formats spéciaux)
+// VLC lit directement le serveur (http) : pas de relais, tous formats (MKV, AVI, HEVC, AC3…).
+
+const NATIVE_EXT = ["mp4", "m4v", "mov", "m3u8"];
+const isSpecialFormat = (ext) => !NATIVE_EXT.includes(String(ext || "").toLowerCase());
+
+function openInVLC(url) {
+  if (!url) return;
+  const target = `vlc-x-callback://x-callback-url/stream?url=${encodeURIComponent(url)}`;
+  saveVODProgress();
+  if (player.mode) { video.pause(); }
+  location.href = target;
+  setTimeout(() => { if (!document.hidden) toast("Si VLC ne s'ouvre pas, installez « VLC for Mobile » (gratuit) depuis l'App Store"); }, 1500);
+}
+
+/** Adresse directe (sans relais) de ce qui est en cours de lecture. */
+function currentDirectURL() {
+  if (player.mode === "live" && player.stream) {
+    if (player.shift) return urls.timeshift(player.stream, new Date(watchedTime().getTime() - 0), player.shift.minutes).replace(/\.m3u8$/, ".ts");
+    return urls.live(player.stream).replace(/\.m3u8$/, ".ts");
+  }
+  return player.lastVOD?.[0] || null;
+}
+
 // ---------------------------------------------------------------- plein écran (avec les boutons d'OndeTV)
 
 const fsElement = () => document.fullscreenElement || document.webkitFullscreenElement;
-const isFullscreen = () => !!fsElement() || player.el.classList.contains("rotated");
+const isFullscreen = () => !!fsElement() || player.el.classList.contains("rotated") || player.el.classList.contains("immersive");
 
 async function toggleFullscreen() {
   if (fsElement()) { (document.exitFullscreen || document.webkitExitFullscreen)?.call(document); return; }
   if (player.el.classList.contains("rotated")) { setRotated(false); return; }
-  // iPad / ordinateur : vrai plein écran de tout le lecteur (vidéo + boutons).
+  if (player.el.classList.contains("immersive")) { setImmersive(false); return; }
+  // iPad / ordinateur : vrai plein écran de tout le lecteur (vidéo + boutons OndeTV).
   const el = player.el;
-  const request = el.requestFullscreen || el.webkitRequestFullscreen;
-  if (request && (document.fullscreenEnabled || document.webkitFullscreenEnabled)) {
+  const request = el.requestFullscreen || el.webkitRequestFullscreen || el.webkitRequestFullScreen;
+  if (request) {
     try {
-      await request.call(el);
-      screen.orientation?.lock?.("landscape").catch(() => {});
-      return;
-    } catch { /* on passe au mode paysage simulé */ }
+      const r = request.call(el);
+      if (r?.then) await r;
+      if (await waitFor(() => !!fsElement(), 1200)) {
+        screen.orientation?.lock?.("landscape").catch(() => {});
+        return;
+      }
+    } catch { /* refusé (app sur l'écran d'accueil…) : repli ci-dessous */ }
   }
-  // iPhone : Safari n'autorise le plein écran que pour son propre lecteur → paysage simulé.
-  if (innerHeight > innerWidth) setRotated(true);
-  else toast("Astuce : ajoutez OndeTV à l'écran d'accueil pour masquer les barres de Safari");
+  // Téléphone en portrait : paysage simulé avec tous les boutons.
+  if (innerHeight > innerWidth && innerWidth < 700) { setRotated(true); return; }
+  // iPad / paysage sans plein écran autorisé : mode immersif (la vidéo occupe tout, boutons au toucher).
+  setImmersive(true);
+}
+
+function setImmersive(on) {
+  player.el.classList.toggle("immersive", on);
+  updateFullscreenButton();
+  if (on) { hideUI(); toast("Plein écran · touchez l'écran pour les commandes"); } else wake();
 }
 
 function setRotated(on) {
@@ -1362,7 +1426,8 @@ function setRotated(on) {
 }
 
 function updateFullscreenButton() {
-  $("#btn-fs").innerHTML = isFullscreen() ? "<span>⛶</span>Quitter" : "<span>⛶</span>Plein écran";
+  const html = isFullscreen() ? "<span>⛶</span>Quitter" : "<span>⛶</span>Plein écran";
+  document.querySelectorAll(".btn-fs").forEach((b) => { b.innerHTML = html; });
 }
 document.addEventListener("fullscreenchange", updateFullscreenButton);
 document.addEventListener("webkitfullscreenchange", updateFullscreenButton);
@@ -1581,7 +1646,7 @@ function panelRow(s, channels, groupId) {
   },
     h("span", { class: "num" }, s.num ?? ""), logoBox(s),
     h("div", { class: "info" }, h("div", { class: "name" }, s.name), h("div", { class: "now" }), h("div", { class: "bar hidden" }, h("i")),
-      groupId === "__all" || groupId === "__fav" || groupId === "__recent" ? (multiSource() ? h("div", { class: "src-tag" }, sourceName(s)) : null) : null),
+      mixedGroup(groupId) ? h("div", { class: "cat-tag" }, categoryLabel(s)) : null),
     epgBtn, favBtn);
   panel.rows.set(s.id, [...(panel.rows.get(s.id) || []), row]);
   if (content.epg.has(s.id)) fillPanelRow(row, s.id); else player.panelObserver.observe(row);
@@ -1755,6 +1820,7 @@ function openOptions() {
       label: m ? `${m} minutes` : "Désactivée", selected: m === 0 && !player.sleepAt, action: () => setSleep(m),
     }))) },
     stream ? { label: library.favChannels.includes(stream.id) ? "Retirer des favoris" : "Ajouter aux favoris", action: toggleCurrentFav } : null,
+    { label: "Ouvrir dans VLC", action: () => openInVLC(currentDirectURL()) },
     { label: "Image dans l'image (PiP)", action: togglePiP },
     { label: isFullscreen() ? "Quitter le plein écran" : "Plein écran", action: toggleFullscreen },
     { label: "Lecteur iOS natif (PiP, AirPlay)", action: () => video.webkitEnterFullscreen ? video.webkitEnterFullscreen() : video.requestFullscreen?.() },
@@ -1788,6 +1854,7 @@ const PREF_LABELS = [
   ["closeListOnSelect", "Fermer la liste après sélection"],
   ["resumeLastChannel", "Relancer la dernière chaîne au démarrage"],
   ["nativeEngine", "Lecteur natif Safari (AirPlay, mais moins stable)"],
+  ["vlcForSpecial", "Ouvrir les formats spéciaux (MKV, AVI…) dans VLC"],
 ];
 function openPrefsMenu() {
   openMenu("Préférences du lecteur", PREF_LABELS.map(([key, label]) => ({
@@ -1812,7 +1879,9 @@ function playCatchup(stream, program) {
     `${stream.name} · ${program.start.toLocaleString("fr-FR", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}`, null);
 }
 
-function playVOD(url, title, subtitle, progressKey) {
+function playVOD(url, title, subtitle, progressKey, { forceInternal = false } = {}) {
+  const ext = (url.split("?")[0].split(".").pop() || "").toLowerCase();
+  if (!forceInternal && prefs.vlcForSpecial && isSpecialFormat(ext)) { openInVLC(url); return; }
   closePanels();
   player.progressKey = progressKey;
   player.lastVOD = [url, title, subtitle, progressKey];
@@ -1828,6 +1897,115 @@ function saveVODProgress() {
   library.progress[player.progressKey] = { pos: video.currentTime, dur: video.duration, t: Date.now() };
   saveLibrary();
 }
+
+// --- commandes des films, séries et replays (mêmes options que le direct)
+
+const fmtTime = (sec) => {
+  if (!Number.isFinite(sec)) return "0:00";
+  const t = Math.max(0, Math.floor(sec)), hh = Math.floor(t / 3600), mm = Math.floor((t % 3600) / 60), ss = t % 60;
+  return hh ? `${hh}:${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}` : `${mm}:${String(ss).padStart(2, "0")}`;
+};
+const vodRange = $("#vod-range");
+function updateVodUI() {
+  if (player.mode !== "vod") return;
+  const d = Number.isFinite(video.duration) ? video.duration : 0;
+  const dragging = vodRange.dataset.dragging === "1";
+  if (!dragging) {
+    vodRange.value = d ? Math.round((video.currentTime / d) * 1000) : 0;
+    $("#vod-time").textContent = fmtTime(video.currentTime);
+  }
+  $("#vod-duration").textContent = d ? `-${fmtTime(d - video.currentTime)}` : "";
+  vodRange.style.setProperty("--pos", `${(vodRange.value / 10)}%`);
+  vodRange.style.setProperty("--avail", d ? `${Math.min(100, ((video.currentTime + bufferAhead()) / d) * 100)}%` : "0%");
+  $("#vod-play").innerHTML = video.paused ? "<span>▶</span>Lecture" : "<span>⏸</span>Pause";
+}
+video.addEventListener("timeupdate", updateVodUI);
+video.addEventListener("pause", updateVodUI);
+video.addEventListener("play", updateVodUI);
+vodRange.addEventListener("pointerdown", () => { vodRange.dataset.dragging = "1"; });
+vodRange.addEventListener("touchstart", () => { vodRange.dataset.dragging = "1"; }, { passive: true });
+vodRange.addEventListener("input", () => {
+  wake();
+  const d = video.duration || 0;
+  $("#vod-time").textContent = fmtTime((vodRange.value / 1000) * d);
+  vodRange.style.setProperty("--pos", `${vodRange.value / 10}%`);
+});
+vodRange.addEventListener("change", () => {
+  vodRange.dataset.dragging = "";
+  const d = video.duration;
+  if (Number.isFinite(d)) video.currentTime = (vodRange.value / 1000) * d;
+});
+
+function seekBy(sec) {
+  if (!Number.isFinite(video.duration)) return;
+  video.currentTime = Math.min(Math.max(0, video.currentTime + sec), video.duration - 1);
+  updateVodUI();
+}
+
+function openTracksMenu() {
+  const items = [];
+  const hls = player.hls;
+  if (hls && hls.audioTracks?.length > 1) {
+    hls.audioTracks.forEach((t, i) => items.push({ label: `🔊 ${t.name || t.lang || `Piste ${i + 1}`}`, selected: hls.audioTrack === i, action: () => { hls.audioTrack = i; } }));
+  } else if (video.audioTracks?.length > 1) {
+    [...video.audioTracks].forEach((t, i) => items.push({ label: `🔊 ${t.label || t.language || `Piste ${i + 1}`}`, selected: t.enabled, action: () => { [...video.audioTracks].forEach((x, j) => { x.enabled = j === i; }); } }));
+  }
+  if (hls && hls.subtitleTracks?.length) {
+    items.push({ label: "💬 Sans sous-titres", selected: hls.subtitleTrack === -1, action: () => { hls.subtitleTrack = -1; } });
+    hls.subtitleTracks.forEach((t, i) => items.push({ label: `💬 ${t.name || t.lang || `Sous-titres ${i + 1}`}`, selected: hls.subtitleTrack === i, action: () => { hls.subtitleTrack = i; hls.subtitleDisplay = true; } }));
+  } else if (video.textTracks?.length) {
+    const tracks = [...video.textTracks].filter((t) => t.kind === "subtitles" || t.kind === "captions");
+    if (tracks.length) {
+      items.push({ label: "💬 Sans sous-titres", selected: tracks.every((t) => t.mode !== "showing"), action: () => tracks.forEach((t) => { t.mode = "disabled"; }) });
+      tracks.forEach((t, i) => items.push({ label: `💬 ${t.label || t.language || `Sous-titres ${i + 1}`}`, selected: t.mode === "showing", action: () => tracks.forEach((x, j) => { x.mode = j === i ? "showing" : "disabled"; }) }));
+    }
+  }
+  if (!items.length) items.push({ label: "Une seule piste audio, pas de sous-titres", action: () => {} });
+  items.push({ label: "Plus de pistes ? Ouvrir dans VLC", action: () => openInVLC(currentDirectURL()) });
+  openMenu("Pistes audio et sous-titres", items);
+}
+
+function openSpeedMenu() {
+  openMenu("Vitesse de lecture", [0.75, 1, 1.25, 1.5, 2].map((r) => ({
+    label: `×${r}`, selected: video.playbackRate === r,
+    action: () => { video.playbackRate = r; $("#vod-speed").innerHTML = `<span>⏱</span>×${r}`; },
+  })));
+}
+
+function openVodOptions() {
+  const sleepLeft = player.sleepAt ? `${Math.ceil((player.sleepAt - Date.now()) / 60000)} min` : "Désactivée";
+  openMenu("Options", [
+    { label: "Pistes audio et sous-titres", action: openTracksMenu },
+    { label: "Vitesse de lecture", value: `×${video.playbackRate}`, action: openSpeedMenu },
+    { label: "Format d'image", value: ASPECTS.find((a) => a.id === player.aspect).label, action: openAspectMenu },
+    { label: "Minuterie de mise en veille", value: sleepLeft, action: () => openMenu("Mise en veille", [0, 15, 30, 60, 90, 120].map((m) => ({
+      label: m ? `${m} minutes` : "Désactivée", selected: m === 0 && !player.sleepAt, action: () => setSleep(m),
+    }))) },
+    { label: isFullscreen() ? "Quitter le plein écran" : "Plein écran", action: toggleFullscreen },
+    { label: "Ouvrir dans VLC", action: () => openInVLC(currentDirectURL()) },
+    { label: "Image dans l'image (PiP)", action: togglePiP },
+    { label: "Lecteur iOS natif (AirPlay)", action: () => video.webkitEnterFullscreen ? video.webkitEnterFullscreen() : video.requestFullscreen?.() },
+    { label: "Recommencer depuis le début", action: () => { video.currentTime = 0; } },
+  ]);
+}
+
+$("#vod-ui").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-vod]");
+  if (!b) return;
+  wake();
+  ({
+    back: () => seekBy(-10),
+    forward: () => seekBy(30),
+    play: togglePause,
+    tracks: openTracksMenu,
+    speed: openSpeedMenu,
+    fullscreen: toggleFullscreen,
+    aspect: cycleAspect,
+    vlc: () => openInVLC(currentDirectURL()),
+    more: openVodOptions,
+  })[b.dataset.vod]?.();
+});
+["pointermove", "touchstart"].forEach((ev) => $("#vod-ui").addEventListener(ev, () => wake(), { passive: true }));
 
 // --- commandes et gestes
 
@@ -1869,6 +2047,7 @@ $("#live-ui").addEventListener("click", (e) => {
     restart: restartProgram,
     golive: goLive,
     fullscreen: toggleFullscreen,
+    vlc: () => openInVLC(currentDirectURL()),
     aspect: cycleAspect,
     more: openOptions,
   })[b.dataset.act]?.();
@@ -1904,7 +2083,11 @@ tap.addEventListener("click", () => handleTap());
 
 function handleTap() {
   const now = Date.now();
-  if (now - lastTap < 300) { clearTimeout(singleTapTimer); lastTap = 0; goPrevious(); return; }
+  if (now - lastTap < 300) {
+    clearTimeout(singleTapTimer); lastTap = 0;
+    if (player.mode === "live") goPrevious(); else togglePause();
+    return;
+  }
   lastTap = now;
   clearTimeout(singleTapTimer);
   singleTapTimer = setTimeout(() => {
@@ -1938,6 +2121,8 @@ document.addEventListener("keydown", (e) => {
     skip(-30);
   } else if (live && (e.key === "l" || e.key === "L")) {
     skip(30);
+  } else if (!live && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
+    seekBy(e.key === "ArrowLeft" ? -10 : 30);
   } else if (e.key === "f" || e.key === "F") {
     toggleFullscreen();
   } else if (e.key === " ") {
