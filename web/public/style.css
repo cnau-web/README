@@ -286,3 +286,7 @@ input, select { font: inherit; color: var(--text); }
 .sync-login { display: grid; gap: 8px; padding: 16px; border-radius: var(--radius); background: #ffffff0a; }
 .sync-or { text-align: center; color: var(--muted); font-size: 13px; margin-top: -6px; }
 .sync-code strong { font-family: ui-monospace, Menlo, monospace; letter-spacing: .06em; color: var(--text); }
+
+/* Gestion des groupes */
+.group-list { margin: 10px 0 0; max-height: none; }
+.group-list .toggle small { margin-top: 2px; }

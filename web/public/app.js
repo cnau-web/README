@@ -272,6 +272,19 @@ const nowProgram = (id, t = new Date()) => content.epg.get(id)?.find((p) => p.st
 const nextProgram = (id, t = new Date()) => content.epg.get(id)?.find((p) => p.start > t);
 const progress = (p, t = new Date()) => Math.min(100, Math.max(0, ((t - p.start) / (p.end - p.start)) * 100));
 
+// ---------------------------------------------------------------- groupes masqués (synchronisés)
+
+library.hidden ??= { live: [], vod: [], series: [] };
+const hiddenSet = (kind) => new Set(library.hidden?.[kind] || []);
+const isHiddenCat = (kind, catId) => (library.hidden?.[kind] || []).includes(catId);
+function setHidden(kind, ids, hide) {
+  const set = hiddenSet(kind);
+  for (const id of ids) { if (hide) set.add(id); else set.delete(id); }
+  library.hidden[kind] = [...set];
+  if (library.meta) library.meta.groupsAt = Date.now();
+  saveLibrary(2000);
+}
+
 // ---------------------------------------------------------------- utilitaires UI
 
 function h(tag, attrs = {}, ...children) {
@@ -457,8 +470,9 @@ const mixedGroup = (id) => ["__replay", "__fav", "__recent", "__all"].includes(i
 function channelsFor(cat) {
   if (cat === "__fav") return library.favChannels.map((id) => content.liveById.get(id)).filter(Boolean);
   if (cat === "__recent") return library.recents.map((id) => content.liveById.get(id)).filter(Boolean);
-  if (cat === "__all") return content.live;
-  if (cat === "__replay") return content.live.filter((x) => x.archive);
+  const hidden = hiddenSet("live");
+  if (cat === "__all") return hidden.size ? content.live.filter((x) => !hidden.has(x.cat)) : content.live;
+  if (cat === "__replay") return content.live.filter((x) => x.archive && !hidden.has(x.cat));
   return content.live.filter((s) => s.cat === cat);
 }
 
@@ -471,8 +485,8 @@ async function renderLive(top, main) {
   const select = h("select", { onchange: () => { liveCategory = select.value; store.set("ondetv.liveCat", liveCategory); draw(); } },
     h("option", { value: "__fav" }, `★ Favoris (${library.favChannels.length})`),
     h("option", { value: "__recent" }, "Récents"),
-    h("option", { value: "__replay" }, `⟲ Chaînes avec replay (${content.live.filter((x) => x.archive).length})`),
-    h("option", { value: "__all" }, `Toutes les chaînes (${content.live.length})`),
+    h("option", { value: "__replay" }, `⟲ Chaînes avec replay (${channelsFor("__replay").length})`),
+    h("option", { value: "__all" }, `Toutes les chaînes (${channelsFor("__all").length})`),
     categoryOptions(content.liveCats));
   select.value = liveCategory;
   if (select.value !== liveCategory) { liveCategory = "__all"; select.value = "__all"; }
@@ -503,7 +517,7 @@ async function renderLive(top, main) {
     rows.clear();
     const q = search.value.trim().toLowerCase();
     // La recherche porte sur toutes les chaînes de toutes les sources.
-    let list = q ? content.live.filter((s) => s.name.toLowerCase().includes(q) || String(s.num) === q) : channelsFor(liveCategory);
+    let list = q ? channelsFor("__all").filter((s) => s.name.toLowerCase().includes(q) || String(s.num) === q) : channelsFor(liveCategory);
     main.replaceChildren();
     main.scrollTop = 0;
     if (!list.length) {
@@ -556,8 +570,16 @@ function openChannel(stream, list) {
     const epgBox = h("div", { class: "detail", style: { marginTop: 0 } }, h("div", { class: "loading" }, "Programme…"));
     target.replaceChildren(header, epgBox);
 
-    const programs0 = await fullEPG(stream);
+    const programs0 = await loadFullEPG(stream);
     let programs = programs0;
+    if (fullEPGCache.get(stream.id)?.pastChecked === "loading") {
+      const onPast = (e) => {
+        if (e.detail.id !== stream.id) return;
+        document.removeEventListener("fullepg", onPast);
+        if (e.detail.added && !$("#sheet").classList.contains("hidden") && $("#sheet-content").contains(epgBox)) openChannel(stream, list);
+      };
+      document.addEventListener("fullepg", onPast);
+    }
     const now = new Date();
     const horizon = now - (stream.archiveDays * 86400000 + 3600000);
     programs = programs.filter((p) => p.end > horizon);
@@ -612,12 +634,12 @@ async function fetchCatalog(cache, cat, action, map, sortKey) {
 }
 
 const fetchVOD = (cat) => fetchCatalog(content.vod, cat, "get_vod_streams", (m, src) => num(m.stream_id) === null ? null : ({
-  id: `${src.id}:${m.stream_id}`, sid: num(m.stream_id), src: src.id, name: String(m.name ?? "").trim(), icon: m.stream_icon,
+  id: `${src.id}:${m.stream_id}`, sid: num(m.stream_id), src: src.id, cat: `${src.id}:${m.category_id ?? ""}`, name: String(m.name ?? "").trim(), icon: m.stream_icon,
   rating: num(m.rating) || null, ext: m.container_extension || "mp4", added: num(m.added) || 0,
 }), "added");
 
 const fetchSeries = (cat) => fetchCatalog(content.series, cat, "get_series", (x, src) => num(x.series_id) === null ? null : ({
-  id: `${src.id}:${x.series_id}`, sid: num(x.series_id), src: src.id, name: String(x.name ?? "").trim(), icon: x.cover,
+  id: `${src.id}:${x.series_id}`, sid: num(x.series_id), src: src.id, cat: `${src.id}:${x.category_id ?? ""}`, name: String(x.name ?? "").trim(), icon: x.cover,
   rating: num(x.rating) || null, plot: x.plot, genre: x.genre, cast: x.cast, year: (x.releaseDate || x.release_date || "").slice(0, 4),
   backdrop: Array.isArray(x.backdrop_path) ? x.backdrop_path[0] : x.backdrop_path, modified: num(x.last_modified) || 0,
 }), "modified");
@@ -632,6 +654,8 @@ async function fetchCategories(action) {
 
 /** Options de catégories, groupées par source quand il y en a plusieurs. */
 function categoryOptions(cats) {
+  const hidden = hiddenSet("live");
+  cats = cats.filter((c) => !hidden.has(c.id));
   if (!multiSource()) return cats.map((c) => h("option", { value: c.id }, c.name));
   return activeSources().map((src) => h("optgroup", { label: src.name },
     cats.filter((c) => c.src === src.id).map((c) => h("option", { value: c.id }, c.name))));
@@ -660,8 +684,10 @@ async function renderCatalog(top, main, kind) {
 
   let selected = isMovies ? vodCategory : seriesCategory;
   if (!["__fav", "__resume", "__all"].includes(selected) && !cats.some((c) => c.id === selected)) selected = "__all";
+  const kindKey = isMovies ? "vod" : "series";
+  const visibleCats = cats.filter((c) => !isHiddenCat(kindKey, c.id));
   const chipsDef = [{ id: "__fav", name: "★ Favoris" }, ...(isMovies ? [{ id: "__resume", name: "Reprendre" }] : []), { id: "__all", name: "Tout" },
-    ...cats.map((c) => ({ id: c.id, name: multiSource() ? `${sourceName(c)} · ${c.name}` : c.name }))];
+    ...visibleCats.map((c) => ({ id: c.id, name: multiSource() ? `${sourceName(c)} · ${c.name}` : c.name }))];
   const chips = h("div", { class: "chips" });
   let searchTimer = null;
   const search = h("input", { type: "search", placeholder: isMovies ? "Rechercher un film" : "Rechercher une série", oninput: () => { clearTimeout(searchTimer); searchTimer = setTimeout(draw, 250); } });
@@ -692,6 +718,7 @@ async function renderCatalog(top, main, kind) {
         items = ids.map((id) => byId.get(id)).filter(Boolean);
       } else {
         items = await fetcher(selected);
+        if (selected === "__all") { const hidden = hiddenSet(kindKey); if (hidden.size) items = items.filter((x) => !hidden.has(x.cat)); }
       }
       draw();
     } catch (e) { failure(main, e, load); }
@@ -708,7 +735,8 @@ async function renderCatalog(top, main, kind) {
       main.replaceChildren(h("div", { class: "loading" }, "Recherche dans toutes les sources…"));
       const all = await (isMovies ? fetchVOD : fetchSeries)("__all").catch(() => items);
       if (token !== searchToken) return;
-      list = all.filter((x) => x.name.toLowerCase().includes(q));
+      const hidden = hiddenSet(kindKey);
+      list = all.filter((x) => !hidden.has(x.cat) && x.name.toLowerCase().includes(q));
     }
     main.replaceChildren();
     main.scrollTop = 0;
@@ -871,6 +899,11 @@ function renderSettings(top, main) {
         renderShell();
       } }, h("span", {}, "Actualiser chaînes et catalogue"), h("span", {}, "↻")),
       h("button", { class: "item", style: { width: "100%" }, onclick: runDiagnostic }, h("span", {}, "Tester la connexion"), h("span", {}, "📶"))),
+    h("div", { class: "section-label" }, "Groupes"),
+    h("div", { class: "list" },
+      h("button", { class: "item", style: { width: "100%" }, onclick: () => openGroupManager("live") }, h("span", {}, "Gérer les groupes de chaînes"), h("span", {}, `${(library.hidden?.live || []).length} masqué(s) ›`)),
+      h("button", { class: "item", style: { width: "100%" }, onclick: () => openGroupManager("vod") }, h("span", {}, "Gérer les catégories de films"), h("span", {}, `${(library.hidden?.vod || []).length} masquée(s) ›`)),
+      h("button", { class: "item", style: { width: "100%" }, onclick: () => openGroupManager("series") }, h("span", {}, "Gérer les catégories de séries"), h("span", {}, `${(library.hidden?.series || []).length} masquée(s) ›`))),
     h("div", { class: "section-label" }, "Synchronisation entre appareils"),
     syncSettings(),
     h("div", { class: "section-label" }, "Lecteur du direct"),
@@ -948,6 +981,56 @@ function syncSettings() {
   return box;
 }
 
+/** Gestionnaire de groupes : cocher = afficher, décocher = masquer ; tout afficher / tout masquer. */
+function openGroupManager(kind) {
+  const titles = { live: "Groupes de chaînes", vod: "Catégories de films", series: "Catégories de séries" };
+  openSheet(async (target) => {
+    let cats;
+    if (kind === "live") { await loadLive(); cats = content.liveCats; }
+    else if (kind === "vod") cats = content.vodCats ??= await fetchCategories("get_vod_categories");
+    else cats = content.seriesCats ??= await fetchCategories("get_series_categories");
+    const counts = new Map();
+    if (kind === "live") for (const c of content.live) counts.set(c.cat, (counts.get(c.cat) || 0) + 1);
+
+    let source = "__all";
+    let query = "";
+    const listBox = h("div", { class: "list group-list" });
+    const summary = h("div", { class: "muted", style: { fontSize: "13px" } });
+    const search = h("input", { class: "field", type: "search", placeholder: "Rechercher un groupe", oninput: () => { query = search.value.trim().toLowerCase(); draw(); } });
+    const visibleCats = () => cats.filter((c) => (source === "__all" || c.src === source) && (!query || c.name.toLowerCase().includes(query)));
+    const sourceChips = multiSource() ? h("div", { class: "chips", style: { margin: "4px 0 10px" } }) : null;
+    const drawChips = () => sourceChips?.replaceChildren(...[{ id: "__all", name: "Toutes les sources" }, ...activeSources()].map((src) =>
+      h("button", { class: `chip${source === src.id ? " active" : ""}`, onclick: () => { source = src.id; drawChips(); draw(); } }, src.name)));
+
+    function draw() {
+      const shown = visibleCats();
+      const hidden = hiddenSet(kind);
+      summary.textContent = `${cats.filter((c) => !hidden.has(c.id)).length} affiché(s) · ${hidden.size} masqué(s) sur ${cats.length}`;
+      listBox.replaceChildren(...shown.map((c) => {
+        const on = !hidden.has(c.id);
+        const row = h("button", { class: `toggle${on ? " on" : ""}`, onclick: () => {
+          setHidden(kind, [c.id], on);
+          draw();
+        } }, h("span", {}, c.name, h("small", {}, [multiSource() && source === "__all" ? sourceName(c) : null, counts.has(c.id) ? `${counts.get(c.id)} chaînes` : null].filter(Boolean).join(" · "))), h("span", { class: "switch" }));
+        return row;
+      }));
+      if (!shown.length) listBox.append(h("div", { class: "empty" }, "Aucun groupe."));
+    }
+
+    target.replaceChildren(h("div", { class: "detail", style: { marginTop: "48px" } },
+      h("h3", {}, titles[kind]),
+      h("p", { class: "muted", style: { fontSize: "13px", margin: "4px 0 10px" } }, "Activé = affiché. Désactivez les groupes qui ne vous intéressent pas : ils disparaissent des listes, de la recherche et du zapping. Réglage synchronisé entre vos appareils."),
+      sourceChips, search,
+      h("div", { class: "actions", style: { margin: "10px 0" } },
+        h("button", { class: "btn", onclick: () => { setHidden(kind, visibleCats().map((c) => c.id), false); draw(); } }, "Tout afficher"),
+        h("button", { class: "btn", onclick: () => { setHidden(kind, visibleCats().map((c) => c.id), true); draw(); } }, "Tout masquer")),
+      summary, listBox,
+      h("button", { class: "btn primary", style: { width: "100%", marginTop: "14px" }, onclick: () => { closeSheet(); renderShell(); } }, "Terminé")));
+    drawChips();
+    draw();
+  });
+}
+
 // ---------------------------------------------------------------- recherche globale (toutes sources)
 
 let globalQuery = "";
@@ -1016,16 +1099,48 @@ function toastPage(message) {
 }
 
 /** EPG complet d'une chaîne (passé inclus, pour le replay). */
+/** Réunit deux listes de programmes (la première est prioritaire en cas de chevauchement). */
+function mergePrograms(primary, extra) {
+  const all = [...primary.map((p) => ({ p, prio: 0 })), ...extra.map((p) => ({ p, prio: 1 }))]
+    .sort((a, b) => a.p.start - b.p.start || a.prio - b.prio);
+  const out = [];
+  for (const { p, prio } of all) {
+    const last = out[out.length - 1];
+    if (last && p.start < last.end - 60000) {
+      // chevauchement : on garde le programme du fournisseur
+      if (prio === 0 && last._prio === 1) { out[out.length - 1] = Object.assign(p, { _prio: 0 }); }
+      continue;
+    }
+    out.push(Object.assign(p, { _prio: prio }));
+  }
+  return out;
+}
+
 async function fullEPG(stream) {
   const acc = sourceOf(stream);
   let programs = parseEPG(await api("get_simple_data_table", { stream_id: stream.sid }, acc).catch(() => null), acc?.timezone);
   if (!programs.length) programs = parseEPG(await api("get_short_epg", { stream_id: stream.sid, limit: 20 }, acc).catch(() => null), acc?.timezone);
+  // Pas de programme à venir chez le fournisseur : on COMPLÈTE avec le guide public (on garde les jours passés).
   if (!programs.some((p) => p.end > Date.now())) {
     const pub = await publicFullEPG(stream);
-    if (pub.length) programs = pub;
+    if (pub.length) programs = mergePrograms(programs, pub);
   }
   return programs;
 }
+
+/** Jours précédents absents de l'API : on les cherche dans le guide XMLTV complet du fournisseur (via le relais). */
+async function providerPastEPG(stream) {
+  const acc = sourceOf(stream);
+  if (!acc || !stream.epg) return [];
+  try {
+    const res = await fetch("/epg/provider", { method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ server: acc.server, username: acc.username, password: acc.password, epgId: stream.epg,
+        from: Date.now() - Math.max(1, stream.archiveDays) * 86400e3 - 3600e3, to: Date.now() + 86400e3 }) });
+    const body = await res.json();
+    return (body.programmes || []).map((p) => ({ id: `x-${p.s}`, title: p.t, description: p.d || "", start: new Date(p.s), end: new Date(p.e), archive: true }));
+  } catch { return []; }
+}
+const needsPastDays = (stream, programs) => stream.archive && stream.archiveDays >= 1 && !programs.some((p) => p.start < Date.now() - 20 * 3600e3);
 
 // ---------------------------------------------------------------- préférences
 
@@ -1113,13 +1228,14 @@ const HLS_CONFIG = {
 };
 
 async function startVideo(url, startAt = 0) {
+  player.currentUrl = url;
   player.hls?.destroy();
   player.hls = null;
   player.mediaRecoveries = 0;
   status("Chargement…");
   const src = proxy(url);
   const isHLS = /\.m3u8(\?|$)/i.test(url);
-  const wantHlsJs = isHLS && (prefs.nativeEngine ? !canNativeHLS() : mseAvailable());
+  const wantHlsJs = isHLS && (prefs.nativeEngine || player.forceNative ? !canNativeHLS() : mseAvailable());
   let usedHlsJs = false;
   if (wantHlsJs) {
     try {
@@ -1206,6 +1322,7 @@ function openPlayer(mode, title, subtitle) {
 
 function closePlayer() {
   player.minimized = false;
+  player.forceNative = false;
   if (fsElement()) (document.exitFullscreen || document.webkitExitFullscreen)?.call(document);
   player.el.classList.remove("rotated", "immersive");
   if (isPiP()) {
@@ -1311,8 +1428,19 @@ async function loadFullEPG(stream) {
   const cached = fullEPGCache.get(stream.id);
   if (cached && Date.now() - cached.at < 10 * 60000) return cached.programs;
   const programs = await fullEPG(stream).catch(() => []);
-  fullEPGCache.set(stream.id, { at: Date.now(), programs });
+  const entry = { at: Date.now(), programs, pastChecked: false };
+  fullEPGCache.set(stream.id, entry);
   if (player.stream?.id === stream.id) { updateLiveEPG(); updateShiftUI(); }
+  // Replay sans les jours précédents : recherche en arrière-plan dans le guide complet du fournisseur.
+  if (needsPastDays(stream, programs)) {
+    entry.pastChecked = "loading";
+    providerPastEPG(stream).then((past) => {
+      entry.pastChecked = true;
+      if (!past.length) { document.dispatchEvent(new CustomEvent("fullepg", { detail: { id: stream.id, added: 0 } })); return; }
+      entry.programs = mergePrograms(entry.programs, past);
+      document.dispatchEvent(new CustomEvent("fullepg", { detail: { id: stream.id, added: past.length } }));
+    });
+  }
   return programs;
 }
 const knownPrograms = (stream) => {
@@ -1533,6 +1661,19 @@ const fsElement = () => document.fullscreenElement || document.webkitFullscreenE
 const isFullscreen = () => !!fsElement() || player.el.classList.contains("rotated") || player.el.classList.contains("immersive");
 
 async function toggleFullscreen() {
+  // iPhone / iPad : Apple ne permet le vrai plein écran (barre d'état masquée, PiP, AirPlay)
+  // qu'avec son lecteur ; on propose les deux.
+  if (isIOS() && !isFullscreen()) {
+    openMenu("Plein écran", [
+      { label: "Plein écran OndeTV (tous les boutons)", action: () => ondetvFullscreen() },
+      { label: "Plein écran iOS (PiP, AirPlay)", action: openNativeFullscreen },
+    ]);
+    return;
+  }
+  return ondetvFullscreen();
+}
+
+async function ondetvFullscreen() {
   if (fsElement()) { (document.exitFullscreen || document.webkitExitFullscreen)?.call(document); return; }
   if (player.el.classList.contains("rotated")) { setRotated(false); return; }
   if (player.el.classList.contains("immersive")) { setImmersive(false); return; }
@@ -1588,7 +1729,33 @@ function waitFor(test, ms) {
   });
 }
 
+const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+/**
+ * iOS n'autorise le PiP, AirPlay et son lecteur plein écran qu'avec son moteur vidéo natif.
+ * Si le lecteur stable (hls.js) est utilisé, on bascule la lecture en cours sur le moteur natif.
+ */
+async function switchToNativeEngine() {
+  if (!player.hls || !player.currentUrl || !canNativeHLS()) return;
+  const position = video.currentTime;
+  const live = player.mode === "live" && !player.shift;
+  player.forceNative = true;
+  player.hls.destroy();
+  player.hls = null;
+  video.disableRemotePlayback = false;
+  video.src = proxy(player.currentUrl);
+  await new Promise((r) => { video.addEventListener("loadedmetadata", r, { once: true }); setTimeout(r, 8000); });
+  if (!live && position > 1) video.currentTime = position;
+  await video.play().catch(() => {});
+  $("#btn-airplay").classList.toggle("hidden", !video.webkitShowPlaybackTargetPicker);
+}
+
 async function togglePiP() {
+  if (player.hls && isIOS()) {
+    status("Préparation de l'image dans l'image…");
+    await switchToNativeEngine();
+    status("");
+  }
   if (isPiP()) {
     if (document.pictureInPictureElement) await document.exitPictureInPicture().catch(() => {});
     else video.webkitSetPresentationMode("inline");
@@ -1602,8 +1769,17 @@ async function togglePiP() {
     // L'animation d'iOS prend un moment : on attend jusqu'à 2,5 s avant de conclure.
     if (!(await waitFor(isPiP, 2500))) throw new Error("refusé");
   } catch {
-    toast("iOS n'a pas ouvert le PiP · essayez Options → Lecteur iOS natif");
+    // Après la bascule de moteur, iOS exige souvent un nouveau toucher.
+    toast("Touchez ⧉ encore une fois pour ouvrir l'image dans l'image");
   }
+}
+
+async function openNativeFullscreen() {
+  if (player.hls && isIOS()) { status("Préparation du plein écran iOS…"); await switchToNativeEngine(); status(""); }
+  try {
+    if (video.webkitEnterFullscreen) video.webkitEnterFullscreen();
+    else await video.requestFullscreen?.();
+  } catch { toast("Touchez à nouveau pour ouvrir le plein écran iOS"); }
 }
 
 // Fermer le lecteur pendant le PiP : la vidéo continue dans la fenêtre flottante.
@@ -1731,7 +1907,7 @@ function drawPanel() {
     { id: "__replay", name: "⟲ Chaînes avec replay" },
     ...activeSources().filter((src) => inPanelSource({ src: src.id })).flatMap((src) => [
       ...(multiSource() && panel.source === "__all" ? [{ label: src.name }] : []),
-      ...content.liveCats.filter((c) => c.src === src.id).map((c) => ({ id: c.id, name: c.name })),
+      ...content.liveCats.filter((c) => c.src === src.id && !isHiddenCat("live", c.id)).map((c) => ({ id: c.id, name: c.name })),
     ]),
     ...(multiSource() && panel.source === "__all" ? [{ label: "Toutes les sources" }] : []),
     { id: "__all", name: panel.source === "__all" ? "Toutes les chaînes" : `Toutes les chaînes · ${sourceName(panel.source)}` },
@@ -1826,6 +2002,18 @@ async function openGuidePanel(target, fromList = null) {
   wake();
   const all = await loadFullEPG(stream);
   if ($("#guide-title").dataset.for !== stream.id) return;
+  if (fullEPGCache.get(stream.id)?.pastChecked === "loading") {
+    const onPast = (e) => {
+      if (e.detail.id !== stream.id) return;
+      document.removeEventListener("fullepg", onPast);
+      if ($("#guide-title").dataset.for === stream.id && !$("#guide-panel").classList.contains("hidden")) {
+        if (e.detail.added) openGuidePanel(stream, fromList);
+        else list.querySelector(".past-search")?.replaceChildren("Votre fournisseur ne propose pas de programmes plus anciens pour cette chaîne.");
+      }
+    };
+    document.addEventListener("fullepg", onPast);
+    queueMicrotask(() => list.prepend(h("div", { class: "guide-note past-search" }, "⏳ Recherche des jours précédents dans le guide complet du fournisseur…")));
+  }
   const now = new Date();
   const programs = all.filter((p) => p.end > now - (stream.archiveDays * 86400000 + 3600000));
   list.replaceChildren(h("div", { class: "guide-note" }, stream.archive
@@ -1966,7 +2154,7 @@ function openOptions() {
     { label: "Ouvrir dans VLC", action: () => openInVLC(currentDirectURL()) },
     { label: "Image dans l'image (PiP)", action: togglePiP },
     { label: isFullscreen() ? "Quitter le plein écran" : "Plein écran", action: toggleFullscreen },
-    { label: "Lecteur iOS natif (PiP, AirPlay)", action: () => video.webkitEnterFullscreen ? video.webkitEnterFullscreen() : video.requestFullscreen?.() },
+    { label: "Lecteur iOS natif (PiP, AirPlay)", action: openNativeFullscreen },
     { label: "Recharger la chaîne", action: retry },
     { label: "Informations du flux", action: () => toast(video.videoWidth ? `${video.videoWidth}×${video.videoHeight} · ${player.hls ? `lecteur stable · réserve ${Math.round(bufferAhead())} s` : "lecteur natif Safari"}` : "Flux non chargé") },
     { label: "Préférences du lecteur", action: openPrefsMenu },
@@ -2128,7 +2316,7 @@ function openVodOptions() {
     { label: isFullscreen() ? "Quitter le plein écran" : "Plein écran", action: toggleFullscreen },
     { label: "Ouvrir dans VLC", action: () => openInVLC(currentDirectURL()) },
     { label: "Image dans l'image (PiP)", action: togglePiP },
-    { label: "Lecteur iOS natif (AirPlay)", action: () => video.webkitEnterFullscreen ? video.webkitEnterFullscreen() : video.requestFullscreen?.() },
+    { label: "Lecteur iOS natif (AirPlay)", action: openNativeFullscreen },
     { label: "Recommencer depuis le début", action: () => { video.currentTime = 0; } },
   ]);
 }
@@ -2333,6 +2521,7 @@ function snapshot() {
     favChannels: library.favChannels, favMovies: library.favMovies, favSeries: library.favSeries,
     recents: library.recents, lastChannel: library.lastChannel || null,
     progress: library.progress,
+    hidden: library.hidden,
   };
 }
 
@@ -2351,6 +2540,7 @@ function mergeRemote(remote) {
   if ((rm.recentsAt || 0) > (m.recentsAt || 0)) {
     library.recents = remote.recents || []; library.lastChannel = remote.lastChannel || null; m.recentsAt = rm.recentsAt;
   }
+  if ((rm.groupsAt || 0) > (m.groupsAt || 0) && remote.hidden) { library.hidden = remote.hidden; m.groupsAt = rm.groupsAt; }
   for (const [k, v] of Object.entries(remote.progress || {})) {
     const mine = library.progress[k];
     if (!mine || (v.t || 0) > (mine.t || 0)) library.progress[k] = v;
@@ -2385,8 +2575,10 @@ function joinMerge(remote) {
   library.progress = progress;
   library.lastChannel = remote.lastChannel || (library.lastChannel ? { ...library.lastChannel, id: remap(library.lastChannel.id) } : null);
   sources = merged;
+  const rh = remote.hidden || {};
+  library.hidden = { live: union(rh.live, library.hidden?.live?.map(remap)), vod: union(rh.vod, library.hidden?.vod?.map(remap)), series: union(rh.series, library.hidden?.series?.map(remap)) };
   const now = Date.now();
-  library.meta = { sourcesAt: now, favAt: now, recentsAt: now };
+  library.meta = { sourcesAt: now, favAt: now, recentsAt: now, groupsAt: now };
 }
 
 async function syncNow({ join = false } = {}) {

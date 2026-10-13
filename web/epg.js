@@ -142,11 +142,95 @@ export function match(name, epgId) {
   return null;
 }
 
+// ---------------------------------------------------------------- jours précédents : guide XMLTV du fournisseur
+// Certains fournisseurs ne donnent pas les programmes passés via l'API, mais bien dans xmltv.php.
+// Le fichier est lu en flux et seuls les programmes de la chaîne demandée sont gardés (cache 30 min).
+
+const providerCache = new Map();
+const providerBusy = new Map();
+
+async function readProviderChannel({ server, username, password, epgId, from, to }) {
+  const url = `${server.replace(/\/$/, "")}/xmltv.php?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
+  const res = await fetch(url, { headers: { "User-Agent": "OndeTV/1.0" }, signal: AbortSignal.timeout(100_000) });
+  if (!res.ok) throw new Error(`xmltv.php : HTTP ${res.status}`);
+  let stream = res.body;
+  if ((res.headers.get("content-type") || "").includes("gzip") || url.endsWith(".gz")) stream = stream.pipeThrough(new DecompressionStream("gzip"));
+  const want = epgId.toLowerCase();
+  const out = [];
+  let buf = "", seen = false, othersAfter = 0;
+  const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
+  try {
+    outer: while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += value;
+      let pos = 0;
+      while (true) {
+        const start = buf.indexOf("<programme ", pos);
+        if (start < 0) { pos = Math.max(pos, buf.length - 20); break; }
+        const end = buf.indexOf("</programme>", start);
+        if (end < 0) { pos = start; break; }
+        const block = buf.slice(start, end + 12);
+        pos = end + 12;
+        const head = block.slice(0, block.indexOf(">") + 1);
+        if ((attr(head, "channel") || "").toLowerCase() !== want) {
+          // Les programmes d'une chaîne sont presque toujours regroupés : inutile de lire tout le fichier.
+          if (seen && ++othersAfter > 400) break outer;
+          continue;
+        }
+        seen = true; othersAfter = 0;
+        const s = xmltvTime(attr(head, "start")), e = xmltvTime(attr(head, "stop"));
+        if (e > from && s < to) {
+          const desc = inner(block, "desc");
+          out.push({ s, e, t: own(inner(block, "title") || "Sans titre"), d: desc ? own(desc.slice(0, 200)) : undefined });
+        }
+      }
+      buf = buf.slice(pos);
+    }
+  } finally {
+    reader.cancel().catch(() => {});
+  }
+  return out.sort((a, b) => a.s - b.s);
+}
+
+async function providerPast(params) {
+  const key = `${params.server}|${params.username}|${params.epgId.toLowerCase()}`;
+  const hit = providerCache.get(key);
+  if (hit && Date.now() - hit.at < 30 * 60_000) return hit.list;
+  // Une seule lecture à la fois par abonnement (les fournisseurs limitent les connexions).
+  const account = `${params.server}|${params.username}`;
+  const previous = providerBusy.get(account) || Promise.resolve();
+  const job = previous.catch(() => {}).then(() => readProviderChannel(params));
+  providerBusy.set(account, job);
+  try {
+    const list = await job;
+    providerCache.set(key, { at: Date.now(), list });
+    if (providerCache.size > 300) providerCache.delete(providerCache.keys().next().value);
+    return list;
+  } finally {
+    if (providerBusy.get(account) === job) providerBusy.delete(account);
+  }
+}
+
 export async function handleEpg(request) {
   const url = new URL(request.url);
   const headers = { "content-type": "application/json", "cache-control": "no-store" };
   if (url.pathname === "/epg/status") {
     return new Response(JSON.stringify({ loadedAt: state.loadedAt, loading: !!state.loading, channels: state.channels.size, stats: state.stats, error: state.error }), { headers });
+  }
+  if (url.pathname === "/epg/provider" && request.method === "POST") {
+    let b;
+    try { b = await request.json(); } catch { return new Response(JSON.stringify({ error: "JSON invalide" }), { status: 400, headers }); }
+    if (!/^https?:\/\//i.test(b.server || "") || !b.username || !b.password || !b.epgId) {
+      return new Response(JSON.stringify({ error: "paramètres manquants" }), { status: 400, headers });
+    }
+    try {
+      const programmes = await providerPast({ server: b.server, username: b.username, password: b.password, epgId: String(b.epgId),
+        from: Number(b.from) || Date.now() - 7 * 86400e3, to: Number(b.to) || Date.now() + 86400e3 });
+      return new Response(JSON.stringify({ programmes }), { headers });
+    } catch (e) {
+      return new Response(JSON.stringify({ error: e.message, programmes: [] }), { status: 502, headers });
+    }
   }
   if (url.pathname !== "/epg/lookup" || request.method !== "POST") return new Response("{}", { status: 404, headers });
   // Premier appel après un démarrage : on lance le chargement sans faire attendre l'app.
