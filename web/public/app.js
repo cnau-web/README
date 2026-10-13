@@ -2596,7 +2596,9 @@ async function syncNow({ join = false } = {}) {
         catch { throw new Error("Données illisibles avec ce code"); }
       }
       const before = JSON.stringify(sources);
+      const viewBefore = JSON.stringify([library.hidden, library.favChannels, library.favMovies, library.favSeries]);
       if (remote) { if (join) joinMerge(remote); else mergeRemote(remote); }
+      const viewChanged = JSON.stringify([library.hidden, library.favChannels, library.favMovies, library.favSeries]) !== viewBefore;
       const local = snapshot();
       if (!remote || JSON.stringify(local) !== JSON.stringify(remote)) {
         const put = await fetch(`/sync/${id}`, { method: "PUT", body: await encryptSnapshot(local, syncState.code) });
@@ -2610,6 +2612,10 @@ async function syncNow({ join = false } = {}) {
       if (JSON.stringify(sources) !== before) {
         resetContent();
         if (!player.mode) { if (activeSources().length) renderShell(); else renderLogin(); }
+      } else if (viewChanged && !player.mode && $("#sheet").classList.contains("hidden")) {
+        // Groupes masqués / favoris modifiés sur un autre appareil : on rafraîchit l'écran
+        // (sauf pendant la lecture ou si une fiche est ouverte, pour ne pas déranger).
+        renderShell();
       }
     } catch (e) {
       syncState.error = e.message;
