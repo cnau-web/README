@@ -2,6 +2,7 @@
 // Déploiement : Deno Deploy (entrypoint web/main.js) ou en local : deno run -A web/main.js
 import { handleProxy } from "./proxy.js";
 import { handleSync } from "./sync.js";
+import { handleEpg, ensureLoaded as loadPublicEpg } from "./epg.js";
 
 const env = (name) => globalThis.Deno?.env.get(name);
 const config = {
@@ -51,10 +52,13 @@ export async function handler(request) {
   if (pathname === "/x") return handleProxy(request, config);
   if (pathname === "/diag") return diag();
   if (pathname.startsWith("/sync/")) return handleSync(request);
+  if (pathname.startsWith("/epg/")) return handleEpg(request);
   return serveStatic(pathname);
 }
 
 if (import.meta.main) {
   const port = Number(env("PORT") || 8000);
   Deno.serve({ port }, handler);
+  // Guides publics chargés en arrière-plan dès le démarrage.
+  if (env("PUBLIC_EPG") !== "off") loadPublicEpg().catch(() => {});
 }

@@ -129,15 +129,33 @@ function b64(s) {
   } catch { return s; }
 }
 
-function parseEPG(data) {
-  return asList(data?.epg_listings).map((p) => ({
-    id: String(p.id ?? p.start_timestamp),
-    title: b64(p.title) || "Sans titre",
-    description: b64(p.description),
-    start: new Date(num(p.start_timestamp) * 1000),
-    end: new Date(num(p.stop_timestamp ?? p.end_timestamp) * 1000),
-    archive: Number(p.has_archive) === 1,
-  })).filter((p) => !isNaN(p.start) && !isNaN(p.end)).sort((a, b) => a.start - b.start);
+/** « 2026-10-13 20:00:00 » exprimé dans le fuseau tz → millisecondes UTC */
+function zonedToMs(str, tz) {
+  const m = String(str || "").match(/(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/);
+  if (!m) return NaN;
+  const guess = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0));
+  if (!tz) return guess;
+  try {
+    const parts = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: tz, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" })
+      .formatToParts(new Date(guess)).map((x) => [x.type, x.value]));
+    const asUTC = Date.UTC(+parts.year, +parts.month - 1, +parts.day, +parts.hour, +parts.minute, +parts.second);
+    return guess - (asUTC - guess);
+  } catch { return guess; }
+}
+
+function parseEPG(data, tz) {
+  return asList(data?.epg_listings).map((p) => {
+    const start = num(p.start_timestamp) ? num(p.start_timestamp) * 1000 : zonedToMs(p.start, tz);
+    const stop = num(p.stop_timestamp ?? p.end_timestamp) ? num(p.stop_timestamp ?? p.end_timestamp) * 1000 : zonedToMs(p.end ?? p.stop, tz);
+    return {
+      id: String(p.id ?? start),
+      title: b64(p.title) || "Sans titre",
+      description: b64(p.description),
+      start: new Date(start),
+      end: new Date(stop),
+      archive: Number(p.has_archive) === 1,
+    };
+  }).filter((p) => !isNaN(p.start) && !isNaN(p.end) && p.end > p.start).sort((a, b) => a.start - b.start);
 }
 
 // ---------------------------------------------------------------- cache contenu
@@ -159,7 +177,7 @@ async function loadLive(force = false) {
         cats: asList(cats).map((c) => ({ id: `${src.id}:${c.category_id}`, src: src.id, name: c.category_name || "Sans nom" })),
         live: asList(streams).filter((x) => num(x.stream_id) !== null).map((x) => ({
           id: `${src.id}:${x.stream_id}`, sid: num(x.stream_id), src: src.id, num: num(x.num),
-          name: String(x.name ?? "").trim() || `Chaîne ${x.stream_id}`, icon: x.stream_icon, cat: `${src.id}:${x.category_id ?? ""}`,
+          name: String(x.name ?? "").trim() || `Chaîne ${x.stream_id}`, icon: x.stream_icon, cat: `${src.id}:${x.category_id ?? ""}`, epg: x.epg_channel_id || null,
           archive: Number(x.tv_archive) === 1 && num(x.tv_archive_duration) > 0, archiveDays: num(x.tv_archive_duration) || 0,
         })).sort((a, b) => (a.num ?? 1e9) - (b.num ?? 1e9) || a.name.localeCompare(b.name)),
       };
@@ -190,11 +208,66 @@ function pumpEPG() {
     const stream = content.liveById.get(id);
     if (!stream) { epgRunning--; content.epgPending.delete(id); continue; }
     api("get_short_epg", { stream_id: stream.sid, limit: 6 }, sourceOf(stream))
-      .then((d) => { content.epg.set(id, parseEPG(d)); document.dispatchEvent(new CustomEvent("epg", { detail: id })); })
-      .catch(() => content.epg.set(id, []))
+      .then((d) => {
+        const list = parseEPG(d, sourceOf(stream)?.timezone);
+        content.epg.set(id, list);
+        document.dispatchEvent(new CustomEvent("epg", { detail: id }));
+        // Rien d'exploitable chez le fournisseur → guide public (France / Espagne).
+        if (!list.some((p) => p.end > Date.now())) requestPublicEPG(id);
+      })
+      .catch(() => { content.epg.set(id, []); requestPublicEPG(id); })
       .finally(() => { epgRunning--; content.epgPending.delete(id); pumpEPG(); });
   }
 }
+// Guides publics (xmltvfr.fr, EPG dobleM) servis par le relais : utilisés quand le fournisseur n'a rien.
+const publicQueue = new Set();
+let publicTimer = null;
+let publicWaits = 0;
+const publicProgram = (p) => ({ id: `pub-${p.s}`, title: p.t, description: p.d || "", start: new Date(p.s), end: new Date(p.e), archive: false, public: true });
+
+function requestPublicEPG(id) {
+  if (!prefs.publicEpg) return;
+  publicQueue.add(id);
+  clearTimeout(publicTimer);
+  publicTimer = setTimeout(flushPublicEPG, 300);
+}
+
+async function flushPublicEPG() {
+  const ids = [...publicQueue].slice(0, 60);
+  ids.forEach((i) => publicQueue.delete(i));
+  if (!ids.length) return;
+  const channels = ids.map((id) => { const s = content.liveById.get(id); return s && { key: id, name: s.name, epgId: s.epg }; }).filter(Boolean);
+  try {
+    const res = await fetch("/epg/lookup", { method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ channels, from: Date.now() - 3 * 3600e3, to: Date.now() + 12 * 3600e3 }) });
+    const body = await res.json();
+    if (body.loading) {
+      // Le relais charge encore les guides (≈ 10 s après son réveil) : on réessaie.
+      if (publicWaits++ < 8) { ids.forEach((i) => publicQueue.add(i)); publicTimer = setTimeout(flushPublicEPG, 5000); }
+      return;
+    }
+    for (const [id, list] of Object.entries(body.results || {})) {
+      content.epg.set(id, list.map(publicProgram));
+      document.dispatchEvent(new CustomEvent("epg", { detail: id }));
+    }
+  } catch { /* relais injoignable : tant pis */ }
+  if (publicQueue.size) publicTimer = setTimeout(flushPublicEPG, 100);
+}
+
+async function publicFullEPG(stream) {
+  if (!prefs.publicEpg) return [];
+  for (let attempt = 0; attempt < 4; attempt++) {
+    try {
+      const res = await fetch("/epg/lookup", { method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ channels: [{ key: stream.id, name: stream.name, epgId: stream.epg }], from: Date.now() - 30 * 3600e3, to: Date.now() + 36 * 3600e3 }) });
+      const body = await res.json();
+      if (body.loading) { await new Promise((r) => setTimeout(r, 4000)); continue; }
+      return (body.results?.[stream.id] || []).map(publicProgram);
+    } catch { return []; }
+  }
+  return [];
+}
+
 const nowProgram = (id, t = new Date()) => content.epg.get(id)?.find((p) => p.start <= t && t < p.end);
 const nextProgram = (id, t = new Date()) => content.epg.get(id)?.find((p) => p.start > t);
 const progress = (p, t = new Date()) => Math.min(100, Math.max(0, ((t - p.start) / (p.end - p.start)) * 100));
@@ -491,6 +564,7 @@ function openChannel(stream, list) {
     if (!programs.length) { epgBox.replaceChildren(h("div", { class: "empty" }, "Aucun programme disponible.")); return; }
 
     epgBox.replaceChildren();
+    if (programs[0]?.public) epgBox.append(h("p", { class: "muted", style: { fontSize: "13px" } }, "Programme issu d'un guide public (xmltvfr.fr / dobleM) : votre fournisseur n'en fournit pas pour cette chaîne."));
     let lastDay = "";
     let liveRow = null;
     for (const p of programs) {
@@ -944,8 +1018,12 @@ function toastPage(message) {
 /** EPG complet d'une chaîne (passé inclus, pour le replay). */
 async function fullEPG(stream) {
   const acc = sourceOf(stream);
-  let programs = parseEPG(await api("get_simple_data_table", { stream_id: stream.sid }, acc).catch(() => null));
-  if (!programs.length) programs = parseEPG(await api("get_short_epg", { stream_id: stream.sid, limit: 20 }, acc).catch(() => null));
+  let programs = parseEPG(await api("get_simple_data_table", { stream_id: stream.sid }, acc).catch(() => null), acc?.timezone);
+  if (!programs.length) programs = parseEPG(await api("get_short_epg", { stream_id: stream.sid, limit: 20 }, acc).catch(() => null), acc?.timezone);
+  if (!programs.some((p) => p.end > Date.now())) {
+    const pub = await publicFullEPG(stream);
+    if (pub.length) programs = pub;
+  }
   return programs;
 }
 
@@ -960,6 +1038,7 @@ const PREF_DEFAULTS = {
   resumeLastChannel: false,// relancer la dernière chaîne à l'ouverture de l'app
   nativeEngine: false,     // lecteur natif de Safari (AirPlay) au lieu du lecteur stable hls.js
   vlcForSpecial: true,     // films / épisodes MKV, AVI… ouverts directement dans VLC
+  publicEpg: true,         // compléter le guide avec les guides publics (France, Espagne)
   aspect: "contain",       // format d'image par défaut
 };
 const prefs = { ...PREF_DEFAULTS, ...store.get("ondetv.prefs", {}) };
@@ -1753,6 +1832,7 @@ async function openGuidePanel(target, fromList = null) {
     ? `Replay disponible sur ${stream.archiveDays} jour${stream.archiveDays > 1 ? "s" : ""} : touchez un programme passé (▶) pour le revoir, ou le programme en cours pour le reprendre au début.`
     : "Cette chaîne ne propose pas de replay chez votre fournisseur. Les chaînes avec replay sont marquées ⟲ (catégorie « Chaînes avec replay »)."));
   if (!programs.length) { list.append(h("div", { class: "empty" }, "Aucun programme disponible.")); return; }
+  if (programs[0]?.public) list.append(h("div", { class: "guide-note" }, "Programme issu d'un guide public (xmltvfr.fr / dobleM) : votre fournisseur n'en fournit pas pour cette chaîne."));
 
   // Raccourcis par jour, comme le guide de TiviMate
   const dayKey = (d) => d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
@@ -1918,6 +1998,7 @@ const PREF_LABELS = [
   ["resumeLastChannel", "Relancer la dernière chaîne au démarrage"],
   ["nativeEngine", "Lecteur natif Safari (AirPlay, mais moins stable)"],
   ["vlcForSpecial", "Ouvrir les formats spéciaux (MKV, AVI…) dans VLC"],
+  ["publicEpg", "Compléter le guide avec les guides publics (France, Espagne)"],
 ];
 function openPrefsMenu() {
   openMenu("Préférences du lecteur", PREF_LABELS.map(([key, label]) => ({

@@ -3,4 +3,5 @@ WORKDIR /app
 COPY . .
 RUN deno cache main.js
 EXPOSE 10000
-CMD ["run", "--allow-net", "--allow-read", "--allow-env", "main.js"]
+# Mémoire bornée (offre gratuite Render : 512 Mo)
+CMD ["run", "--allow-net", "--allow-read", "--allow-env", "--v8-flags=--max-old-space-size=256", "main.js"]
