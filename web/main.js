@@ -1,6 +1,7 @@
 // Point d'entrée de la version web d'OndeTV : sert l'application (dossier public/) et le relais /x.
 // Déploiement : Deno Deploy (entrypoint web/main.js) ou en local : deno run -A web/main.js
 import { handleProxy } from "./proxy.js";
+import { handleSync } from "./sync.js";
 
 const env = (name) => globalThis.Deno?.env.get(name);
 const config = {
@@ -49,6 +50,7 @@ export async function handler(request) {
   const { pathname } = new URL(request.url);
   if (pathname === "/x") return handleProxy(request, config);
   if (pathname === "/diag") return diag();
+  if (pathname.startsWith("/sync/")) return handleSync(request);
   return serveStatic(pathname);
 }
 

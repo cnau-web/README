@@ -13,3 +13,17 @@ services:
     envVars:
       - key: PROXY_SECRET
         generateValue: true
+      # Synchronisation entre appareils (données chiffrées par l'app).
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: ondetv-sync
+          property: connectionString
+
+  # Stockage de synchronisation (Render Key Value gratuit, accessible seulement depuis le réseau privé).
+  - type: keyvalue
+    name: ondetv-sync
+    plan: free
+    region: frankfurt
+    maxmemoryPolicy: noeviction
+    ipAllowList: []

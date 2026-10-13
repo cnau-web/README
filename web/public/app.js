@@ -43,16 +43,24 @@ function migrateSingleAccount() {
   store.set("ondetv.sources", sources);
 }
 function hostLabel(server) { try { return new URL(server).hostname; } catch { return "Source"; } }
-function saveSources() { store.set("ondetv.sources", sources); }
+function saveSources() {
+  store.set("ondetv.sources", sources);
+  if (library?.meta) { library.meta.sourcesAt = Date.now(); store.set("ondetv.library.v2", library); }
+  if (typeof scheduleSync === "function") scheduleSync(2000);
+}
 const activeSources = () => sources.filter((x) => x.enabled !== false && x.password);
 const sourceOf = (item) => sources.find((x) => x.id === (item.src ?? item));
 const multiSource = () => activeSources().length > 1;
 const sourceName = (item) => sourceOf(item)?.name || "";
-function saveLibrary() { store.set("ondetv.library.v2", library); }
+function saveLibrary(delay = 15000) {
+  store.set("ondetv.library.v2", library);
+  if (typeof scheduleSync === "function") scheduleSync(delay);
+}
 function toggle(list, id) {
   const i = library[list].indexOf(id);
   if (i >= 0) library[list].splice(i, 1); else library[list].push(id);
-  saveLibrary();
+  if (library.meta) library.meta.favAt = Date.now();
+  saveLibrary(2000);
 }
 
 // ---------------------------------------------------------------- API Xtream
@@ -262,7 +270,20 @@ function renderLogin(error = "") {
     h("div", { class: "muted" }, "Connectez votre abonnement Xtream Codes")));
   form.append(h("p", { class: "muted", style: { fontSize: "13px", textAlign: "center" } },
     "Astuce : Partager → « Sur l'écran d'accueil » pour l'utiliser comme une app. D'autres sources pourront être ajoutées dans Réglages."));
-  app.replaceChildren(h("div", { class: "login" }, form));
+  const codeInput = h("input", { class: "field", placeholder: "Code (ex. ABCD-EFGH-JKLM-NPQR)", autocapitalize: "characters", autocorrect: "off" });
+  const codeErr = h("div", { class: "error" });
+  const codeBtn = h("button", { class: "btn", type: "button", onclick: async () => {
+    codeErr.textContent = ""; codeBtn.disabled = true; codeBtn.textContent = "Récupération…";
+    try { await joinSync(codeInput.value); renderShell(); }
+    catch (e) { codeErr.textContent = e.message; }
+    finally { codeBtn.disabled = false; codeBtn.textContent = "Récupérer mes sources"; }
+  } }, "Récupérer mes sources");
+  const syncBox = h("div", { class: "sync-login" },
+    h("div", { class: "sync-or" }, "ou"),
+    h("strong", {}, "Déjà configuré sur un autre appareil ?"),
+    h("p", { class: "muted", style: { margin: "4px 0 8px", fontSize: "13px" } }, "Entrez le code de synchronisation affiché dans Réglages sur l'autre appareil."),
+    codeInput, codeErr, codeBtn);
+  app.replaceChildren(h("div", { class: "login" }, h("div", { class: "login-col" }, form, syncBox)));
 }
 
 /** Formulaire d'ajout (ou de modification) d'une source Xtream. */
@@ -661,7 +682,7 @@ function openMovie(movie) {
         h("h3", {}, movie.name), h("div", { class: "facts" }, facts),
         h("div", { class: "actions" },
           h("button", { class: "btn primary", onclick: () => { closeSheet(); playVOD(urls.movie(movie, ext), movie.name, null, key); } }, resume ? "▶ Reprendre" : "▶ Lecture"),
-          resume ? h("button", { class: "btn", onclick: () => { delete library.progress[key]; saveLibrary(); closeSheet(); playVOD(urls.movie(movie, ext), movie.name, null, key); } }, "⟲") : null,
+          resume ? h("button", { class: "btn", onclick: () => { library.progress[key] = { pos: 0, dur: library.progress[key]?.dur || 0, t: Date.now() }; saveLibrary(2000); closeSheet(); playVOD(urls.movie(movie, ext), movie.name, null, key); } }, "⟲") : null,
           h("button", { class: "btn vlc", onclick: () => { closeSheet(); openInVLC(urls.movie(movie, ext)); } }, "VLC"),
           favBtn),
         !nativeFormat(ext) ? h("p", { class: "muted", style: { fontSize: "13px" } }, prefs.vlcForSpecial
@@ -776,6 +797,8 @@ function renderSettings(top, main) {
         renderShell();
       } }, h("span", {}, "Actualiser chaînes et catalogue"), h("span", {}, "↻")),
       h("button", { class: "item", style: { width: "100%" }, onclick: runDiagnostic }, h("span", {}, "Tester la connexion"), h("span", {}, "📶"))),
+    h("div", { class: "section-label" }, "Synchronisation entre appareils"),
+    syncSettings(),
     h("div", { class: "section-label" }, "Lecteur du direct"),
     h("div", { class: "list" }, PREF_LABELS.map(([key, label]) => {
       const row = h("button", { class: `toggle${prefs[key] ? " on" : ""}`, onclick: () => {
@@ -810,6 +833,45 @@ async function runDiagnostic() {
       ? "Le relais est loin de vous (hors Europe) : chaque image fait un long trajet, ce qui peut causer des coupures. Recréer le service Render dans la région Frankfurt améliorera la fluidité."
       : "Au-delà de 400 ms vers une source, le serveur IPTV ou le réseau est lent : des coupures peuvent venir de là."));
   });
+}
+
+function syncSettings() {
+  const box = h("div", { class: "list" });
+  const draw = () => {
+    box.replaceChildren();
+    if (!syncState.code) {
+      box.append(
+        h("div", { class: "item" }, h("span", {}, "Synchronisation"), h("span", {}, "Désactivée")),
+        h("p", { class: "note", style: { margin: "8px 16px" } }, "Retrouvez vos sources, favoris, chaînes récentes et reprises de lecture sur tous vos appareils (iPhone, iPad…). Les données sont chiffrées avec votre code avant d'être envoyées."),
+        h("button", { class: "item", style: { width: "100%", color: "var(--accent)" }, onclick: async () => { await enableSync(); draw(); } },
+          h("span", {}, "Activer et créer un code"), h("span", {}, "🔄")),
+        h("button", { class: "item", style: { width: "100%" }, onclick: () => {
+          const code = prompt("Code de synchronisation de l'autre appareil :");
+          if (code) joinSync(code).then(() => { renderShell(); toast?.("Synchronisé"); }).catch((e) => alert(e.message));
+        } }, h("span", {}, "J'ai déjà un code"), h("span", {}, "⌨")));
+    } else {
+      const codeText = fmtCode(syncState.code);
+      box.append(
+        h("div", { class: "item" }, h("span", {}, "État"), h("span", { id: "sync-status" }, syncStatusText())),
+        h("div", { class: "item sync-code" }, h("span", {}, "Code"), h("strong", {}, codeText)),
+        h("p", { class: "note", style: { margin: "8px 16px" } }, "Sur l'iPad (ou un autre appareil) : ouvrez OndeTV → Réglages → Synchronisation → « J'ai déjà un code », ou tapez ce code dès l'écran de connexion. Gardez-le pour vous : il donne accès à vos sources."),
+        h("button", { class: "item", style: { width: "100%" }, onclick: async () => {
+          try { await navigator.clipboard.writeText(codeText); toastPage("Code copié"); } catch { prompt("Copiez le code :", codeText); }
+        } }, h("span", {}, "Copier le code"), h("span", {}, "📋")),
+        h("button", { class: "item", style: { width: "100%" }, onclick: async () => { await syncNow(); draw(); } }, h("span", {}, "Synchroniser maintenant"), h("span", {}, "↻")),
+        h("button", { class: "item", style: { width: "100%", color: "var(--live)" }, onclick: () => {
+          if (confirm("Désactiver la synchronisation sur cet appareil ? Les données restent sur l'appareil.")) { disableSync(); draw(); }
+        } }, h("span", {}, "Désactiver sur cet appareil"), h("span", {}, "")));
+      fetch("/sync/status").then((r) => r.json()).then((st) => {
+        if (!st.persistent) box.append(h("p", { class: "note", style: { margin: "8px 16px", color: "#ffb36b" } },
+          "Stockage du serveur temporaire : les données sont perdues quand le serveur redémarre. Chaque appareil les renvoie à son ouverture, mais pour un stockage durable, ajoutez le stockage Key Value dans Render (voir l'aide)."));
+      }).catch(() => {});
+    }
+  };
+  draw();
+  const onStatus = () => { const el = $("#sync-status"); if (el) el.textContent = syncStatusText(); };
+  document.addEventListener("syncstatus", onStatus);
+  return box;
 }
 
 // ---------------------------------------------------------------- recherche globale (toutes sources)
@@ -1130,6 +1192,7 @@ function playLive(stream, list, groupId) {
   if (list?.length) player.playlist = list;
   else if (!player.playlist.some((s) => s.id === stream.id)) player.playlist = groupList(player.groupId).some((s) => s.id === stream.id) ? groupList(player.groupId) : [stream];
   library.recents = [stream.id, ...library.recents.filter((id) => id !== stream.id)].slice(0, 30);
+  if (library.meta) library.meta.recentsAt = Date.now();
   library.lastChannel = { id: stream.id, groupId: player.groupId };
   saveLibrary();
 
@@ -1895,7 +1958,7 @@ function playVOD(url, title, subtitle, progressKey, { forceInternal = false } = 
 function saveVODProgress() {
   if (player.mode !== "vod" || !player.progressKey || !Number.isFinite(video.duration) || video.currentTime < 10) return;
   library.progress[player.progressKey] = { pos: video.currentTime, dur: video.duration, t: Date.now() };
-  saveLibrary();
+  saveLibrary(30000);
 }
 
 // --- commandes des films, séries et replays (mêmes options que le direct)
@@ -2133,10 +2196,208 @@ document.addEventListener("keydown", (e) => {
 });
 document.addEventListener("visibilitychange", () => { if (document.hidden) saveVODProgress(); });
 
+// ---------------------------------------------------------------- synchronisation entre appareils
+// Les sources, favoris, chaînes récentes et reprises de lecture sont chiffrés sur l'appareil
+// (AES-GCM, clé dérivée du code de synchronisation) puis déposés sur le serveur /sync/<empreinte>.
+// Le serveur ne voit jamais les mots de passe IPTV.
+
+const syncState = { code: store.get("ondetv.syncCode", null), last: store.get("ondetv.syncLast", 0), timer: null, running: null, error: null, persistent: null };
+library.meta ??= { sourcesAt: 0, favAt: 0, recentsAt: 0 };
+
+const normCode = (c) => String(c || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+const fmtCode = (c) => (normCode(c).match(/.{1,4}/g) || []).join("-");
+function newSyncCode() {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  return [...bytes].map((b) => alphabet[b % alphabet.length]).join("");
+}
+function toB64(bytes) {
+  let s = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+const fromB64 = (b) => Uint8Array.from(atob(b), (c) => c.charCodeAt(0));
+async function syncId(code) {
+  const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`ondetv-id:${normCode(code)}`));
+  return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+const keyCache = new Map();
+async function syncKey(code) {
+  const c = normCode(code);
+  if (!keyCache.has(c)) {
+    const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(c), "PBKDF2", false, ["deriveKey"]);
+    keyCache.set(c, await crypto.subtle.deriveKey({ name: "PBKDF2", salt: new TextEncoder().encode("ondetv-sync-v1"), iterations: 150000, hash: "SHA-256" },
+      base, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]));
+  }
+  return keyCache.get(c);
+}
+async function encryptSnapshot(obj, code) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const data = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, await syncKey(code), new TextEncoder().encode(JSON.stringify(obj))));
+  const out = new Uint8Array(iv.length + data.length);
+  out.set(iv); out.set(data, iv.length);
+  return toB64(out);
+}
+async function decryptSnapshot(blob, code) {
+  const bytes = fromB64(blob);
+  const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: bytes.subarray(0, 12) }, await syncKey(code), bytes.subarray(12));
+  return JSON.parse(new TextDecoder().decode(plain));
+}
+
+function snapshot() {
+  return {
+    v: 1,
+    sources,
+    meta: library.meta,
+    favChannels: library.favChannels, favMovies: library.favMovies, favSeries: library.favSeries,
+    recents: library.recents, lastChannel: library.lastChannel || null,
+    progress: library.progress,
+  };
+}
+
+/** Fusion : la version la plus récente gagne pour chaque partie ; reprises de lecture fusionnées une par une. */
+function mergeRemote(remote) {
+  const m = library.meta;
+  const rm = remote.meta || {};
+  let sourcesChanged = false;
+  if ((rm.sourcesAt || 0) > (m.sourcesAt || 0) && Array.isArray(remote.sources)) {
+    sources = remote.sources; m.sourcesAt = rm.sourcesAt; sourcesChanged = true;
+  }
+  if ((rm.favAt || 0) > (m.favAt || 0)) {
+    library.favChannels = remote.favChannels || []; library.favMovies = remote.favMovies || []; library.favSeries = remote.favSeries || [];
+    m.favAt = rm.favAt;
+  }
+  if ((rm.recentsAt || 0) > (m.recentsAt || 0)) {
+    library.recents = remote.recents || []; library.lastChannel = remote.lastChannel || null; m.recentsAt = rm.recentsAt;
+  }
+  for (const [k, v] of Object.entries(remote.progress || {})) {
+    const mine = library.progress[k];
+    if (!mine || (v.t || 0) > (mine.t || 0)) library.progress[k] = v;
+  }
+  return sourcesChanged;
+}
+
+/** Première liaison d'un appareil qui a déjà ses propres sources : on réunit les deux. */
+function joinMerge(remote) {
+  const keyOf = (s) => `${s.server}|${s.username}`;
+  const remoteSources = Array.isArray(remote.sources) ? remote.sources : [];
+  const byKey = new Map(remoteSources.map((s) => [keyOf(s), s]));
+  const idMap = new Map();
+  const merged = [...remoteSources];
+  for (const s of sources) {
+    const same = byKey.get(keyOf(s));
+    if (same) { if (same.id !== s.id) idMap.set(s.id, same.id); }
+    else merged.push(s);
+  }
+  const remap = (k) => { const i = String(k).indexOf(":"); const src = String(k).slice(0, i); return idMap.has(src) ? `${idMap.get(src)}${String(k).slice(i)}` : k; };
+  const remapProgressKey = (k) => k.replace(/^(movie|episode)-([^:]+):/, (all, kind, src) => idMap.has(src) ? `${kind}-${idMap.get(src)}:` : all);
+  const union = (a, b) => [...new Set([...(a || []), ...(b || [])])];
+  library.favChannels = union(remote.favChannels, library.favChannels.map(remap));
+  library.favMovies = union(remote.favMovies, library.favMovies.map(remap));
+  library.favSeries = union(remote.favSeries, library.favSeries.map(remap));
+  library.recents = union(remote.recents, library.recents.map(remap)).slice(0, 30);
+  const progress = { ...(remote.progress || {}) };
+  for (const [k, v] of Object.entries(library.progress)) {
+    const nk = remapProgressKey(k);
+    if (!progress[nk] || (v.t || 0) > (progress[nk].t || 0)) progress[nk] = v;
+  }
+  library.progress = progress;
+  library.lastChannel = remote.lastChannel || (library.lastChannel ? { ...library.lastChannel, id: remap(library.lastChannel.id) } : null);
+  sources = merged;
+  const now = Date.now();
+  library.meta = { sourcesAt: now, favAt: now, recentsAt: now };
+}
+
+async function syncNow({ join = false } = {}) {
+  if (!syncState.code) return;
+  if (syncState.running) return syncState.running;
+  syncState.running = (async () => {
+    try {
+      const id = await syncId(syncState.code);
+      const res = await fetch(`/sync/${id}`);
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
+      let remote = null;
+      if (body.blob) {
+        try { remote = await decryptSnapshot(body.blob, syncState.code); }
+        catch { throw new Error("Données illisibles avec ce code"); }
+      }
+      const before = JSON.stringify(sources);
+      if (remote) { if (join) joinMerge(remote); else mergeRemote(remote); }
+      const local = snapshot();
+      if (!remote || JSON.stringify(local) !== JSON.stringify(remote)) {
+        const put = await fetch(`/sync/${id}`, { method: "PUT", body: await encryptSnapshot(local, syncState.code) });
+        if (!put.ok) throw new Error(`Envoi refusé (HTTP ${put.status})`);
+      }
+      store.set("ondetv.sources", sources);
+      store.set("ondetv.library.v2", library);
+      syncState.last = Date.now();
+      syncState.error = null;
+      store.set("ondetv.syncLast", syncState.last);
+      if (JSON.stringify(sources) !== before) {
+        resetContent();
+        if (!player.mode) { if (activeSources().length) renderShell(); else renderLogin(); }
+      }
+    } catch (e) {
+      syncState.error = e.message;
+    } finally {
+      syncState.running = null;
+      document.dispatchEvent(new CustomEvent("syncstatus"));
+    }
+  })();
+  return syncState.running;
+}
+
+function scheduleSync(delay = 3000) {
+  if (!syncState.code) return;
+  clearTimeout(syncState.timer);
+  syncState.timer = setTimeout(() => syncNow(), delay);
+}
+
+async function enableSync() {
+  syncState.code = newSyncCode();
+  store.set("ondetv.syncCode", syncState.code);
+  await syncNow();
+  return syncState.code;
+}
+
+async function joinSync(code) {
+  const c = normCode(code);
+  if (c.length < 12) throw new Error("Code incomplet (16 caractères)");
+  const id = await syncId(c);
+  const res = await fetch(`/sync/${id}`);
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
+  if (!body.blob) throw new Error("Aucune donnée pour ce code : activez d'abord la synchronisation sur l'autre appareil, puis ouvrez-y l'app");
+  syncState.code = c;
+  store.set("ondetv.syncCode", c);
+  await syncNow({ join: true });
+  if (syncState.error) throw new Error(syncState.error);
+}
+
+function disableSync() {
+  syncState.code = null;
+  store.del("ondetv.syncCode");
+  document.dispatchEvent(new CustomEvent("syncstatus"));
+}
+
+function syncStatusText() {
+  if (!syncState.code) return "Désactivée";
+  if (syncState.running) return "Synchronisation…";
+  if (syncState.error) return `Erreur : ${syncState.error}`;
+  if (!syncState.last) return "En attente";
+  const min = Math.round((Date.now() - syncState.last) / 60000);
+  return min < 1 ? "À jour" : `À jour il y a ${min} min`;
+}
+
+document.addEventListener("visibilitychange", () => { if (!document.hidden) syncNow(); else if (syncState.code) syncNow(); });
+setInterval(() => { if (!document.hidden) syncNow(); }, 120000);
+
 // ---------------------------------------------------------------- démarrage
 
 if (activeSources().length) {
   renderShell();
+  syncNow();
   if (prefs.resumeLastChannel && library.lastChannel) {
     loadLive().then(() => {
       const s = content.liveById.get(library.lastChannel.id);

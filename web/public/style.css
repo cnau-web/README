@@ -280,3 +280,9 @@ input, select { font: inherit; color: var(--text); }
 .btn.vlc { background: #e85e00; color: #fff; }
 .episode-actions { display: flex; flex-direction: column; justify-content: center; }
 .episode-actions .vlc-mini { font-size: 11px; font-weight: 700; padding: 6px 8px; border-radius: 8px; background: #e85e0033; color: #ff9a4d; }
+
+/* Synchronisation */
+.login-col { width: 100%; max-width: 420px; display: grid; gap: 18px; }
+.sync-login { display: grid; gap: 8px; padding: 16px; border-radius: var(--radius); background: #ffffff0a; }
+.sync-or { text-align: center; color: var(--muted); font-size: 13px; margin-top: -6px; }
+.sync-code strong { font-family: ui-monospace, Menlo, monospace; letter-spacing: .06em; color: var(--text); }
