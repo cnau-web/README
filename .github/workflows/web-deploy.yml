@@ -24,7 +24,11 @@ jobs:
           HOOK="$(printf '%s' "$HOOK" | tr -d '[:space:]')"
           case "$HOOK" in
             https://api.render.com/deploy/srv-*) ;;
-            *) echo "::error::Le secret RENDER_DEPLOY_HOOK ne ressemble pas à une adresse Deploy Hook Render (https://api.render.com/deploy/srv-…)."; exit 1 ;;
+            *)
+              # Indice sans fuite : début de la valeur jusqu'au « ? » (la clé secrète est après), 40 caractères max.
+              hint="$(printf '%s' "$HOOK" | cut -d'?' -f1 | cut -c1-40)"
+              echo "::error::Le secret RENDER_DEPLOY_HOOK ne ressemble pas à un Deploy Hook Render (https://api.render.com/deploy/srv-…). Début enregistré : « ${hint} » (${#HOOK} caractères)."
+              exit 1 ;;
           esac
           code=$(curl -sS -o response.txt -w '%{http_code}' -X POST "$HOOK")
           if [ "$code" -ge 200 ] && [ "$code" -lt 300 ]; then
