@@ -686,26 +686,66 @@ async function renderCatalog(top, main, kind) {
   if (!["__fav", "__resume", "__all"].includes(selected) && !cats.some((c) => c.id === selected)) selected = "__all";
   const kindKey = isMovies ? "vod" : "series";
   const visibleCats = cats.filter((c) => !isHiddenCat(kindKey, c.id));
-  const chipsDef = [{ id: "__fav", name: "★ Favoris" }, ...(isMovies ? [{ id: "__resume", name: "Reprendre" }] : []), { id: "__all", name: "Tout" },
-    ...visibleCats.map((c) => ({ id: c.id, name: multiSource() ? `${sourceName(c)} · ${c.name}` : c.name }))];
-  const chips = h("div", { class: "chips" });
+  // Liste des catégories sur le côté, comme la liste des chaînes (fixe sur iPad en paysage).
+  const specials = [{ id: "__fav", name: "★ Favoris" }, ...(isMovies ? [{ id: "__resume", name: "▶ Reprendre" }] : []), { id: "__all", name: "Tout" }];
+  const labelOf = (id) => specials.find((x) => x.id === id)?.name || visibleCats.find((c) => c.id === id)?.name || "Catégories";
   let searchTimer = null;
   const search = h("input", { type: "search", placeholder: isMovies ? "Rechercher un film" : "Rechercher une série", oninput: () => { clearTimeout(searchTimer); searchTimer = setTimeout(draw, 250); } });
-  top.append(chips, h("div", { class: "row" }, search));
+  const catBtn = h("button", { class: "cat-btn", onclick: () => toggleSide(true) });
+  top.append(h("div", { class: "row" }, catBtn, search));
 
-  const drawChips = () => chips.replaceChildren(...chipsDef.map((c) => h("button", {
-    class: `chip${c.id === selected ? " active" : ""}`,
-    onclick: () => { selected = c.id; if (isMovies) { vodCategory = c.id; store.set("ondetv.vodCat", c.id); } else { seriesCategory = c.id; store.set("ondetv.seriesCat", c.id); } drawChips(); load(); },
-  }, c.name)));
-  drawChips();
-  chips.querySelector(".active")?.scrollIntoView({ inline: "center", block: "nearest" });
+  const side = h("aside", { class: "cat-side" });
+  const backdrop = h("div", { class: "cat-backdrop", onclick: () => toggleSide(false) });
+  const area = h("div", { class: "cat-area" });
+  main.classList.add("catalog-main");
+  main.replaceChildren(h("div", { class: "catalog-layout" }, side, backdrop, area));
+  const toggleSide = (open) => { side.classList.toggle("open", open); backdrop.classList.toggle("open", open); if (open) side.querySelector(".cat-row.active")?.scrollIntoView({ block: "center" }); };
+
+  let sideSource = "__all";
+  let sideQuery = "";
+  const sideSearch = h("input", { class: "side-search", type: "search", placeholder: "Filtrer les catégories", oninput: () => { sideQuery = sideSearch.value.trim().toLowerCase(); drawSide(); } });
+  const sideList = h("div", { class: "side-list" });
+  const sideSources = multiSource() ? h("div", { class: "chips side-sources" }) : null;
+  side.append(
+    h("div", { class: "panel-head" }, h("strong", {}, isMovies ? "Catégories de films" : "Catégories de séries"),
+      h("button", { class: "icon-btn side-close", onclick: () => toggleSide(false), "aria-label": "Fermer" }, "✕")),
+    sideSearch, sideSources, sideList);
+
+  function choose(id) {
+    selected = id;
+    if (isMovies) { vodCategory = id; store.set("ondetv.vodCat", id); } else { seriesCategory = id; store.set("ondetv.seriesCat", id); }
+    search.value = "";
+    drawSide();
+    toggleSide(false);
+    load();
+  }
+  function catRow(id, name) {
+    return h("button", { class: `cat-row${id === selected ? " active" : ""}`, onclick: () => choose(id) }, h("span", {}, name));
+  }
+  function drawSide() {
+    catBtn.textContent = `☰ ${labelOf(selected)}`;
+    sideSources?.replaceChildren(...[{ id: "__all", name: "Toutes" }, ...activeSources()].map((src) =>
+      h("button", { class: `chip${sideSource === src.id ? " active" : ""}`, onclick: () => { sideSource = src.id; drawSide(); } }, src.name)));
+    const rows = [];
+    if (!sideQuery) specials.forEach((x) => rows.push(catRow(x.id, x.name)));
+    for (const src of activeSources()) {
+      if (sideSource !== "__all" && sideSource !== src.id) continue;
+      const list = visibleCats.filter((c) => c.src === src.id && (!sideQuery || c.name.toLowerCase().includes(sideQuery)));
+      if (!list.length) continue;
+      if (multiSource()) rows.push(h("div", { class: "source-label" }, src.name));
+      list.forEach((c) => rows.push(catRow(c.id, c.name)));
+    }
+    if (!rows.length) rows.push(h("div", { class: "empty" }, "Aucune catégorie."));
+    sideList.replaceChildren(...rows);
+  }
+  drawSide();
 
   let items = [];
   let stopChunks = null;
   cleanup = () => stopChunks?.();
 
   async function load() {
-    main.replaceChildren(h("div", { class: "loading" }, "Chargement…"));
+    area.replaceChildren(h("div", { class: "loading" }, "Chargement…"));
     try {
       const fetcher = isMovies ? fetchVOD : fetchSeries;
       if (selected === "__fav" || selected === "__resume") {
@@ -721,7 +761,7 @@ async function renderCatalog(top, main, kind) {
         if (selected === "__all") { const hidden = hiddenSet(kindKey); if (hidden.size) items = items.filter((x) => !hidden.has(x.cat)); }
       }
       draw();
-    } catch (e) { failure(main, e, load); }
+    } catch (e) { failure(area, e, load); }
   }
 
   let searchToken = 0;
@@ -732,21 +772,21 @@ async function renderCatalog(top, main, kind) {
     if (q) {
       // Comme TiviMate : la recherche porte sur tout le catalogue, toutes sources confondues.
       const token = ++searchToken;
-      main.replaceChildren(h("div", { class: "loading" }, "Recherche dans toutes les sources…"));
+      area.replaceChildren(h("div", { class: "loading" }, "Recherche dans toutes les sources…"));
       const all = await (isMovies ? fetchVOD : fetchSeries)("__all").catch(() => items);
       if (token !== searchToken) return;
       const hidden = hiddenSet(kindKey);
       list = all.filter((x) => !hidden.has(x.cat) && x.name.toLowerCase().includes(q));
     }
-    main.replaceChildren();
-    main.scrollTop = 0;
-    if (!list.length) { main.append(h("div", { class: "empty" }, q ? "Aucun résultat." : "Rien à afficher.")); return; }
-    if (q) main.append(h("div", { class: "section-label" }, `${list.length} résultat${list.length > 1 ? "s" : ""}${multiSource() ? " · toutes sources" : ""}`));
+    area.replaceChildren();
+    area.scrollTop = 0;
+    if (!list.length) { area.append(h("div", { class: "empty" }, q ? "Aucun résultat." : "Rien à afficher.")); return; }
+    if (q) area.append(h("div", { class: "section-label" }, `${list.length} résultat${list.length > 1 ? "s" : ""}${multiSource() ? " · toutes sources" : ""}`));
     const grid = h("div", { class: "grid" });
-    main.append(grid);
+    area.append(grid);
     stopChunks = renderChunked(grid, list, (x) => isMovies
       ? poster(x, () => openMovie(x), progressFraction(`movie-${x.id}`))
-      : poster(x, () => openSeries(x)), main, 90);
+      : poster(x, () => openSeries(x)), area, 90);
   }
   load();
 }

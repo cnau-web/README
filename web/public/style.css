@@ -290,3 +290,24 @@ input, select { font: inherit; color: var(--text); }
 /* Gestion des groupes */
 .group-list { margin: 10px 0 0; max-height: none; }
 .group-list .toggle small { margin-top: 2px; }
+
+/* Films / séries : liste des catégories sur le côté */
+.content.catalog-main { overflow: hidden; display: flex; padding-bottom: 0; }
+.catalog-layout { position: relative; display: flex; flex: 1; min-height: 0; width: 100%; }
+.cat-area { flex: 1; min-width: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 12px; }
+.cat-side { flex: none; width: 290px; display: flex; flex-direction: column; background: #11131b; border-right: 1px solid #ffffff10; }
+.cat-side .side-list { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 20px; }
+.cat-side .side-search { margin: 4px 12px 8px; padding: 9px 12px; border-radius: 10px; border: 0; background: var(--surface); }
+.cat-side .side-sources { padding: 0 12px 8px; }
+.cat-row { display: flex; width: 100%; padding: 11px 16px; text-align: left; border-bottom: 1px solid #ffffff08; font-size: 14px; }
+.cat-row span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cat-row.active { background: #339eff2e; box-shadow: inset 3px 0 var(--accent); color: var(--accent); font-weight: 600; }
+.cat-btn { flex: none; max-width: 46%; padding: 10px 12px; border-radius: 10px; background: var(--surface); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+@media (max-width: 899px) {
+  .cat-side { position: absolute; top: 0; bottom: 0; left: 0; z-index: 15; width: min(320px, 86vw); transform: translateX(-105%); transition: transform .25s ease; box-shadow: 0 0 40px #000; }
+  .cat-side.open { transform: none; }
+  .cat-backdrop.open { position: absolute; inset: 0; z-index: 14; background: #0009; }
+}
+@media (min-width: 900px) {
+  .cat-btn, .cat-side .side-close { display: none; }
+}
