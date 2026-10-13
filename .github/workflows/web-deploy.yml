@@ -21,5 +21,16 @@ jobs:
             echo "::notice::Secret RENDER_DEPLOY_HOOK absent : déploiement automatique ignoré."
             exit 0
           fi
-          curl -fsS -X POST "$HOOK" > /dev/null
-          echo "::notice::Déploiement Render lancé."
+          HOOK="$(printf '%s' "$HOOK" | tr -d '[:space:]')"
+          case "$HOOK" in
+            https://api.render.com/deploy/srv-*) ;;
+            *) echo "::error::Le secret RENDER_DEPLOY_HOOK ne ressemble pas à une adresse Deploy Hook Render (https://api.render.com/deploy/srv-…)."; exit 1 ;;
+          esac
+          code=$(curl -sS -o response.txt -w '%{http_code}' -X POST "$HOOK")
+          if [ "$code" -ge 200 ] && [ "$code" -lt 300 ]; then
+            echo "::notice::Déploiement Render lancé."
+          else
+            # La réponse de Render ne contient pas la clé secrète.
+            echo "::error::Render a refusé le déploiement (HTTP $code) : $(head -c 300 response.txt)"
+            exit 1
+          fi
