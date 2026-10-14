@@ -1042,7 +1042,7 @@ function renderSettings(top, main) {
     h("div", { class: "section-label" }, "Sécurité"),
     securitySettings(),
     h("p", { class: "muted small-note" }, "Le code est propre à cet appareil. Vos mots de passe IPTV restent sur vos appareils ; la synchronisation est chiffrée avec votre code de synchronisation, que le serveur ne connaît pas."),
-    appSettings(),
+    ...appSettings(),
     h("div", { class: "section-label" }, "Synchronisation entre appareils"),
     syncSettings(),
     h("div", { class: "section-label" }, "Lecteur du direct"),
@@ -3226,6 +3226,10 @@ const TV_MODE = (() => {
   return !!Native?.isTV?.() || store.get("ondetv.tv", false);
 })();
 
+// Mode allégé : demandé par l'app Android après un arrêt du moteur d'affichage (?lite=1), puis gardé.
+if (new URLSearchParams(location.search).get("lite") === "1") { store.set("ondetv.lite", true); history.replaceState(null, "", location.pathname); }
+if (store.get("ondetv.lite", false)) document.body.classList.add("lite");
+
 if (TV_MODE) {
   document.body.classList.add("tv");
   if (!Native) for (const b of document.querySelectorAll('[data-act="vlc"], [data-vod="vlc"]')) b.remove();
@@ -3290,9 +3294,13 @@ async function checkAppUpdate(manual = false) {
   });
 }
 
+let nativeCrash = "";
+try { nativeCrash = Native?.lastCrash?.() || ""; } catch { /* ancienne version */ }
+
 function appSettings() {
-  if (!Native) return null;
+  if (!Native) return [];
   return [h("div", { class: "section-label" }, "Application Android TV"),
+    ...(nativeCrash ? [h("p", { class: "guide-note" }, `Dernier incident : ${nativeCrash.slice(0, 400)}`)] : []),
     h("div", { class: "list" },
       h("button", { class: "item", style: { width: "100%" }, onclick: () => checkAppUpdate(true) },
         h("span", {}, "Rechercher une mise à jour"), h("span", {}, `version ${Native.version?.() || "?"} ›`)))];

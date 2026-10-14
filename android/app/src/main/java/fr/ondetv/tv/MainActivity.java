@@ -18,7 +18,10 @@ import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowManager;
+import android.content.SharedPreferences;
+import android.util.Log;
 import android.webkit.JavascriptInterface;
+import android.webkit.RenderProcessGoneDetail;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
@@ -44,6 +47,9 @@ public class MainActivity extends Activity {
     static final int REQ_PLAYER = 1;
 
     private WebView web;
+    private FrameLayout root;
+    private SharedPreferences prefs;
+    private int rendererCrashes;
     private TextView splash;
     private long lastBack;
     private boolean loaded;
@@ -56,9 +62,37 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
-        FrameLayout root = new FrameLayout(this);
+        prefs = getSharedPreferences("ondetv", MODE_PRIVATE);
+        // Tout plantage Java est noté pour être affiché dans Réglages (diagnostic), puis l'app se ferme normalement.
+        Thread.UncaughtExceptionHandler previous = Thread.getDefaultUncaughtExceptionHandler();
+        Thread.setDefaultUncaughtExceptionHandler((t, ex) -> {
+            try {
+                StringBuilder b = new StringBuilder(String.valueOf(ex));
+                for (StackTraceElement el : ex.getStackTrace()) { if (b.length() > 1500) break; b.append("\n at ").append(el); }
+                prefs.edit().putString("lastCrash", new java.util.Date() + " · " + b).commit();
+            } catch (Throwable ignored) { }
+            if (previous != null) previous.uncaughtException(t, ex);
+        });
+        root = new FrameLayout(this);
         root.setBackgroundColor(Color.BLACK);
+        createWebView();
 
+        splash = new TextView(this);
+        splash.setText("OndeTV\nDémarrage…");
+        splash.setTextColor(Color.WHITE);
+        splash.setTextSize(28);
+        splash.setGravity(Gravity.CENTER);
+        splash.setBackgroundColor(Color.BLACK);
+        root.addView(splash, new FrameLayout.LayoutParams(-1, -1));
+
+        setContentView(root);
+        hideSystemBars();
+        if (state != null) web.restoreState(state); else web.loadUrl(HOME);
+    }
+
+    /** Crée la WebView (aussi après un arrêt de son moteur, sans fermer l'app). */
+    @SuppressLint({"SetJavaScriptEnabled", "AddJavascriptInterface"})
+    private void createWebView() {
         web = new WebView(this);
         web.setBackgroundColor(Color.BLACK);
         web.setFocusable(true);
@@ -73,7 +107,9 @@ public class MainActivity extends Activity {
         s.setAllowFileAccess(false);
         s.setAllowContentAccess(false);
         s.setGeolocationEnabled(false);
-        if (Build.VERSION.SDK_INT >= 26) s.setSafeBrowsingEnabled(true);
+        if (Build.VERSION.SDK_INT >= 26) {
+            try { s.setSafeBrowsingEnabled(true); } catch (Throwable ignored) { } // absent de certaines WebView (Fire OS)
+        }
         s.setUserAgentString(s.getUserAgentString() + " OndeTV-AndroidTV/1");
         web.addJavascriptInterface(new Bridge(), "OndeAndroid");
 
@@ -102,6 +138,11 @@ public class MainActivity extends Activity {
             }
 
             @Override
+            public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
+                return onRendererGone(view, detail.didCrash());
+            }
+
+            @Override
             public void onReceivedError(WebView view, WebResourceRequest req, WebResourceError err) {
                 if (!req.isForMainFrame()) return;
                 // Le serveur gratuit peut mettre jusqu'à une minute à se réveiller : on réessaie tout seul.
@@ -117,19 +158,27 @@ public class MainActivity extends Activity {
                 return Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888); // pas d'icône grise avant la lecture
             }
         });
-        root.addView(web, new FrameLayout.LayoutParams(-1, -1));
+        root.addView(web, 0, new FrameLayout.LayoutParams(-1, -1));
+    }
 
-        splash = new TextView(this);
-        splash.setText("OndeTV\nDémarrage…");
-        splash.setTextColor(Color.WHITE);
-        splash.setTextSize(28);
-        splash.setGravity(Gravity.CENTER);
-        splash.setBackgroundColor(Color.BLACK);
-        root.addView(splash, new FrameLayout.LayoutParams(-1, -1));
-
-        setContentView(root);
-        hideSystemBars();
-        if (state != null) web.restoreState(state); else web.loadUrl(HOME);
+    /**
+     * Le moteur d'affichage s'est arrêté (souvent faute de mémoire sur les petites clés TV).
+     * Sans ce traitement, Android ferme toute l'app : on recrée la WebView et on recharge en mode allégé.
+     */
+    private boolean onRendererGone(WebView view, boolean crashed) {
+        rendererCrashes++;
+        prefs.edit().putString("lastCrash", new java.util.Date() + " · moteur d'affichage arrêté (" + (crashed ? "plantage" : "mémoire") + "), n° " + rendererCrashes).apply();
+        Log.w("OndeTV", "WebView renderer gone, crashed=" + crashed);
+        root.removeView(view);
+        view.destroy();
+        if (view == web) {
+            createWebView();
+            loaded = false;
+            splash.setText("OndeTV\nRelance…");
+            splash.setVisibility(View.VISIBLE);
+            web.loadUrl(HOME + "?lite=1");
+        }
+        return true;
     }
 
     private void hideSystemBars() {
@@ -272,6 +321,14 @@ public class MainActivity extends Activity {
                 if (on) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
                 else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
             });
+        }
+
+        /** Dernier plantage noté (diagnostic dans Réglages), puis effacé. */
+        @JavascriptInterface
+        public String lastCrash() {
+            String v = prefs.getString("lastCrash", "");
+            prefs.edit().remove("lastCrash").apply();
+            return v;
         }
 
         @JavascriptInterface

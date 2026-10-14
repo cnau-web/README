@@ -499,3 +499,19 @@ body.tv :is(.channel, .poster, .recent-card, .p-channel, .cat-row, .btn, .live-c
 .src-head.current { border-color: rgba(139, 92, 246, .55); }
 body.tv .src-head:focus { background: var(--grad-soft); box-shadow: inset 0 0 0 2px #a78bfa; }
 body.tv .src-head { scroll-margin: 90px 48px; }
+
+/* ------------------------------------------------ TV et mode allégé : mêmes couleurs, sans les effets coûteux
+   (flous, grands halos fixes, ombres larges) qui saturent la mémoire graphique des clés TV. */
+body.tv::before, body.lite::before { inset: 0;
+  background: radial-gradient(60% 50% at 10% 5%, rgba(139, 92, 246, .22), transparent 70%),
+    radial-gradient(50% 50% at 95% 95%, rgba(34, 211, 238, .12), transparent 70%), var(--bg); }
+body.tv *, body.lite * { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+body.tv .feature-bg, body.lite .feature-bg { filter: none; transform: none; inset: 0; opacity: .35; }
+body.tv .tabbar, body.lite .tabbar, body.tv .cat-side, body.lite .cat-side { background: #0e1224; }
+body.tv .side-panel, body.lite .side-panel { background: #0b0f20; }
+body.tv .menu, body.lite .menu, body.tv .numpad, body.lite .numpad, body.tv .lock-card, body.lite .lock-card { background: #11162b; }
+body.tv .sheet-backdrop, body.lite .sheet-backdrop { background: rgba(3, 5, 12, .85); }
+body.tv .poster .img, body.lite .poster .img, body.tv .feature, body.lite .feature, body.lite .login form { box-shadow: none; }
+body.tv .center-controls button, body.lite .center-controls button { box-shadow: none; }
+body.tv .loading::before, body.lite .loading::before { animation-duration: 1.2s; }
+body.tv .sheet-panel, body.lite .sheet-panel { animation: none; }
