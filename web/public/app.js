@@ -465,6 +465,67 @@ function failure(main, e, retry) {
   main.replaceChildren(h("div", { class: "empty" }, h("p", {}, e.message), h("button", { class: "btn primary", onclick: retry }, "Réessayer")));
 }
 
+// ---------------------------------------------------------------- liste latérale de groupes (sources dépliables)
+
+const openSources = new Set(store.get("ondetv.openSources", []));
+const saveOpenSources = () => store.set("ondetv.openSources", [...openSources]);
+
+/**
+ * Panneau latéral de groupes : listes spéciales en tête, puis chaque source dépliable avec ses groupes.
+ * Fixe à gauche sur grand écran, tiroir ouvert par un bouton sur téléphone.
+ */
+function groupSide({ title, specials, cats, count, selected, onChoose, kind }) {
+  const side = h("aside", { class: "cat-side" });
+  const backdrop = h("div", { class: "cat-backdrop" });
+  const btn = h("button", { class: "cat-btn" });
+  const filter = h("input", { class: "side-search", type: "search", placeholder: "Filtrer les groupes" });
+  const list = h("div", { class: "side-list" });
+  const toggle = (open) => {
+    side.classList.toggle("open", open); backdrop.classList.toggle("open", open);
+    if (open) list.querySelector(".cat-row.active")?.scrollIntoView({ block: "center" });
+  };
+  btn.onclick = () => toggle(true);
+  backdrop.onclick = () => toggle(false);
+  side.append(h("div", { class: "panel-head" }, h("strong", {}, title),
+    h("button", { class: "icon-btn side-close", onclick: () => toggle(false), "aria-label": "Fermer" }, "✕")), filter, list);
+  // La source du groupe choisi est ouverte d'office.
+  const selCat = cats.find((c) => c.id === selected);
+  if (selCat) openSources.add(`${kind}|${selCat.src}`);
+
+  const labelOf = (id) => specials.find((x) => x.id === id)?.name || cats.find((c) => c.id === id)?.name || "Groupes";
+  const row = (id, name, n, cls = "") => h("button", { class: `cat-row${id === selected ? " active" : ""}${cls}`, "data-key": id, onclick: () => choose(id) },
+    h("span", {}, name), n != null ? h("small", { class: "cat-count" }, n) : null);
+  function choose(id) { selected = id; draw(); toggle(false); onChoose(id); }
+  function draw() {
+    btn.textContent = `☰ ${labelOf(selected)}`;
+    const q = filter.value.trim().toLowerCase();
+    const rows = [];
+    if (!q) specials.forEach((x) => rows.push(row(x.id, x.name, x.count)));
+    const multi = activeSources().length > 1;
+    for (const src of activeSources()) {
+      const mine = cats.filter((c) => c.src === src.id && (!q || c.name.toLowerCase().includes(q)));
+      if (!mine.length) continue;
+      if (!multi) { mine.forEach((c) => rows.push(row(c.id, c.name, count?.(c)))); continue; }
+      const key = `${kind}|${src.id}`;
+      const open = !!q || openSources.has(key);
+      const total = count ? mine.reduce((n, c) => n + (count(c) || 0), 0) : mine.length;
+      rows.push(h("button", { class: `src-head${open ? " open" : ""}${mine.some((c) => c.id === selected) ? " current" : ""}`, "data-key": key, onclick: () => {
+        if (openSources.has(key)) openSources.delete(key); else openSources.add(key);
+        saveOpenSources(); draw();
+      } }, h("span", { class: "chev" }, "›"), h("span", { class: "src-name" }, src.name), h("small", { class: "cat-count" }, total)));
+      if (open) mine.forEach((c) => rows.push(row(c.id, c.name, count?.(c), " sub")));
+    }
+    if (!rows.length) rows.push(h("div", { class: "empty" }, "Aucun groupe."));
+    // La sélection (télécommande) reste sur le même élément après le redessin.
+    const had = list.contains(document.activeElement) ? document.activeElement.dataset.key : null;
+    list.replaceChildren(...rows);
+    if (had) [...list.querySelectorAll("[data-key]")].find((el) => el.dataset.key === had)?.focus({ preventScroll: true });
+  }
+  filter.oninput = draw;
+  draw();
+  return { side, backdrop, btn, redraw: draw };
+}
+
 // ---------------------------------------------------------------- Direct
 
 let liveCategory = store.get("ondetv.liveCat", "__all");
@@ -494,16 +555,26 @@ async function renderLive(top, main) {
   top.querySelector("h2").append(h("span", { class: "page-sub" }, `${channelsFor("__all").length} chaînes`));
   if (content.liveErrors?.length) toastPage(`Source indisponible : ${content.liveErrors.join(" · ")}`);
 
-  const select = h("select", { onchange: () => { liveCategory = select.value; store.set("ondetv.liveCat", liveCategory); draw(); } },
-    h("option", { value: "__fav" }, `★ Favoris (${library.favChannels.length})`),
-    h("option", { value: "__recent" }, "Récents"),
-    h("option", { value: "__replay" }, `⟲ Chaînes avec replay (${channelsFor("__replay").length})`),
-    h("option", { value: "__all" }, `Toutes les chaînes (${channelsFor("__all").length})`),
-    categoryOptions(content.liveCats));
-  select.value = liveCategory;
-  if (select.value !== liveCategory) { liveCategory = "__all"; select.value = "__all"; }
-  const search = h("input", { type: "search", placeholder: "Rechercher", oninput: () => draw() });
-  top.append(h("div", { class: "row" }, select, search));
+  const hiddenLive = hiddenSet("live");
+  const liveCats = (content.liveCats || []).filter((c) => !hiddenLive.has(c.id));
+  if (!["__fav", "__recent", "__replay", "__all"].includes(liveCategory) && !liveCats.some((c) => c.id === liveCategory)) liveCategory = "__all";
+  const catCount = new Map();
+  for (const x of content.live) catCount.set(x.cat, (catCount.get(x.cat) || 0) + 1);
+  const picker = groupSide({
+    title: "Groupes de chaînes", kind: "live", cats: liveCats, selected: liveCategory, count: (c) => catCount.get(c.id) || 0,
+    specials: [
+      { id: "__fav", name: "★ Favoris", count: library.favChannels.length },
+      { id: "__recent", name: "🕘 Récents", count: library.recents.length },
+      { id: "__replay", name: "⟲ Chaînes avec replay", count: channelsFor("__replay").length },
+      { id: "__all", name: "Toutes les chaînes", count: channelsFor("__all").length },
+    ],
+    onChoose: (id) => { liveCategory = id; store.set("ondetv.liveCat", id); search.value = ""; draw(); },
+  });
+  const search = h("input", { type: "search", placeholder: "Rechercher une chaîne", oninput: () => draw() });
+  top.append(h("div", { class: "row" }, picker.btn, search));
+  const area = h("div", { class: "cat-area" });
+  main.classList.add("catalog-main");
+  main.replaceChildren(h("div", { class: "catalog-layout" }, picker.side, picker.backdrop, area));
 
   const rows = new Map();
   const onEPG = (e) => { const r = rows.get(e.detail); if (r) updateNow(r, e.detail); };
@@ -513,7 +584,7 @@ async function renderLive(top, main) {
 
   const io = new IntersectionObserver((entries) => {
     for (const e of entries) if (e.isIntersecting) { requestEPG(e.target.dataset.id); io.unobserve(e.target); }
-  }, { root: main, rootMargin: "200px" });
+  }, { root: area, rootMargin: "200px" });
 
   function updateNow(row, id) {
     const p = nowProgram(id);
@@ -530,15 +601,15 @@ async function renderLive(top, main) {
     const q = search.value.trim().toLowerCase();
     // La recherche porte sur toutes les chaînes de toutes les sources.
     let list = q ? channelsFor("__all").filter((s) => s.name.toLowerCase().includes(q) || String(s.num) === q) : channelsFor(liveCategory);
-    main.replaceChildren();
-    main.scrollTop = 0;
+    area.replaceChildren();
+    area.scrollTop = 0;
     if (!list.length) {
-      main.append(h("div", { class: "empty" }, q ? "Aucun résultat." : liveCategory === "__fav" ? "Aucun favori. Ouvrez une chaîne (ⓘ) pour l'ajouter." : "Aucune chaîne."));
+      area.append(h("div", { class: "empty" }, q ? "Aucun résultat." : liveCategory === "__fav" ? "Aucun favori. Ouvrez une chaîne (ⓘ) pour l'ajouter." : "Aucune chaîne."));
       return;
     }
     const recents = library.recents.map((id) => content.liveById.get(id)).filter(Boolean).slice(0, 12);
     if (!q && liveCategory !== "__recent" && recents.length) {
-      main.append(h("div", { class: "section-label" }, "Derniers visionnages"),
+      area.append(h("div", { class: "section-label" }, "Derniers visionnages"),
         h("div", { class: "recent-strip" }, recents.map((s) => h("button", { class: "recent-card", onclick: () => playLive(s, recents, "__recent") }, logoBox(s), h("span", {}, s.name)))),
         h("div", { class: "section-label" }, groupTitle(liveCategory)));
     }
@@ -566,12 +637,12 @@ async function renderLive(top, main) {
       }
       list = rows;
     }
-    stopChunks = renderChunked(main, list, (s) => {
+    stopChunks = renderChunked(area, list, (s) => {
       if (s.header) {
         const open = replayOpen.has(s.key);
         return h("button", { class: `list-toggle lvl${s.level}${open ? " open" : ""}${s.source ? " source" : ""}`, onclick: () => {
           if (open) replayOpen.delete(s.key); else replayOpen.add(s.key);
-          const y = main.scrollTop; draw(); main.scrollTop = y;
+          const y = area.scrollTop; draw(); area.scrollTop = y;
         } }, h("span", { class: "chev" }, "›"), s.label, h("span", { class: "count" }, s.count));
       }
       const row = h("div", { class: "channel", "data-id": s.id },
@@ -585,7 +656,7 @@ async function renderLive(top, main) {
       rows.set(s.id, row);
       if (content.epg.has(s.id)) updateNow(row, s.id); else io.observe(row);
       return row;
-    }, main);
+    }, area);
   }
   draw();
 }
@@ -724,54 +795,19 @@ async function renderCatalog(top, main, kind) {
   const labelOf = (id) => specials.find((x) => x.id === id)?.name || visibleCats.find((c) => c.id === id)?.name || "Catégories";
   let searchTimer = null;
   const search = h("input", { type: "search", placeholder: isMovies ? "Rechercher un film" : "Rechercher une série", oninput: () => { clearTimeout(searchTimer); searchTimer = setTimeout(draw, 250); } });
-  const catBtn = h("button", { class: "cat-btn", onclick: () => toggleSide(true) });
-  top.append(h("div", { class: "row" }, catBtn, search));
-
-  const side = h("aside", { class: "cat-side" });
-  const backdrop = h("div", { class: "cat-backdrop", onclick: () => toggleSide(false) });
+  const picker = groupSide({
+    title: isMovies ? "Catégories de films" : "Catégories de séries", kind: kindKey, cats: visibleCats, selected, specials,
+    onChoose: (id) => {
+      selected = id;
+      if (isMovies) { vodCategory = id; store.set("ondetv.vodCat", id); } else { seriesCategory = id; store.set("ondetv.seriesCat", id); }
+      search.value = "";
+      load();
+    },
+  });
+  top.append(h("div", { class: "row" }, picker.btn, search));
   const area = h("div", { class: "cat-area" });
   main.classList.add("catalog-main");
-  main.replaceChildren(h("div", { class: "catalog-layout" }, side, backdrop, area));
-  const toggleSide = (open) => { side.classList.toggle("open", open); backdrop.classList.toggle("open", open); if (open) side.querySelector(".cat-row.active")?.scrollIntoView({ block: "center" }); };
-
-  let sideSource = "__all";
-  let sideQuery = "";
-  const sideSearch = h("input", { class: "side-search", type: "search", placeholder: "Filtrer les catégories", oninput: () => { sideQuery = sideSearch.value.trim().toLowerCase(); drawSide(); } });
-  const sideList = h("div", { class: "side-list" });
-  const sideSources = multiSource() ? h("div", { class: "chips side-sources" }) : null;
-  side.append(
-    h("div", { class: "panel-head" }, h("strong", {}, isMovies ? "Catégories de films" : "Catégories de séries"),
-      h("button", { class: "icon-btn side-close", onclick: () => toggleSide(false), "aria-label": "Fermer" }, "✕")),
-    sideSearch, ...(sideSources ? [sideSources] : []), sideList);
-
-  function choose(id) {
-    selected = id;
-    if (isMovies) { vodCategory = id; store.set("ondetv.vodCat", id); } else { seriesCategory = id; store.set("ondetv.seriesCat", id); }
-    search.value = "";
-    drawSide();
-    toggleSide(false);
-    load();
-  }
-  function catRow(id, name) {
-    return h("button", { class: `cat-row${id === selected ? " active" : ""}`, onclick: () => choose(id) }, h("span", {}, name));
-  }
-  function drawSide() {
-    catBtn.textContent = `☰ ${labelOf(selected)}`;
-    sideSources?.replaceChildren(...[{ id: "__all", name: "Toutes" }, ...activeSources()].map((src) =>
-      h("button", { class: `chip${sideSource === src.id ? " active" : ""}`, onclick: () => { sideSource = src.id; drawSide(); } }, src.name)));
-    const rows = [];
-    if (!sideQuery) specials.forEach((x) => rows.push(catRow(x.id, x.name)));
-    for (const src of activeSources()) {
-      if (sideSource !== "__all" && sideSource !== src.id) continue;
-      const list = visibleCats.filter((c) => c.src === src.id && (!sideQuery || c.name.toLowerCase().includes(sideQuery)));
-      if (!list.length) continue;
-      if (multiSource()) rows.push(h("div", { class: "source-label" }, src.name));
-      list.forEach((c) => rows.push(catRow(c.id, c.name)));
-    }
-    if (!rows.length) rows.push(h("div", { class: "empty" }, "Aucune catégorie."));
-    sideList.replaceChildren(...rows);
-  }
-  drawSide();
+  main.replaceChildren(h("div", { class: "catalog-layout" }, picker.side, picker.backdrop, area));
 
   let items = [];
   let stopChunks = null;
@@ -3321,7 +3357,8 @@ function bestInDirection(cur, a, candidates, dir) {
     else { if (by >= ay - 1) continue; inside = b.bottom <= a.top + 10; main = a.top - b.bottom; cross = bx - ax; overlap = b.right > a.left && b.left < a.right; }
     // Un élément aligné passe devant ; sinon, la distance de côté compte, mais moins que l'écart principal.
     const score = Math.max(main, 0) + (overlap ? 0 : Math.abs(cross) * 0.8 + 30);
-    (inside ? strict : loose).push([score, el]);
+    if (inside) strict.push([score, el]);
+    else if (overlap) loose.push([score, el]); // en secours, seulement un élément aligné (pas de saut en diagonale)
   }
   for (const list of [strict, loose]) {
     list.sort((x, y) => x[0] - y[0]);

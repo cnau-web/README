@@ -484,3 +484,18 @@ body.tv .pin-keys button:focus { background: var(--grad); border-color: transpar
 body.tv #btn-pip, body.tv #btn-airplay, body.tv .btn-fs, body.tv [data-vod="fullscreen"] { display: none !important; }
 body.tv :is(.channel, .poster, .recent-card, .p-channel, .cat-row, .btn, .live-controls button, .center-controls button) { transition: transform .12s ease-out, box-shadow .12s, background .12s; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* Liste latérale : sources dépliables → groupes */
+.cat-row { align-items: center; gap: 8px; }
+.cat-row span { flex: 1; min-width: 0; }
+.cat-count { flex: none; font-size: 11px; font-weight: 700; color: var(--muted); padding: 2px 8px; border-radius: 99px; background: rgba(255, 255, 255, .06); }
+.cat-row.active .cat-count { color: #fff; background: rgba(255, 255, 255, .22); }
+.cat-row.sub { padding-left: 34px; }
+.src-head { display: flex; align-items: center; gap: 10px; width: 100%; margin: 6px 0 2px; padding: 12px 12px; border-radius: 12px; text-align: left; font-weight: 800;
+  background: linear-gradient(90deg, rgba(139, 92, 246, .22), rgba(255, 255, 255, .03)); border: 1px solid var(--line); color: #dfe4ff; transition: background .15s; }
+.src-head .src-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.src-head .chev { color: var(--muted); transition: transform .2s; font-size: 18px; line-height: 1; }
+.src-head.open .chev { transform: rotate(90deg); }
+.src-head.current { border-color: rgba(139, 92, 246, .55); }
+body.tv .src-head:focus { background: var(--grad-soft); box-shadow: inset 0 0 0 2px #a78bfa; }
+body.tv .src-head { scroll-margin: 90px 48px; }
