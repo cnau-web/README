@@ -1848,7 +1848,11 @@ async function switchToNativeEngine() {
   $("#btn-airplay").classList.toggle("hidden", !video.webkitShowPlaybackTargetPicker);
 }
 
-async function togglePiP() {
+const isStandalone = () => navigator.standalone === true || matchMedia("(display-mode: standalone)").matches;
+
+async function togglePiP({ force = false } = {}) {
+  // Apple ne permet pas le PiP dans les apps web de l'écran d'accueil (il marche dans Safari).
+  if (!force && isIOS() && isStandalone() && !isPiP()) { offerSafariPiP(); return; }
   if (player.hls && isIOS()) {
     status("Préparation de l'image dans l'image…");
     await switchToNativeEngine();
@@ -1868,9 +1872,52 @@ async function togglePiP() {
     // L'animation d'iOS prend un moment : on attend jusqu'à 2,5 s avant de conclure.
     if (!(await waitFor(isPiP, 2500))) throw new Error("refusé");
   } catch {
+    if (isIOS() && isStandalone()) { offerSafariPiP(true); return; }
     // Après la bascule de moteur, iOS exige souvent un nouveau toucher.
     showPiPPrompt();
   }
+}
+
+// --- reprise de la lecture dans Safari, où le PiP fonctionne
+
+function handoffURL() {
+  const data = { t: Date.now() };
+  if (syncState.code) data.code = syncState.code;
+  else data.sources = activeSources();
+  if (player.mode === "live" && player.stream) data.live = player.stream.id;
+  else if (player.mode === "vod" && player.lastVOD) { data.vod = player.lastVOD; data.pos = video.currentTime || 0; data.dur = video.duration || 0; }
+  const bytes = new TextEncoder().encode(JSON.stringify(data));
+  const b64 = btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  return `${location.origin}/#handoff=${b64}`;
+}
+
+function offerSafariPiP(afterFailure = false) {
+  openMenu("Image dans l'image", [
+    { label: "Apple bloque l'image dans l'image dans les apps de l'écran d'accueil. Elle fonctionne dans Safari.", action: () => {} },
+    { label: "▶ Continuer cette lecture dans Safari", action: () => {
+      const url = handoffURL();
+      saveVODProgress();
+      video.pause();
+      launchScheme(`x-safari-${url}`);
+      setTimeout(() => {
+        if (document.hidden) return;
+        navigator.clipboard?.writeText(url).catch(() => {});
+        toast("Lien copié : collez-le dans Safari");
+      }, 1500);
+    } },
+    afterFailure ? null : { label: "Essayer quand même ici", action: () => togglePiP({ force: true }) },
+  ].filter(Boolean));
+}
+
+function readHandoff() {
+  const m = location.hash.match(/^#handoff=([\w-]+)/);
+  if (!m) return null;
+  history.replaceState(null, "", location.pathname);
+  try {
+    const b = atob(m[1].replace(/-/g, "+").replace(/_/g, "/"));
+    const data = JSON.parse(new TextDecoder().decode(Uint8Array.from(b, (c) => c.charCodeAt(0))));
+    return Date.now() - data.t < 10 * 60000 ? data : null; // lien valable 10 minutes
+  } catch { return null; }
 }
 
 // --- glisser vers le haut : la vidéo part en image dans l'image et l'app reste utilisable derrière
@@ -1891,6 +1938,7 @@ $("#pip-prompt").addEventListener("click", (e) => {
 async function swipeToPiP() {
   if (!player.mode) return;
   if (isPiP()) { minimizeToPiP(); return; }
+  if (isIOS() && isStandalone()) { offerSafariPiP(); return; }
   await togglePiP();
   if (isPiP()) minimizeToPiP();
 }
@@ -2970,10 +3018,36 @@ setInterval(() => { if (!document.hidden) syncNow(); }, 120000);
 
 // ---------------------------------------------------------------- démarrage
 
+const handoff = readHandoff();
+if (handoff?.sources?.length && !activeSources().length) {
+  sources = handoff.sources;
+  store.set("ondetv.sources", sources);
+}
+if (handoff?.code && !syncState.code) {
+  joinSync(handoff.code).then(() => { if (activeSources().length) { renderShell(); resumeHandoff(); } }).catch((e) => toast(e.message));
+}
+function resumeHandoff() {
+  if (!handoff) return;
+  if (handoff.live) {
+    loadLive().then(() => {
+      const s = content.liveById.get(handoff.live);
+      if (s) { playLive(s); toast("Touchez ⧉ pour l'image dans l'image"); }
+    }).catch(() => {});
+  } else if (handoff.vod) {
+    const [url, title, subtitle, key] = handoff.vod;
+    if (key && handoff.pos > 10) library.progress[key] = { pos: handoff.pos, dur: handoff.dur, t: Date.now() };
+    playVOD(url, title, subtitle, key, { forceInternal: true });
+    if (!key && handoff.pos > 10) video.addEventListener("loadedmetadata", () => { video.currentTime = handoff.pos; }, { once: true });
+    toast("Touchez ⧉ pour l'image dans l'image");
+  }
+}
+
 if (activeSources().length) {
   renderShell();
   syncNow();
-  if (prefs.resumeLastChannel && library.lastChannel) {
+  if (handoff && !(handoff.code && !syncState.code)) resumeHandoff();
+  else if (handoff) { /* reprise après la synchronisation */ }
+  else if (prefs.resumeLastChannel && library.lastChannel) {
     loadLive().then(() => {
       const s = content.liveById.get(library.lastChannel.id);
       if (s) playLive(s, channelsFor(library.lastChannel.groupId), library.lastChannel.groupId);
