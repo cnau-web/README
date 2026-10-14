@@ -47,10 +47,28 @@ async function diag() {
   return Response.json(diagCache, { headers: { "cache-control": "no-store" } });
 }
 
+// App Android TV : adresse courte à taper dans Downloader (ondetv.onrender.com/tv).
+// Le fichier est publié par GitHub Actions (release « android-latest ») et relayé ici avec le bon type.
+const APK_URL = "https://github.com/cnau-web/README/releases/download/android-latest/OndeTV.apk";
+let apkCache = null;
+async function androidApk() {
+  if (!apkCache || Date.now() - apkCache.at > 10 * 60000) {
+    const res = await fetch(APK_URL, { signal: AbortSignal.timeout(30000) }).catch(() => null);
+    if (!res?.ok) return new Response("L'app Android TV n'est pas encore publiée. Réessayez dans quelques minutes.", { status: 503, headers: { "content-type": "text/plain; charset=utf-8" } });
+    apkCache = { at: Date.now(), data: new Uint8Array(await res.arrayBuffer()) };
+  }
+  return new Response(apkCache.data, { headers: {
+    "content-type": "application/vnd.android.package-archive",
+    "content-disposition": 'attachment; filename="OndeTV.apk"',
+    "cache-control": "no-store",
+  } });
+}
+
 export async function handler(request) {
   const { pathname } = new URL(request.url);
   if (pathname === "/x") return handleProxy(request, config);
   if (pathname === "/diag") return diag();
+  if (pathname === "/tv" || pathname === "/tv.apk" || pathname === "/OndeTV.apk") return androidApk();
   if (pathname.startsWith("/sync/")) return handleSync(request);
   if (pathname.startsWith("/epg/")) return handleEpg(request);
   return serveStatic(pathname);

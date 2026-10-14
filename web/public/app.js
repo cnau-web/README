@@ -1714,6 +1714,7 @@ function launchScheme(href) {
 
 function openInVLC(url) {
   if (!url) return;
+  if (Native) { saveVODProgress(); if (player.mode) video.pause(); playNative(url, $("#player-title").textContent, $("#player-subtitle").textContent, player.mode === "vod" ? player.progressKey : null); return; }
   saveVODProgress();
   if (player.mode) video.pause();
   let left = false;
@@ -2457,6 +2458,7 @@ function playCatchup(stream, program) {
 
 function playVOD(url, title, subtitle, progressKey, { forceInternal = false } = {}) {
   const ext = (url.split("?")[0].split(".").pop() || "").toLowerCase();
+  if (!forceInternal && Native && isSpecialFormat(ext)) { playNative(url, title, subtitle, progressKey); return; }
   if (!forceInternal && prefs.vlcForSpecial && isSpecialFormat(ext)) { openInVLC(url); return; }
   closePanels();
   player.progressKey = progressKey;
@@ -3015,6 +3017,213 @@ function syncStatusText() {
 
 document.addEventListener("visibilitychange", () => { if (!document.hidden) syncNow(); else if (syncState.code) syncNow(); });
 setInterval(() => { if (!document.hidden) syncNow(); }, 120000);
+
+// ---------------------------------------------------------------- mode télécommande (Android TV, Fire TV)
+// Activé automatiquement dans l'app Android TV (OndeAndroid) ou avec ?tv=1 dans un navigateur de TV.
+
+const Native = globalThis.OndeAndroid || null;
+const TV_MODE = (() => {
+  const q = new URLSearchParams(location.search).get("tv");
+  if (q === "1") store.set("ondetv.tv", true);
+  if (q === "0") store.del("ondetv.tv");
+  return !!Native?.isTV?.() || store.get("ondetv.tv", false);
+})();
+
+if (TV_MODE) {
+  document.body.classList.add("tv");
+  if (!Native) for (const b of document.querySelectorAll('[data-act="vlc"], [data-vod="vlc"]')) b.remove();
+}
+if (Native) for (const b of document.querySelectorAll('[data-act="vlc"], [data-vod="vlc"]')) b.innerHTML = "<span>▶</span>Lecteur Android";
+
+// Lecteur Android (ExoPlayer) pour les formats que le navigateur ne lit pas (MKV, AVI…).
+function playNative(url, title, subtitle, progressKey) {
+  const p = progressKey ? library.progress[progressKey] : null;
+  const start = p && p.pos / p.dur < 0.95 ? p.pos : 0;
+  nativeSession = { progressKey };
+  Native.play(url, title || "", subtitle || "", Math.round(start * 1000));
+}
+let nativeSession = null;
+globalThis.ondetvNativeDone = (posMs, durMs) => {
+  const key = nativeSession?.progressKey;
+  nativeSession = null;
+  if (key && posMs > 10000 && durMs > 0) {
+    library.progress[key] = { pos: posMs / 1000, dur: durMs / 1000, t: Date.now() };
+    saveLibrary(2000);
+    if (currentTab !== "live") renderShell();
+  }
+};
+
+// --- navigation au pavé directionnel
+
+const FOCUSABLE = 'button, a[href], input:not([type="range"]):not([type="hidden"]), select, textarea, [role="button"], [tabindex]:not([tabindex="-1"])';
+
+function visibleEl(el) {
+  if (el.disabled || el.closest(".hidden, [aria-hidden='true']")) return false;
+  const r = el.getBoundingClientRect();
+  if (!r.width || !r.height) return false;
+  const st = getComputedStyle(el);
+  return st.visibility !== "hidden" && st.pointerEvents !== "none";
+}
+
+/** Couche active : la plus haute ouverte (menu, pavé, panneaux, fiche, lecteur, app). */
+function activeLayer() {
+  for (const sel of ["#menu", "#numpad", "#guide-panel", "#channel-panel"]) {
+    const el = $(sel);
+    if (!el.classList.contains("hidden")) return el;
+  }
+  if (!$("#sheet").classList.contains("hidden")) return $("#sheet .sheet-panel");
+  if (!player.el.classList.contains("hidden")) return player.el;
+  return $("#app");
+}
+
+function focusables(layer) {
+  return [...layer.querySelectorAll(FOCUSABLE)].filter((el) => el.id !== "tap-layer" && visibleEl(el));
+}
+
+function preferredFocus(layer, list) {
+  const pref = ".p-channel.playing, .p-channel.focused, button.sel, .selected, .active, .current";
+  const content = list.filter((el) => !el.closest(".tabbar"));
+  if (layer.id === "app") return content.find((el) => el.matches(".cat-row.active")) || content.find((el) => !el.matches("input, select, textarea")) || list[0];
+  for (const sel of pref.split(", ")) { const el = list.find((x) => x.matches(sel)); if (el) return el; }
+  return list.find((el) => !el.matches("input, select, textarea")) || list[0];
+}
+
+function tvFocus(el) {
+  if (!el) return;
+  el.focus({ preventScroll: true });
+  el.scrollIntoView({ block: "nearest", inline: "nearest" });
+}
+
+function moveFocus(dir) {
+  const layer = activeLayer();
+  const list = focusables(layer);
+  if (!list.length) return false;
+  const cur = document.activeElement;
+  if (!cur || !layer.contains(cur) || !list.includes(cur)) { tvFocus(preferredFocus(layer, list)); return true; }
+  const a = cur.getBoundingClientRect();
+  const ax = a.left + a.width / 2, ay = a.top + a.height / 2;
+  let best = null, bestScore = Infinity;
+  for (const el of list) {
+    if (el === cur) continue;
+    const b = el.getBoundingClientRect();
+    const bx = b.left + b.width / 2, by = b.top + b.height / 2;
+    let main, cross, overlap;
+    if (dir === "right") { main = b.left - a.right; cross = by - ay; overlap = b.bottom > a.top && b.top < a.bottom; if (bx <= ax + 1) continue; }
+    else if (dir === "left") { main = a.left - b.right; cross = by - ay; overlap = b.bottom > a.top && b.top < a.bottom; if (bx >= ax - 1) continue; }
+    else if (dir === "down") { main = b.top - a.bottom; cross = bx - ax; overlap = b.right > a.left && b.left < a.right; if (by <= ay + 1) continue; }
+    else { main = a.top - b.bottom; cross = bx - ax; overlap = b.right > a.left && b.left < a.right; if (by >= ay - 1) continue; }
+    const score = Math.max(main, 0) + (overlap ? 0 : Math.abs(cross) * 2 + 40);
+    if (score < bestScore) { bestScore = score; best = el; }
+  }
+  if (best) tvFocus(best);
+  return !!best;
+}
+
+const playerIdle = () => player.el.classList.contains("idle");
+const focusInPlayerControls = () => {
+  const a = document.activeElement;
+  return a && a !== document.body && player.el.contains(a) && !anyOverlayOpen() && !playerIdle();
+};
+
+/** Bouton Retour de la télécommande. Renvoie false quand il n'y a plus rien à fermer (l'app propose alors de quitter). */
+globalThis.ondetvBack = () => {
+  if (anyOverlayOpen()) { closePanels(); wake(); return true; }
+  if (!$("#sheet").classList.contains("hidden")) { closeSheet(); return true; }
+  if (!player.el.classList.contains("hidden")) {
+    if (!playerIdle() && player.mode && (focusInPlayerControls() || !video.paused)) { hideUI(); document.activeElement?.blur(); return true; }
+    $("#player-close").click();
+    return true;
+  }
+  if (currentTab !== "live") { currentTab = "live"; store.set("ondetv.tab", "live"); renderShell(); return true; }
+  return false;
+};
+
+/** Touches spéciales transmises par l'app Android (chaîne +/-, lecture/pause, menu). */
+globalThis.ondetvKey = (key) => {
+  const live = player.mode === "live" && !player.el.classList.contains("hidden");
+  if (key === "ChannelUp" && live) zapDirection(-1);
+  else if (key === "ChannelDown" && live) zapDirection(1);
+  else if (key === "PlayPause" && player.mode) togglePause();
+  else if (key === "Menu" && player.mode) { player.mode === "live" ? openOptions() : openVodOptions(); }
+  else return;
+  wake();
+};
+
+if (TV_MODE) {
+  document.addEventListener("keydown", (e) => {
+    const dirs = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right" };
+    const inPlayer = !player.el.classList.contains("hidden");
+    if (e.key === "Escape" || e.key === "GoBack" || e.key === "BrowserBack") {
+      if (!Native) { e.preventDefault(); e.stopImmediatePropagation(); globalThis.ondetvBack(); }
+      return;
+    }
+    if (e.key === "MediaPlayPause" || e.key === "MediaPlay" || e.key === "MediaPause") { e.preventDefault(); globalThis.ondetvKey("PlayPause"); return; }
+    if (e.key === "ChannelUp" || e.key === "ChannelDown") { e.preventDefault(); globalThis.ondetvKey(e.key); return; }
+    if (e.key === "ContextMenu") { e.preventDefault(); globalThis.ondetvKey("Menu"); return; }
+
+    // Lecteur sans menu ouvert : zapping, liste, guide, avance… (gérés par le lecteur) ; OK affiche les commandes.
+    if (inPlayer && !anyOverlayOpen() && !focusInPlayerControls()) {
+      if (e.key === "Enter") {
+        e.preventDefault(); e.stopImmediatePropagation();
+        wake(8000);
+        const center = $("#center-play");
+        if (visibleEl(center)) tvFocus(center);
+        else { const list = focusables(player.el); tvFocus(list.find((el) => el.closest(".live-controls, .vod-controls, #vod-ui")) || list[0]); }
+      }
+      return; // les flèches restent au lecteur
+    }
+    const dir = dirs[e.key];
+    if (dir) {
+      const t = e.target;
+      // Dans un champ de texte, gauche/droite déplacent le curseur tant qu'on n'est pas au bord.
+      if (t.matches?.("input, textarea") && (dir === "left" || dir === "right")) {
+        const atStart = t.selectionStart === 0 && t.selectionEnd === 0;
+        const atEnd = t.selectionStart === t.value.length;
+        if ((dir === "left" && !atStart) || (dir === "right" && !atEnd)) return;
+      }
+      if (t.matches?.("select")) return;
+      e.preventDefault(); e.stopImmediatePropagation();
+      moveFocus(dir);
+      if (inPlayer) wake(8000);
+      return;
+    }
+    if (e.key === "Enter" && inPlayer) {
+      // OK sur un bouton : action ; on garde les commandes affichées.
+      wake(8000);
+      if (anyOverlayOpen() && document.activeElement && !activeLayer().contains(document.activeElement)) {
+        e.preventDefault(); e.stopImmediatePropagation();
+        moveFocus("down");
+      }
+      e.stopImmediatePropagation(); // ne pas ouvrir la liste des chaînes en plus du clic
+    }
+  }, true);
+
+  // Les commandes disparaissent : le focus quitte le lecteur pour rendre les flèches au zapping.
+  new MutationObserver(() => {
+    const a = document.activeElement;
+    if (playerIdle() && player.el.contains(a) && !anyOverlayOpen()) a.blur();
+    // Lecteur ouvert : le focus ne reste pas sur la liste derrière.
+    if (!player.el.classList.contains("hidden") && a && a !== document.body && !player.el.contains(a)) a.blur();
+  }).observe(player.el, { attributes: true, attributeFilter: ["class"] });
+
+  // Quand une couche s'ouvre (menu, liste, guide, fiche), on y place le focus.
+  const layerObserver = new MutationObserver(() => {
+    requestAnimationFrame(() => {
+      const layer = activeLayer();
+      if (layer === player.el || layer === $("#app")) return;
+      if (layer.contains(document.activeElement)) return;
+      const list = focusables(layer);
+      if (list.length) tvFocus(preferredFocus(layer, list));
+    });
+  });
+  for (const sel of ["#menu", "#numpad", "#guide-panel", "#channel-panel", "#sheet"]) layerObserver.observe($(sel), { attributes: true, attributeFilter: ["class"] });
+
+  if (Native) {
+    video.addEventListener("playing", () => Native.keepScreenOn(true));
+    video.addEventListener("pause", () => Native.keepScreenOn(false));
+    video.addEventListener("emptied", () => Native.keepScreenOn(false));
+  }
+}
 
 // ---------------------------------------------------------------- démarrage
 

@@ -356,3 +356,11 @@ input, select { font: inherit; color: var(--text); }
 /* Invitation à toucher pour le PiP (iOS exige parfois un second toucher) */
 .pip-prompt { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 30; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 22px 26px; border-radius: 18px; border: 0; background: #000c; color: #fff; font-size: 16px; font-weight: 600; max-width: 80%; text-align: center; box-shadow: 0 10px 40px #0008; }
 .pip-prompt span { font-size: 40px; line-height: 1; }
+
+/* Mode télécommande (Android TV) */
+body.tv :focus { outline: 3px solid var(--accent); outline-offset: 2px; }
+body.tv :focus:not(:focus-visible) { outline: 3px solid var(--accent); }
+body.tv .poster:focus, body.tv .recent-card:focus, body.tv .channel:focus { transform: scale(1.04); box-shadow: 0 0 0 3px var(--accent), 0 8px 30px #000a; outline: none; }
+body.tv #btn-pip, body.tv #btn-airplay, body.tv .btn-fs, body.tv [data-vod="fullscreen"] { display: none !important; }
+body.tv .center-controls button:focus, body.tv .live-controls button:focus, body.tv .vod-controls button:focus { background: var(--accent); color: #fff; outline: none; }
+body.tv .p-channel:focus, body.tv .group-head:focus, body.tv .program:focus, body.tv .cat-row:focus, body.tv .item:focus, body.tv #menu button:focus { background: color-mix(in srgb, var(--accent) 30%, transparent); outline: 3px solid var(--accent); outline-offset: -3px; }
