@@ -1369,6 +1369,17 @@ const HLS_CONFIG = {
   startFragPrefetch: true,
   preferManagedMediaSource: true,
 };
+// Clés TV (1 à 2 Go de mémoire) : petite réserve, sinon le moteur d'affichage manque de mémoire et l'app redémarre.
+const HLS_TV = {
+  maxBufferLength: 20,
+  maxMaxBufferLength: 30,
+  backBufferLength: 10,
+  maxBufferSize: 25 * 1000 * 1000,
+  liveSyncDurationCount: 3,
+  fragLoadingMaxRetry: 12,
+  levelLoadingMaxRetry: 10,
+  manifestLoadingMaxRetry: 10,
+};
 
 async function startVideo(url, startAt = 0) {
   player.currentUrl = url;
@@ -1387,13 +1398,23 @@ async function startVideo(url, startAt = 0) {
         video.removeAttribute("src");
         // ManagedMediaSource (iOS) exige de désactiver AirPlay pour ce mode.
         if (globalThis.ManagedMediaSource) video.disableRemotePlayback = true;
-        const hls = new Hls({ ...HLS_CONFIG, startPosition: startAt > 0 ? startAt : -1 });
+        const tv = document.body.classList.contains("tv");
+        const hls = new Hls({ ...HLS_CONFIG, ...(tv ? HLS_TV : {}), startPosition: startAt > 0 ? startAt : -1 });
         player.hls = hls;
         hls.on(Hls.Events.ERROR, (_, d) => {
           if (!d.fatal || player.hls !== hls) return;
           if (d.type === Hls.ErrorTypes.NETWORK_ERROR) {
+            // Reprise douce, puis relance complète du flux si les coupures se répètent.
+            const now = Date.now();
+            player.netErrors = (player.netErrors || []).filter((t) => now - t < 30000).concat(now);
             status("Connexion instable… reprise");
-            setTimeout(() => { if (player.hls === hls) hls.startLoad(); }, 1000);
+            if (player.netErrors.length >= 3 && player.currentUrl) {
+              player.netErrors = [];
+              const live = player.mode === "live" && !player.shift;
+              setTimeout(() => { if (player.hls === hls) startVideo(player.currentUrl, live ? 0 : video.currentTime); }, 1500);
+            } else {
+              setTimeout(() => { if (player.hls === hls) hls.startLoad(); }, 1000);
+            }
           } else if (d.type === Hls.ErrorTypes.MEDIA_ERROR && player.mediaRecoveries++ < 3) {
             hls.recoverMediaError();
           } else {

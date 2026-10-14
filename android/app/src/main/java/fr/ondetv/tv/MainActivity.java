@@ -23,6 +23,7 @@ import android.webkit.RenderProcessGoneDetail;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -48,6 +49,7 @@ public class MainActivity extends Activity {
     private FrameLayout root;
     private SharedPreferences prefs;
     private int rendererCrashes;
+    private boolean waitingRestart;
     private TextView splash;
     private long lastBack;
     private boolean loaded;
@@ -135,6 +137,21 @@ public class MainActivity extends Activity {
                 if (url.startsWith(HOME)) { loaded = true; splash.setVisibility(View.GONE); web.requestFocus(); }
             }
 
+            /** Vidéo, guide, logos, API du fournisseur : la TV va chercher elle-même (relais local). */
+            @Override
+            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest req) {
+                Uri u = req.getUrl();
+                if (!HOST.equals(u.getHost()) || !"/x".equals(u.getPath()) || !"GET".equalsIgnoreCase(req.getMethod())) return null;
+                String target = u.getQueryParameter("url");
+                if (target == null || !(target.startsWith("http://") || target.startsWith("https://"))) return null;
+                try {
+                    return DirectRelay.fetch(target, req.getRequestHeaders());
+                } catch (Exception e) {
+                    Log.w("OndeTV", "relais local : " + e.getMessage());
+                    return null; // en cas d'échec, la requête part vers le serveur OndeTV comme avant
+                }
+            }
+
             @Override
             public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
                 return onRendererGone(view, detail.didCrash());
@@ -172,9 +189,15 @@ public class MainActivity extends Activity {
         if (view == web) {
             createWebView();
             loaded = false;
-            splash.setText("OndeTV\nRelance…");
             splash.setVisibility(View.VISIBLE);
-            web.loadUrl(HOME + "?lite=1");
+            if (rendererCrashes >= 3) {
+                // Évite une boucle de relances : on attend que l'utilisateur appuie sur OK.
+                waitingRestart = true;
+                splash.setText("OndeTV a manqué de mémoire.\nAppuyez sur OK pour relancer.");
+            } else {
+                splash.setText("OndeTV\nRelance…");
+                web.loadUrl(HOME + "?lite=1");
+            }
         }
         return true;
     }
@@ -203,8 +226,16 @@ public class MainActivity extends Activity {
             if (e.getAction() == KeyEvent.ACTION_DOWN && e.getRepeatCount() == 0) js("window.ondetvKey && window.ondetvKey('" + key + "')");
             return true;
         }
+        if (waitingRestart && e.getAction() == KeyEvent.ACTION_DOWN
+                && (code == KeyEvent.KEYCODE_DPAD_CENTER || code == KeyEvent.KEYCODE_ENTER)) {
+            waitingRestart = false;
+            rendererCrashes = 0;
+            splash.setText("OndeTV\nRelance…");
+            web.loadUrl(HOME + "?lite=1");
+            return true;
+        }
         if (code == KeyEvent.KEYCODE_BACK) {
-            if (e.getAction() == KeyEvent.ACTION_UP) onBack();
+            if (e.getAction() == KeyEvent.ACTION_UP) { if (waitingRestart) finish(); else onBack(); }
             return true;
         }
         return super.dispatchKeyEvent(e);
