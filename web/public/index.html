@@ -21,6 +21,14 @@
     <video id="video" playsinline webkit-playsinline autoplay autopictureinpicture x-webkit-airplay="allow"></video>
     <div id="tap-layer" class="tap-layer"></div>
 
+    <div id="center-controls" class="center-controls">
+      <button data-center="chprev" class="ch live-only" aria-label="Chaîne précédente"><span>⏮</span><small>Chaîne</small></button>
+      <button data-center="back" aria-label="Reculer"><span>⏪</span><small id="center-back-label">30 s</small></button>
+      <button data-center="play" class="big" id="center-play" aria-label="Lecture / pause"><span>⏸</span></button>
+      <button data-center="forward" aria-label="Avancer"><span>⏩</span><small id="center-fwd-label">30 s</small></button>
+      <button data-center="chnext" class="ch live-only" aria-label="Chaîne suivante"><span>⏭</span><small>Chaîne</small></button>
+    </div>
+
     <div class="player-top">
       <button id="player-close" class="icon-btn" aria-label="Fermer">✕</button>
       <div id="player-logo" class="player-logo"></div>
@@ -49,15 +57,12 @@
       </div>
       <div class="live-controls">
         <button data-act="list"><span>☰</span>Chaînes</button>
-        <button data-act="back"><span>⏪</span>−30 s</button>
         <button data-act="restart"><span>⏮</span>Début</button>
-        <button data-act="forward" id="btn-forward" class="hidden"><span>⏩</span>+30 s</button>
         <button data-act="golive" id="btn-golive" class="hidden live-btn"><span>●</span>Direct</button>
         <button data-act="guide"><span>⟲</span>Replay</button>
         <button data-act="recents"><span>🕘</span>Récents</button>
         <button data-act="previous"><span>⇆</span>Précédente</button>
         <button data-act="number"><span>#</span>N°</button>
-        <button data-act="pause" id="btn-pause"><span>⏸</span>Pause</button>
         <button data-act="fullscreen" id="btn-fs" class="btn-fs"><span>⛶</span>Plein écran</button>
         <button data-act="aspect" id="btn-aspect" class="btn-aspect"><span>⤢</span>Ajusté</button>
         <button data-act="vlc"><span>🔶</span>VLC</button>
@@ -72,9 +77,6 @@
         <span id="vod-duration">0:00</span>
       </div>
       <div class="live-controls">
-        <button data-vod="back"><span>⏪</span>−10 s</button>
-        <button data-vod="play" id="vod-play"><span>⏸</span>Pause</button>
-        <button data-vod="forward"><span>⏩</span>+30 s</button>
         <button data-vod="tracks"><span>💬</span>Pistes</button>
         <button data-vod="speed" id="vod-speed"><span>⏱</span>×1</button>
         <button data-vod="fullscreen" class="btn-fs"><span>⛶</span>Plein écran</button>

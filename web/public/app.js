@@ -458,6 +458,7 @@ function failure(main, e, retry) {
 // ---------------------------------------------------------------- Direct
 
 let liveCategory = store.get("ondetv.liveCat", "__all");
+const replayOpen = new Set();
 
 /** Nom de la catégorie (groupe) d'une chaîne, avec sa source s'il y en a plusieurs. */
 function categoryLabel(stream) {
@@ -530,18 +531,38 @@ async function renderLive(top, main) {
         h("div", { class: "recent-strip" }, recents.map((s) => h("button", { class: "recent-card", onclick: () => playLive(s, recents, "__recent") }, logoBox(s), h("span", {}, s.name)))),
         h("div", { class: "section-label" }, groupTitle(liveCategory)));
     }
-    // « Chaînes avec replay » : classées par groupe, avec un titre par groupe.
-    if (liveCategory === "__replay" && !q) {
-      const order = new Map((content.liveCats || []).map((c, i) => [c.id, i]));
-      list = [...list].sort((a, b) => (order.get(a.cat) ?? 1e9) - (order.get(b.cat) ?? 1e9) || (a.num ?? 1e9) - (b.num ?? 1e9));
-      const withHeaders = [];
-      let last = null;
-      for (const s of list) { if (s.cat !== last) { withHeaders.push({ header: categoryLabel(s) }); last = s.cat; } withHeaders.push(s); }
-      list = withHeaders;
-    }
+    // « Chaînes avec replay » : dépliable par source puis par groupe.
     const playable = list.filter((x) => !x.header);
+    if (liveCategory === "__replay" && !q) {
+      const multi = multiSource();
+      const rows = [];
+      for (const src of activeSources()) {
+        const ofSrc = list.filter((x) => x.src === src.id);
+        if (!ofSrc.length) continue;
+        let level = 1;
+        if (multi) {
+          const key = `src|${src.id}`;
+          rows.push({ header: true, key, label: `📡 ${src.name}`, count: ofSrc.length, level: 1, source: true });
+          if (!replayOpen.has(key)) continue;
+          level = 2;
+        }
+        for (const c of (content.liveCats || []).filter((c) => c.src === src.id)) {
+          const chs = ofSrc.filter((x) => x.cat === c.id);
+          if (!chs.length) continue;
+          rows.push({ header: true, key: c.id, label: c.name, count: chs.length, level });
+          if (replayOpen.has(c.id)) rows.push(...chs);
+        }
+      }
+      list = rows;
+    }
     stopChunks = renderChunked(main, list, (s) => {
-      if (s.header) return h("div", { class: "list-group" }, `⟲ ${s.header}`);
+      if (s.header) {
+        const open = replayOpen.has(s.key);
+        return h("button", { class: `list-toggle lvl${s.level}${open ? " open" : ""}${s.source ? " source" : ""}`, onclick: () => {
+          if (open) replayOpen.delete(s.key); else replayOpen.add(s.key);
+          const y = main.scrollTop; draw(); main.scrollTop = y;
+        } }, h("span", { class: "chev" }, "›"), s.label, h("span", { class: "count" }, s.count));
+      }
       const row = h("div", { class: "channel", "data-id": s.id },
         h("span", { class: "num" }, s.num ?? ""),
         logoBox(s),
@@ -1232,6 +1253,8 @@ function loadHlsJs() {
 
 function status(message, actions = []) {
   const box = $("#player-status");
+  // Les messages durables (erreur) remplacent les commandes du centre ; « Chargement… » les laisse visibles.
+  player.el.classList.toggle("has-status", !!message && actions.length > 0);
   if (!message) { box.classList.add("hidden"); return; }
   box.replaceChildren(h("div", {}, message), ...actions);
   box.classList.remove("hidden");
@@ -1346,6 +1369,8 @@ function openPlayer(mode, title, subtitle) {
   $("#tap-layer").classList.remove("hidden");
   $("#live-ui").classList.toggle("hidden", mode !== "live");
   $("#vod-ui").classList.toggle("hidden", mode !== "vod");
+  $("#center-back-label").textContent = mode === "live" ? "30 s" : "10 s";
+  $("#center-fwd-label").textContent = "30 s";
   video.playbackRate = 1;
   $("#vod-speed").innerHTML = "<span>⏱</span>×1";
   $("#player-fav").classList.toggle("hidden", mode !== "live");
@@ -1400,8 +1425,7 @@ function wake(duration = 5000) {
 function hideUI() { clearTimeout(player.idleTimer); player.el.classList.add("idle"); }
 
 function updatePauseButton() {
-  const b = $("#btn-pause");
-  b.innerHTML = video.paused ? "<span>▶</span>Lecture" : "<span>⏸</span>Pause";
+  $("#center-play").innerHTML = video.paused ? "<span>▶</span>" : "<span>⏸</span>";
 }
 
 function applyAspect() {
@@ -1586,7 +1610,6 @@ function updateShiftUI() {
   const range = $("#shift-range");
   const dragging = range.matches(":active") || range.dataset.dragging === "1";
   $("#btn-golive").classList.toggle("hidden", !shifted && !isBehindLocal());
-  $("#btn-forward").classList.toggle("hidden", !shifted && !isBehindLocal());
   if (!s || player.mode !== "live") { bar.classList.add("hidden"); return; }
 
   let winStart, winEnd, pos, avail;
@@ -1677,13 +1700,46 @@ function togglePause() {
 const NATIVE_EXT = ["mp4", "m4v", "mov", "m3u8"];
 const isSpecialFormat = (ext) => !NATIVE_EXT.includes(String(ext || "").toLowerCase());
 
+function launchScheme(href) {
+  // Un lien cliqué ouvre une autre app de façon plus fiable qu'une redirection (surtout depuis l'écran d'accueil).
+  const a = document.createElement("a");
+  a.href = href;
+  a.rel = "noopener";
+  document.body.append(a);
+  a.click();
+  a.remove();
+}
+
 function openInVLC(url) {
   if (!url) return;
-  const target = `vlc-x-callback://x-callback-url/stream?url=${encodeURIComponent(url)}`;
   saveVODProgress();
-  if (player.mode) { video.pause(); }
-  location.href = target;
-  setTimeout(() => { if (!document.hidden) toast("Si VLC ne s'ouvre pas, installez « VLC for Mobile » (gratuit) depuis l'App Store"); }, 1500);
+  if (player.mode) video.pause();
+  let left = false;
+  const onHide = () => { if (document.hidden) left = true; };
+  document.addEventListener("visibilitychange", onHide);
+  launchScheme(`vlc-x-callback://x-callback-url/stream?url=${encodeURIComponent(url)}`);
+  // Deuxième format, reconnu par toutes les versions de VLC.
+  setTimeout(() => { if (!left && !document.hidden) launchScheme(`vlc://${url}`); }, 1200);
+  setTimeout(() => {
+    document.removeEventListener("visibilitychange", onHide);
+    if (left || document.hidden) return;
+    showVLCHelp(url);
+  }, 2800);
+}
+
+function showVLCHelp(url) {
+  openSheet((target) => {
+    target.replaceChildren(h("div", { class: "detail", style: { marginTop: "48px" } },
+      h("h3", {}, "Ouvrir dans VLC"),
+      h("p", { class: "muted" }, "VLC ne s'est pas ouvert automatiquement. Vérifiez que « VLC for Mobile » est installé (gratuit sur l'App Store), puis :"),
+      h("div", { class: "actions" },
+        h("button", { class: "btn vlc", onclick: () => launchScheme(`vlc://${url}`) }, "Réessayer"),
+        h("button", { class: "btn", onclick: async () => {
+          try { await navigator.clipboard.writeText(url); toastPage("Lien copié"); } catch { prompt("Copiez ce lien :", url); }
+        } }, "Copier le lien")),
+      h("p", { class: "muted", style: { fontSize: "13px" } }, "Avec le lien copié : ouvrez VLC → onglet Réseau → « Flux réseau » → collez le lien → Ouvrir le flux."),
+      h("a", { class: "btn", style: { display: "block", marginTop: "10px" }, href: "https://apps.apple.com/app/vlc-media-player/id650377962", target: "_blank", rel: "noopener" }, "Installer VLC (App Store)")));
+  });
 }
 
 /** Adresse directe (sans relais) de ce qui est en cours de lecture. */
@@ -1908,6 +1964,10 @@ function openChannelPanel(focus) {
   el.classList.remove("hidden");
   $("#panel-search").value = "";
   panel.expanded = new Set([focus === "__recent" ? "__recent" : player.groupId]);
+  if (player.stream && focus !== "__recent") {
+    panel.expanded.add(`src|${player.stream.src}`);
+    if (player.groupId === "__replay") { panel.expanded.add(`replay|${player.stream.src}`); panel.expanded.add(`replay|${player.stream.cat}`); }
+  }
   $("#channel-panel-title").textContent = focus === "__recent" ? "Récents" : "Chaînes";
   // La source de la chaîne en cours est présélectionnée.
   if (multiSource() && panel.source !== "__all" && player.stream && focus !== "__recent") panel.source = player.stream.src;
@@ -1940,36 +2000,70 @@ function drawPanel() {
     return;
   }
 
-  // Comme TiviMate : les groupes de toutes les sources dans une seule liste, séparés par source.
-  const groups = [
-    { id: "__recent", name: "🕘 Récents" },
-    { id: "__fav", name: "★ Favoris" },
-    { id: "__replay", name: "⟲ Chaînes avec replay" },
-    ...activeSources().filter((src) => inPanelSource({ src: src.id })).flatMap((src) => [
-      ...(multiSource() && panel.source === "__all" ? [{ label: src.name }] : []),
-      ...content.liveCats.filter((c) => c.src === src.id && !isHiddenCat("live", c.id)).map((c) => ({ id: c.id, name: c.name })),
-    ]),
-    ...(multiSource() && panel.source === "__all" ? [{ label: "Toutes les sources" }] : []),
-    { id: "__all", name: panel.source === "__all" ? "Toutes les chaînes" : `Toutes les chaînes · ${sourceName(panel.source)}` },
-  ];
-  for (const g of groups) {
-    if (g.label) { list.append(h("div", { class: "source-label" }, g.label)); continue; }
-    const channels = groupList(g.id).filter(inPanelSource);
-    if (!channels.length && g.id !== "__fav") continue;
-    const open = panel.expanded.has(g.id);
-    const head = h("button", {
-      class: `group-head${open ? " open" : ""}${g.id === player.groupId ? " current" : ""}`,
-      onclick: () => { if (open) panel.expanded.delete(g.id); else panel.expanded.add(g.id); const top = head.offsetTop; drawPanel(); restoreGroup(g.id, top); },
-    }, h("span", { class: "chev" }, "›"), g.name, h("span", { class: "count" }, channels.length));
-    head.dataset.group = g.id;
-    list.append(head);
-    if (open) {
+  // Comme TiviMate : tout dans une seule liste dépliable — sources → groupes → chaînes.
+  const multi = multiSource() && panel.source === "__all";
+  const isOpen = (key) => panel.expanded.has(key);
+  const head = (key, label, count, level, extra = "") => {
+    const open = isOpen(key);
+    const node = h("button", {
+      class: `group-head lvl${level}${open ? " open" : ""}${key === player.groupId ? " current" : ""}${extra}`,
+      onclick: () => { if (open) panel.expanded.delete(key); else panel.expanded.add(key); const top = node.offsetTop; drawPanel(); restoreGroup(key, top); },
+    }, h("span", { class: "chev" }, "›"), label, h("span", { class: "count" }, count));
+    node.dataset.group = key;
+    list.append(node);
+    return open;
+  };
+  const channelsBox = (channels, groupId, level) => {
+    const box = h("div");
+    list.append(box);
+    renderChunked(box, channels, (s) => { const r = panelRow(s, channels, groupId); r.classList.add(`lvl${level}`); return r; }, list, 80);
+  };
+  const sourcesShown = activeSources().filter((src) => inPanelSource({ src: src.id }));
+  const catsOf = (srcId) => content.liveCats.filter((c) => c.src === srcId && !isHiddenCat("live", c.id));
+
+  // Récents, favoris
+  for (const [key, label] of [["__recent", "🕘 Récents"], ["__fav", "★ Favoris"]]) {
+    const channels = groupList(key).filter(inPanelSource);
+    if (!channels.length && key !== "__fav") continue;
+    if (head(key, label, channels.length, 1)) {
       if (!channels.length) list.append(h("div", { class: "empty", style: { padding: "16px" } }, "Touchez ☆ à côté d'une chaîne pour l'ajouter."));
-      const box = h("div");
-      list.append(box);
-      renderChunked(box, channels, (s) => panelRow(s, channels, g.id), list, 80);
+      else channelsBox(channels, key, 1);
     }
   }
+
+  // Chaînes avec replay : sources → groupes → chaînes
+  const replayAll = groupList("__replay").filter(inPanelSource);
+  if (replayAll.length && head("__replay", "⟲ Chaînes avec replay", replayAll.length, 1)) {
+    for (const src of sourcesShown) {
+      const ofSrc = replayAll.filter((x) => x.src === src.id);
+      if (!ofSrc.length) continue;
+      let level = 2;
+      if (multi) { if (!head(`replay|${src.id}`, `📡 ${src.name}`, ofSrc.length, 2, " source")) continue; level = 3; }
+      for (const c of catsOf(src.id)) {
+        const chs = ofSrc.filter((x) => x.cat === c.id);
+        if (chs.length && head(`replay|${c.id}`, c.name, chs.length, level)) channelsBox(chs, "__replay", level);
+      }
+    }
+  }
+
+  // Sources → groupes → chaînes
+  for (const src of sourcesShown) {
+    const cats = catsOf(src.id);
+    let level = 1;
+    if (multi) {
+      const total = cats.reduce((n, c) => n + groupList(c.id).length, 0);
+      if (!head(`src|${src.id}`, `📡 ${src.name}`, total, 1, " source")) continue;
+      level = 2;
+    }
+    for (const c of cats) {
+      const chs = groupList(c.id);
+      if (chs.length && head(c.id, c.name, chs.length, level)) channelsBox(chs, c.id, level);
+    }
+  }
+
+  // Toutes les chaînes
+  const all = groupList("__all").filter(inPanelSource);
+  if (head("__all", panel.source === "__all" ? "Toutes les chaînes" : `Toutes les chaînes · ${sourceName(panel.source)}`, all.length, 1)) channelsBox(all, "__all", 1);
   requestAnimationFrame(() => list.querySelector(".p-channel.playing")?.scrollIntoView({ block: "center" }));
 }
 
@@ -2289,7 +2383,7 @@ function updateVodUI() {
   $("#vod-duration").textContent = d ? `-${fmtTime(d - video.currentTime)}` : "";
   vodRange.style.setProperty("--pos", `${(vodRange.value / 10)}%`);
   vodRange.style.setProperty("--avail", d ? `${Math.min(100, ((video.currentTime + bufferAhead()) / d) * 100)}%` : "0%");
-  $("#vod-play").innerHTML = video.paused ? "<span>▶</span>Lecture" : "<span>⏸</span>Pause";
+  updatePauseButton();
 }
 video.addEventListener("timeupdate", updateVodUI);
 video.addEventListener("pause", updateVodUI);
@@ -2378,6 +2472,21 @@ $("#vod-ui").addEventListener("click", (e) => {
   })[b.dataset.vod]?.();
 });
 ["pointermove", "touchstart"].forEach((ev) => $("#vod-ui").addEventListener(ev, () => wake(), { passive: true }));
+
+// --- grandes commandes au centre
+$("#center-controls").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-center]");
+  if (!b) return;
+  wake();
+  const live = player.mode === "live";
+  ({
+    play: togglePause,
+    back: () => (live ? skip(-30) : seekBy(-10)),
+    forward: () => (live ? skip(30) : seekBy(30)),
+    chprev: () => zap(-1),
+    chnext: () => zap(1),
+  })[b.dataset.center]?.();
+});
 
 // --- commandes et gestes
 

@@ -311,3 +311,39 @@ input, select { font: inherit; color: var(--text); }
 @media (min-width: 900px) {
   .cat-btn, .cat-side .side-close { display: none; }
 }
+
+/* Grandes commandes au centre de l'écran (disparaissent avec le reste) */
+.center-controls { position: absolute; inset: 0; z-index: 3; display: flex; align-items: center; justify-content: center; gap: clamp(14px, 4vw, 40px);
+  pointer-events: none; transition: opacity .3s; }
+.center-controls button { pointer-events: auto; width: 64px; height: 64px; border-radius: 50%; background: #0008; display: grid; place-items: center; align-content: center;
+  font-size: 24px; line-height: 1; box-shadow: 0 2px 12px #0006; }
+.center-controls button small { font-size: 10px; margin-top: 2px; color: #fffc; }
+.center-controls button.big { width: 86px; height: 86px; font-size: 38px; background: #000a; }
+.center-controls button.ch { width: 56px; height: 56px; font-size: 20px; background: #ffffff26; }
+.center-controls button:active { transform: scale(.94); }
+.player.idle .center-controls { opacity: 0; }
+.player.idle .center-controls button { pointer-events: none; }
+.player.vod .center-controls .live-only { display: none; }
+.player-status { top: 26%; }
+@media (max-width: 420px) { .center-controls button { width: 54px; height: 54px; font-size: 20px; } .center-controls button.big { width: 74px; height: 74px; font-size: 32px; } .center-controls button.ch { width: 46px; height: 46px; } }
+
+/* Listes dépliables à plusieurs niveaux (sources → groupes → chaînes) */
+.group-head.source { background: #1b2030; color: var(--accent); }
+.group-head.lvl2 { padding-left: 30px; font-weight: 600; background: #13161f; }
+.group-head.lvl3 { padding-left: 44px; font-weight: 500; background: #11141c; font-size: 14px; }
+.p-channel.lvl2 { padding-left: 26px; }
+.p-channel.lvl3 { padding-left: 40px; }
+.list-toggle { width: 100%; display: flex; align-items: center; gap: 10px; padding: 12px 16px; text-align: left; font-weight: 700; border-bottom: 1px solid #ffffff10; background: #151823; }
+.list-toggle.lvl2 { padding-left: 32px; font-weight: 600; background: #11141c; }
+.list-toggle .count { margin-left: auto; color: var(--muted); font-weight: 500; font-size: 13px; }
+.list-toggle .chev { color: var(--muted); transition: transform .2s; }
+.list-toggle.open .chev { transform: rotate(90deg); }
+.list-toggle.source { color: var(--accent); }
+/* Commandes du centre : dans l'espace libre au-dessus de la barre du bas */
+.center-controls { inset: 0 0 auto 0; height: calc(100% - 200px); min-height: 110px; z-index: 4; padding-top: calc(var(--safe-top) + 40px); }
+.player.vod .center-controls { height: calc(100% - 140px); }
+.player.has-status .center-controls { display: none; }
+@media (min-height: 700px) { .center-controls { height: 100%; padding-top: 0; } }
+.center-controls button { background: #ffffff24; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.center-controls button.big { background: #ffffff33; }
+.center-controls button.ch { background: #ffffff1a; }
