@@ -352,3 +352,7 @@ input, select { font: inherit; color: var(--text); }
 .quality-badge { flex: none; padding: 4px 8px; border-radius: 6px; border: 1px solid #ffffff55; font-size: 12px; font-weight: 800; letter-spacing: .03em; color: #fff; background: #0006; }
 .quality-badge.q4k { border-color: #f5c518; color: #f5c518; }
 .quality-badge.qfhd { border-color: var(--accent); color: #9ccfff; }
+
+/* Invitation à toucher pour le PiP (iOS exige parfois un second toucher) */
+.pip-prompt { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 30; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 22px 26px; border-radius: 18px; border: 0; background: #000c; color: #fff; font-size: 16px; font-weight: 600; max-width: 80%; text-align: center; box-shadow: 0 10px 40px #0008; }
+.pip-prompt span { font-size: 40px; line-height: 1; }

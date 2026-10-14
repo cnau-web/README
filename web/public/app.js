@@ -1209,6 +1209,7 @@ const PREF_DEFAULTS = {
   tapOpensList: false,     // toucher la vidéo : ouvre la liste des chaînes (sinon affiche les commandes)
   invertZap: false,        // inverser le sens du zapping (glisser / flèches)
   swipeZap: true,          // zapper en glissant vers le haut / le bas
+  swipePiP: true,          // glisser vers le haut depuis le bas de l'écran : image dans l'image
   bannerOnZap: true,       // bandeau d'infos à chaque changement de chaîne
   closeListOnSelect: true, // fermer la liste après avoir choisi une chaîne
   resumeLastChannel: false,// relancer la dernière chaîne à l'ouverture de l'app
@@ -1386,6 +1387,7 @@ function openPlayer(mode, title, subtitle) {
 }
 
 function closePlayer() {
+  $("#pip-prompt").classList.add("hidden");
   player.minimized = false;
   player.forceNative = false;
   if (fsElement()) (document.exitFullscreen || document.webkitExitFullscreen)?.call(document);
@@ -1858,7 +1860,8 @@ async function togglePiP() {
     return;
   }
   try {
-    if (video.paused) await video.play().catch(() => {});
+    // Sans « await » : iOS n'accepte le PiP que dans le prolongement direct du toucher.
+    if (video.paused) video.play().catch(() => {});
     if (video.webkitSupportsPresentationMode?.("picture-in-picture")) video.webkitSetPresentationMode("picture-in-picture");
     else if (video.requestPictureInPicture) await video.requestPictureInPicture();
     else throw new Error("non pris en charge");
@@ -1866,9 +1869,66 @@ async function togglePiP() {
     if (!(await waitFor(isPiP, 2500))) throw new Error("refusé");
   } catch {
     // Après la bascule de moteur, iOS exige souvent un nouveau toucher.
-    toast("Touchez ⧉ encore une fois pour ouvrir l'image dans l'image");
+    showPiPPrompt();
   }
 }
+
+// --- glisser vers le haut : la vidéo part en image dans l'image et l'app reste utilisable derrière
+
+let pipPromptTimer = null;
+function showPiPPrompt() {
+  const b = $("#pip-prompt");
+  b.classList.remove("hidden");
+  clearTimeout(pipPromptTimer);
+  pipPromptTimer = setTimeout(() => b.classList.add("hidden"), 7000);
+}
+$("#pip-prompt").addEventListener("click", (e) => {
+  e.stopPropagation();
+  $("#pip-prompt").classList.add("hidden");
+  swipeToPiP();
+});
+
+async function swipeToPiP() { window.__sw = (window.__sw || 0) + 1;
+  if (!player.mode) return;
+  if (isPiP()) { minimizeToPiP(); return; }
+  await togglePiP();
+  if (isPiP()) minimizeToPiP();
+}
+
+// Détection en phase de capture : marche aussi quand le geste commence sur la barre de commandes.
+let pipSwipeStart = null;
+let pipSwiped = false;
+player.el.addEventListener("touchstart", (e) => {
+  pipSwiped = false;
+  pipSwipeStart = null;
+  if (!prefs.swipePiP || e.touches.length !== 1) return;
+  if (e.target.closest("input, #channel-panel, #guide-panel, #menu, #numpad, .sheet")) return;
+  const t = e.touches[0];
+  const rotated = player.el.classList.contains("rotated");
+  // Le « bas » de l'écran, tel que le voit l'utilisateur (y compris en mode tourné).
+  const fromBottom = rotated ? t.clientX < innerWidth * 0.3 : t.clientY > innerHeight * 0.7;
+  if (fromBottom) pipSwipeStart = { x: t.clientX, y: t.clientY };
+}, { passive: true, capture: true });
+player.el.addEventListener("touchend", (e) => {
+  if (!pipSwipeStart) return;
+  const t = e.changedTouches[0];
+  let dx = t.clientX - pipSwipeStart.x;
+  let dy = t.clientY - pipSwipeStart.y;
+  if (player.el.classList.contains("rotated")) [dx, dy] = [dy, -dx];
+  pipSwipeStart = null;
+  if (dy < -90 && Math.abs(dy) > Math.abs(dx) * 1.5) {
+    pipSwiped = true;
+    e.preventDefault();
+    swipeToPiP();
+  }
+}, { capture: true });
+
+// En quittant l'app pendant la lecture, iOS bascule tout seul en image dans l'image (attribut autopictureinpicture)
+// si le lecteur natif est utilisé ; on le demande aussi explicitement quand c'est possible.
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden || !player.mode || player.hls || video.paused || isPiP()) return;
+  try { if (video.webkitSupportsPresentationMode?.("picture-in-picture")) video.webkitSetPresentationMode("picture-in-picture"); } catch {}
+});
 
 async function openNativeFullscreen() {
   if (player.hls && isIOS()) { status("Préparation du plein écran iOS…"); await switchToNativeEngine(); status(""); }
@@ -2314,6 +2374,7 @@ function cycleAspect() {
 
 const PREF_LABELS = [
   ["tapOpensList", "Toucher la vidéo ouvre la liste des chaînes"],
+  ["swipePiP", "Glisser vers le haut depuis le bas : image dans l'image"],
   ["swipeZap", "Zapper en glissant haut / bas"],
   ["invertZap", "Inverser le sens du zapping"],
   ["bannerOnZap", "Bandeau d'infos au changement de chaîne"],
@@ -2632,6 +2693,7 @@ tap.addEventListener("touchend", (e) => {
   let dy = t.clientY - touchStart.y;
   if (player.el.classList.contains("rotated")) [dx, dy] = [dy, -dx];
   touchStart = null;
+  if (pipSwiped) { e.preventDefault(); return; }
   if (prefs.swipeZap && player.mode === "live" && Math.abs(dy) > 70 && Math.abs(dy) > Math.abs(dx) * 1.5) {
     zapDirection(dy < 0 ? 1 : -1);
     e.preventDefault();
