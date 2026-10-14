@@ -48,7 +48,7 @@ function saveSources() {
   if (library?.meta) { library.meta.sourcesAt = Date.now(); store.set("ondetv.library.v2", library); }
   if (typeof scheduleSync === "function") scheduleSync(2000);
 }
-const activeSources = () => sources.filter((x) => x.enabled !== false && x.password);
+const activeSources = () => sources.filter((x) => x.enabled !== false && (x.type === "m3u" ? x.url : x.password));
 const sourceOf = (item) => sources.find((x) => x.id === (item.src ?? item));
 const multiSource = () => activeSources().length > 1;
 const sourceName = (item) => sourceOf(item)?.name || "";
@@ -65,7 +65,13 @@ function toggle(list, id) {
 
 // ---------------------------------------------------------------- API Xtream
 
-const proxy = (url) => `/x?url=${encodeURIComponent(url)}`;
+// Serveurs cités dans une playlist M3U : signature fournie par le relais (seuls eux sont acceptés).
+const hostSigs = new Map();
+const proxy = (url) => {
+  let hs = "";
+  try { const sig = hostSigs.get(new URL(url).host); if (sig) hs = `&hs=${sig}`; } catch { /* adresse invalide */ }
+  return `/x?url=${encodeURIComponent(url)}${hs}`;
+};
 
 /** Lien M3U ou lien Xtream complet (…/get.php?username=…&password=…) : on en extrait les identifiants. */
 function credentialsFromLink(raw) {
@@ -87,6 +93,7 @@ function normalizeServer(raw) {
 }
 
 async function api(action, params, acc) {
+  if (acc?.type === "m3u") throw new Error("Fonction indisponible pour une source M3U");
   params ??= {};
   const u = new URL(`${acc.server}/player_api.php`);
   u.searchParams.set("username", acc.username);
@@ -109,15 +116,105 @@ async function api(action, params, acc) {
 const asList = (v) => Array.isArray(v) ? v : (v && typeof v === "object" ? Object.values(v) : []);
 const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : null; };
 const enc = encodeURIComponent;
+
+// ---------------------------------------------------------------- sources « lien M3U »
+
+const isM3U = (src) => src?.type === "m3u";
+const m3uCache = new Map(); // id de source -> promesse des éléments de la playlist
+const extOf = (url) => (String(url).split("?")[0].match(/\.([a-z0-9]{2,4})$/i)?.[1] || "mp4").toLowerCase();
+function hash36(str) {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return (h >>> 0).toString(36);
+}
+
+async function fetchM3U(url) {
+  const res = await fetch(`/m3u?url=${encodeURIComponent(url)}`);
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error || `Playlist illisible (HTTP ${res.status})`);
+  for (const [host, sig] of Object.entries(body.hosts || {})) hostSigs.set(host, sig);
+  return body;
+}
+
+function loadM3U(src) {
+  if (!m3uCache.has(src.id)) {
+    m3uCache.set(src.id, fetchM3U(src.url).then((d) => parseM3UItems(src, d)).catch((e) => { m3uCache.delete(src.id); throw e; }));
+  }
+  return m3uCache.get(src.id);
+}
+
+/** Playlist → chaînes, films, séries (épisodes regroupés par « Nom S01E02 ») et leurs groupes. */
+function parseM3UItems(src, d) {
+  const live = [], movies = [], seriesMap = new Map();
+  const liveCats = new Map(), vodCats = new Map(), seriesCats = new Map();
+  const total = d.items.length;
+  let n = 0;
+  d.items.forEach(([kind, name, logo, group, url, tvgId, cuMode, cuSource, cuDays], i) => {
+    const sid = hash36(url);
+    const cat = `${src.id}:${group}`;
+    if (kind === "live") {
+      liveCats.set(cat, { id: cat, src: src.id, name: group });
+      const catchup = cuMode || cuSource ? { mode: cuMode, source: cuSource } : null;
+      live.push({ id: `${src.id}:${sid}`, sid, src: src.id, num: ++n, name, icon: logo, cat, epg: tvgId || null, url,
+        archive: !!catchup, archiveDays: catchup ? cuDays || 7 : 0, catchup });
+    } else if (kind === "movie") {
+      vodCats.set(cat, { id: cat, src: src.id, name: group });
+      movies.push({ id: `${src.id}:${sid}`, sid, src: src.id, cat, name, icon: logo, rating: null, ext: extOf(url), added: total - i, url });
+    } else {
+      seriesCats.set(cat, { id: cat, src: src.id, name: group });
+      const m = name.match(/^(.*?)[\s._-]*S(\d{1,2})\s*[._-]?\s*E(\d{1,3})(.*)$/i);
+      const show = (m ? m[1] : name).replace(/[\s._|-]+$/, "").trim() || name;
+      const key = `${cat}|${show.toLowerCase()}`;
+      let ser = seriesMap.get(key);
+      if (!ser) {
+        ser = { id: `${src.id}:${hash36(key)}`, sid: hash36(key), src: src.id, cat, name: show, icon: logo, rating: null, modified: total - i, m3uEpisodes: [] };
+        seriesMap.set(key, ser);
+      }
+      ser.m3uEpisodes.push({ id: sid, episode_num: m ? Number(m[3]) : ser.m3uEpisodes.length + 1, season: m ? Number(m[2]) : 1,
+        title: m ? m[4].replace(/^[\s._-]+/, "").trim() || `Épisode ${Number(m[3])}` : name, container_extension: extOf(url), info: { movie_image: logo }, url });
+    }
+  });
+  return { epg: d.epg, live, liveCats: [...liveCats.values()], movies, vodCats: [...vodCats.values()], series: [...seriesMap.values()], seriesCats: [...seriesCats.values()] };
+}
+
+const epgUrlOf = (src) => src?.epgUrl || src?.playlistEpg || "";
+
+/** Replay d'une chaîne M3U (attributs catchup / catchup-source, modes default, append, shift, flussonic). */
+function m3uCatchup(stream, startDate, minutes) {
+  const t = Math.floor(startDate.getTime() / 1000), d = Math.max(60, minutes * 60), now = Math.floor(Date.now() / 1000);
+  const { mode = "", source = "" } = stream.catchup || {};
+  const sep = (u) => (u.includes("?") ? "&" : "?");
+  let tpl;
+  if (/^(fs|flussonic)/i.test(mode)) {
+    tpl = /\/(index|video|mono)\.(m3u8|ts|mpd)/.test(stream.url)
+      ? stream.url.replace(/\/(index|video|mono)\.(m3u8|ts|mpd)/, `/$1-${t}-${d}.$2`)
+      : stream.url.replace(/\/mpegts(\?|$)/, `/timeshift_abs-${t}.ts$1`);
+  } else if (source) {
+    tpl = /^https?:/i.test(source) ? source : stream.url + source; // « append » : ajouté à l'adresse de la chaîne
+  } else {
+    tpl = `${stream.url}${sep(stream.url)}utc={utc}&lutc={lutc}`; // « shift » et défaut
+  }
+  const dt = new Date(t * 1000), p2 = (v) => String(v).padStart(2, "0");
+  return tpl
+    .replace(/\{duration:(\d+)\}/g, (_, div) => String(Math.round(d / Number(div))))
+    .replace(/\$?\{(utc|start|timestamp_start)\}/g, String(t))
+    .replace(/\$?\{(utcend|end)\}/g, String(t + d))
+    .replace(/\$?\{(lutc|now|timestamp)\}/g, String(now))
+    .replace(/\$?\{duration\}/g, String(d))
+    .replace(/\$?\{offset\}/g, String(now - t))
+    .replace(/\{Y\}/g, dt.getUTCFullYear()).replace(/\{m\}/g, p2(dt.getUTCMonth() + 1)).replace(/\{d\}/g, p2(dt.getUTCDate()))
+    .replace(/\{H\}/g, p2(dt.getUTCHours())).replace(/\{M\}/g, p2(dt.getUTCMinutes())).replace(/\{S\}/g, p2(dt.getUTCSeconds()));
+}
 const base = (item) => { const a = sourceOf(item); return `${a.server}/%s/${enc(a.username)}/${enc(a.password)}`; };
 
 // Les fonctions prennent l'élément (qui porte sa source « src » et son id d'origine « sid »).
 const urls = {
-  live: (s) => `${base(s).replace("%s", "live")}/${s.sid}.m3u8`,
-  movie: (m, ext) => `${base(m).replace("%s", "movie")}/${m.sid}.${ext || m.ext || "mp4"}`,
-  episode: (e) => `${base(e).replace("%s", "series")}/${e.sid}.${e.ext || "mp4"}`,
+  live: (s) => s.url || `${base(s).replace("%s", "live")}/${s.sid}.m3u8`,
+  movie: (m, ext) => m.url || `${base(m).replace("%s", "movie")}/${m.sid}.${ext || m.ext || "mp4"}`,
+  episode: (e) => e.url || `${base(e).replace("%s", "series")}/${e.sid}.${e.ext || "mp4"}`,
   catchup: (stream, program) => urls.timeshift(stream, program.start, Math.max(1, Math.ceil((program.end - program.start) / 60000))),
   timeshift(stream, startDate, minutes) {
+    if (stream.url) return m3uCatchup(stream, startDate, minutes);
     const acc = sourceOf(stream);
     const tz = acc.timezone || undefined;
     const parts = Object.fromEntries(new Intl.DateTimeFormat("en-GB", {
@@ -184,6 +281,11 @@ async function loadLive(force = false) {
   if (liveLoading && !force) return liveLoading;
   liveLoading = (async () => {
     const results = await Promise.allSettled(activeSources().map(async (src) => {
+      if (isM3U(src)) {
+        const d = await loadM3U(src);
+        src.playlistEpg = d.epg || "";
+        return { cats: d.liveCats, live: d.live };
+      }
       const [cats, streams] = await Promise.all([api("get_live_categories", {}, src), api("get_live_streams", {}, src)]);
       return {
         cats: asList(cats).map((c) => ({ id: `${src.id}:${c.category_id}`, src: src.id, name: c.category_name || "Sans nom" })),
@@ -209,8 +311,43 @@ const epgQueue = [];
 let epgRunning = 0;
 // Rythme modéré envers le fournisseur : 2 demandes à la fois, les plus récentes (chaînes à l'écran) d'abord,
 // et les chaînes dépassées en faisant défiler vite sont abandonnées.
+const m3uEpgQueue = new Map(); // id -> chaîne
+let m3uEpgTimer = null;
+function requestM3UEPG(stream) {
+  if (!epgUrlOf(sourceOf(stream))) { content.epg.set(stream.id, []); content.epgPending.delete(stream.id); requestPublicEPG(stream.id); return; }
+  m3uEpgQueue.set(stream.id, stream);
+  clearTimeout(m3uEpgTimer);
+  m3uEpgTimer = setTimeout(flushM3UEPG, 400);
+}
+async function flushM3UEPG() {
+  const bySrc = new Map();
+  for (const st of m3uEpgQueue.values()) {
+    const url = epgUrlOf(sourceOf(st));
+    if (!bySrc.has(url)) bySrc.set(url, []);
+    bySrc.get(url).push(st);
+  }
+  m3uEpgQueue.clear();
+  for (const [url, list] of bySrc) {
+    for (let i = 0; i < list.length; i += 150) {
+      const part = list.slice(i, i + 150);
+      const body = await fetch("/epg/xmltv/now", { method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ url, channels: part.map((st) => ({ key: st.id, id: st.epg, name: st.name })) }) }).then((r) => r.json()).catch(() => ({}));
+      for (const st of part) {
+        const progs = body.results?.[st.id];
+        const list2 = (progs || []).map((p) => ({ id: `m-${p.s}`, title: p.t, description: "", start: new Date(p.s), end: new Date(p.e), archive: st.archive }));
+        content.epg.set(st.id, list2);
+        content.epgPending.delete(st.id);
+        document.dispatchEvent(new CustomEvent("epg", { detail: st.id }));
+        if (!list2.some((p) => p.end > Date.now())) requestPublicEPG(st.id);
+      }
+    }
+  }
+}
+
 function requestEPG(id) {
   if (content.epg.has(id) || content.epgPending.has(id)) return;
+  const st0 = content.liveById.get(id);
+  if (st0 && isM3U(sourceOf(st0))) { content.epgPending.add(id); requestM3UEPG(st0); return; }
   content.epgPending.add(id);
   epgQueue.push(id);
   while (epgQueue.length > 40) content.epgPending.delete(epgQueue.shift());
@@ -368,7 +505,7 @@ $("#sheet").addEventListener("click", (e) => { if (e.target.closest("[data-close
 function renderLogin(error = "") {
   const form = sourceForm({ onDone: () => renderShell(), error });
   form.prepend(h("div", { class: "logo" }, h("img", { src: "icon-192.png", alt: "" }), h("h1", {}, "OndeTV"),
-    h("div", { class: "muted" }, "Connectez votre abonnement Xtream Codes")));
+    h("div", { class: "muted" }, "Connectez votre abonnement : Xtream Codes ou lien M3U")));
   form.append(h("p", { class: "muted", style: { fontSize: "13px", textAlign: "center" } },
     "Astuce : Partager → « Sur l'écran d'accueil » pour l'utiliser comme une app. D'autres sources pourront être ajoutées dans Réglages."));
   const codeInput = h("input", { class: "field", placeholder: "Code (ex. ABCD-EFGH-JKLM-NPQR)", autocapitalize: "characters", autocorrect: "off" });
@@ -406,13 +543,57 @@ function sourceForm({ onDone, error = "", existing = null }) {
   const submitLabel = existing ? "Enregistrer" : sources.length ? "Ajouter la source" : "Se connecter";
   const submit = h("button", { class: "btn primary", type: "submit" }, submitLabel);
 
+  // Type de source : Xtream Codes (identifiants) ou lien M3U (playlist)
+  let mode = existing?.type === "m3u" ? "m3u" : "xtream";
+  const m3uUrl = h("input", { class: "field", placeholder: "Lien de la playlist M3U (http://…)", inputmode: "url", autocapitalize: "off", autocorrect: "off", value: existing?.url || "" });
+  const m3uEpg = h("input", { class: "field", placeholder: "Guide XMLTV (facultatif, sinon celui de la playlist)", inputmode: "url", autocapitalize: "off", autocorrect: "off", value: existing?.epgUrl || "" });
+  const m3uHint = h("p", { class: "muted", style: { margin: "0", fontSize: "12px" } }, "Chaînes, films et séries de la playlist, classés par groupes. Replay si la playlist l'indique (catchup).");
+  const xtreamFields = [server, user, pass], m3uFields = [m3uUrl, m3uEpg, m3uHint];
+  const tabs = existing ? null : h("div", { class: "chips source-type" });
+  const drawMode = () => {
+    xtreamFields.forEach((el) => el.classList.toggle("hidden", mode !== "xtream"));
+    m3uFields.forEach((el) => el.classList.toggle("hidden", mode !== "m3u"));
+    tabs?.replaceChildren(...[["xtream", "Xtream Codes"], ["m3u", "Lien M3U"]].map(([id, label]) =>
+      h("button", { type: "button", class: `chip${mode === id ? " active" : ""}`, onclick: () => { mode = id; err.textContent = ""; drawMode(); } }, label)));
+  };
+
+  async function saveM3U() {
+    const link = m3uUrl.value.trim();
+    if (!link) throw new Error("Collez le lien de la playlist M3U.");
+    // Lien Xtream (get.php?username=…&password=…) : ajouté en Xtream Codes, plus complet (guide, infos, replay).
+    const creds = credentialsFromLink(link);
+    if (creds && /get\.php|player_api\.php/i.test(link)) {
+      server.value = normalizeServer(link); user.value = creds.username; pass.value = creds.password;
+      mode = "xtream"; drawMode();
+      toast("Lien Xtream reconnu : ajout en Xtream Codes (plus complet)");
+      return false;
+    }
+    const url = /^https?:\/\//i.test(link) ? link : `http://${link}`;
+    const d = await fetchM3U(url);
+    const counts = { live: 0, movie: 0, series: 0 };
+    for (const it of d.items) counts[it[0]] = (counts[it[0]] || 0) + 1;
+    const acc = { type: "m3u", url, epgUrl: m3uEpg.value.trim(), playlistEpg: d.epg || "", name: name.value.trim() || existing?.name || hostLabel(url),
+      enabled: existing?.enabled ?? true, info: { count: d.items.length, ...counts, truncated: d.truncated } };
+    if (existing) Object.assign(existing, acc);
+    else {
+      if (sources.some((x) => x.type === "m3u" && x.url === url)) throw new Error("Cette playlist est déjà ajoutée.");
+      acc.id = `s${Date.now().toString(36)}`;
+      sources.push(acc);
+    }
+    return true;
+  }
+
   const form = h("form", {
     async onsubmit(e) {
       e.preventDefault();
       err.textContent = "";
       submit.disabled = true;
-      submit.textContent = "Connexion…";
+      submit.textContent = mode === "m3u" ? "Lecture de la playlist…" : "Connexion…";
       try {
+        if (mode === "m3u") {
+          if (await saveM3U()) { saveSources(); resetContent(); onDone(); }
+          return;
+        }
         const fromLink = credentialsFromLink(server.value);
         const acc = { server: normalizeServer(server.value), username: (user.value.trim() || fromLink?.username || ""), password: pass.value.trim() || fromLink?.password || existing?.password || "" };
         if (!acc.username || !acc.password) throw new Error("Nom d'utilisateur et mot de passe requis.");
@@ -443,12 +624,14 @@ function sourceForm({ onDone, error = "", existing = null }) {
         submit.textContent = submitLabel;
       }
     },
-  }, name, server, user, pass, err, submit);
+  }, tabs, name, server, user, pass, m3uUrl, m3uEpg, m3uHint, err, submit);
   if (existing) pass.placeholder = "Mot de passe (inchangé si vide)";
+  drawMode();
   return form;
 }
 
 function resetContent() {
+  m3uCache.clear();
   content.live = null; content.liveCats = null; content.liveById = new Map();
   content.vod.clear(); content.series.clear(); content.vodCats = content.seriesCats = null;
   content.epg.clear(); content.epgPending.clear();
@@ -756,8 +939,14 @@ async function fetchCatalog(cache, cat, action, map, sortKey) {
   if (!cache.has(cat)) {
     const targets = cat === "__all" ? activeSources().map((src) => [src, {}])
       : [[sourceOf(cat.split(":")[0]), { category_id: cat.slice(cat.indexOf(":") + 1) }]];
-    const results = await Promise.allSettled(targets.filter(([src]) => src).map(async ([src, params]) =>
-      asList(await api(action, params, src)).map((x) => map(x, src)).filter(Boolean)));
+    const results = await Promise.allSettled(targets.filter(([src]) => src).map(async ([src, params]) => {
+      if (isM3U(src)) {
+        const d = await loadM3U(src);
+        const list = action === "get_vod_streams" ? d.movies : d.series;
+        return cat === "__all" ? list : list.filter((x) => x.cat === cat);
+      }
+      return asList(await api(action, params, src)).map((x) => map(x, src)).filter(Boolean);
+    }));
     const ok = results.filter((r) => r.status === "fulfilled");
     if (!ok.length && results.length) throw results[0].reason;
     cache.set(cat, ok.flatMap((r) => r.value).sort((a, b) => b[sortKey] - a[sortKey]));
@@ -777,8 +966,10 @@ const fetchSeries = (cat) => fetchCatalog(content.series, cat, "get_series", (x,
 }), "modified");
 
 async function fetchCategories(action) {
-  const results = await Promise.allSettled(activeSources().map(async (src) =>
-    asList(await api(action, {}, src)).map((c) => ({ id: `${src.id}:${c.category_id}`, src: src.id, name: c.category_name || "Sans nom" }))));
+  const results = await Promise.allSettled(activeSources().map(async (src) => {
+    if (isM3U(src)) { const d = await loadM3U(src); return action === "get_vod_categories" ? d.vodCats : d.seriesCats; }
+    return asList(await api(action, {}, src)).map((c) => ({ id: `${src.id}:${c.category_id}`, src: src.id, name: c.category_name || "Sans nom" }));
+  }));
   const ok = results.filter((r) => r.status === "fulfilled");
   if (!ok.length && results.length) throw results[0].reason;
   return ok.flatMap((r) => r.value);
@@ -932,7 +1123,7 @@ function hero(url) {
 
 function openMovie(movie) {
   openSheet(async (target) => {
-    const data = await api("get_vod_info", { vod_id: movie.sid }, sourceOf(movie)).catch(() => ({}));
+    const data = isM3U(sourceOf(movie)) ? {} : await api("get_vod_info", { vod_id: movie.sid }, sourceOf(movie)).catch(() => ({}));
     const info = data && !Array.isArray(data.info) ? data.info || {} : {};
     const ext = data?.movie_data?.container_extension || movie.ext;
     const key = `movie-${movie.id}`;
@@ -963,14 +1154,14 @@ function openMovie(movie) {
 
 function openSeries(series) {
   openSheet(async (target) => {
-    const data = await api("get_series_info", { series_id: series.sid }, sourceOf(series));
+    const data = series.m3uEpisodes ? { episodes: [series.m3uEpisodes] } : await api("get_series_info", { series_id: series.sid }, sourceOf(series));
     const bySeason = new Map();
     const addEp = (e, seasonKey) => {
       const s = num(e.season) ?? num(seasonKey) ?? 0;
       if (!bySeason.has(s)) bySeason.set(s, []);
       bySeason.get(s).push({
         id: `${series.src}:${e.id}`, sid: String(e.id), src: series.src, num: num(e.episode_num) ?? 0, season: s, title: e.title || `Épisode ${e.episode_num}`,
-        ext: e.container_extension || "mp4", plot: e.info?.plot, image: e.info?.movie_image, duration: num(e.info?.duration_secs),
+        ext: e.container_extension || "mp4", plot: e.info?.plot, image: e.info?.movie_image, duration: num(e.info?.duration_secs), url: e.url,
       });
     };
     const eps = data?.episodes;
@@ -1037,7 +1228,10 @@ function renderSettings(top, main) {
             if (enabled && activeSources().length === 1) { alert("Gardez au moins une source active."); return; }
             src.enabled = !enabled; saveSources(); resetContent(); renderShell();
           } },
-            h("span", {}, h("strong", {}, src.name), h("small", {}, `${src.username} · ${hostLabel(src.server)}`),
+            isM3U(src)
+              ? h("span", {}, h("strong", {}, src.name), h("small", {}, `Lien M3U · ${hostLabel(src.url)}`),
+                  h("small", {}, `${info.live ?? 0} chaînes · ${info.movie ?? 0} films · ${info.series ?? 0} épisodes${epgUrlOf(src) ? " · guide" : ""}${info.truncated ? " · playlist tronquée" : ""}`))
+              : h("span", {}, h("strong", {}, src.name), h("small", {}, `${src.username} · ${hostLabel(src.server)}`),
               h("small", {}, `${info.status || "—"} · expire : ${fmtDate(info.exp_date)}${num(info.max_connections) ? ` · ${info.active_cons ?? 0}/${info.max_connections} connexions` : ""}`)),
             h("span", { class: "switch" })),
           h("div", { class: "source-actions" },
@@ -1058,7 +1252,8 @@ function renderSettings(top, main) {
     h("div", { class: "list" },
       h("button", { class: "item", style: { width: "100%" }, onclick: async () => {
         resetContent();
-        await Promise.allSettled(sources.map(async (src) => { const a = await api(null, {}, src); src.info = a.user_info; }));
+        m3uCache.clear();
+        await Promise.allSettled(sources.filter((src) => !isM3U(src)).map(async (src) => { const a = await api(null, {}, src); src.info = a.user_info; }));
         saveSources();
         renderShell();
       } }, h("span", {}, "Actualiser chaînes et catalogue"), h("span", {}, "↻")),
@@ -1100,7 +1295,10 @@ async function runDiagnostic() {
     for (const src of activeSources()) {
       const r = row(src.name, "…");
       const t = performance.now();
-      try { await api(null, {}, src); r.lastChild.textContent = `${Math.round(performance.now() - t)} ms`; }
+      try {
+        if (isM3U(src)) { m3uCache.delete(src.id); const d = await loadM3U(src); r.lastChild.textContent = `${Math.round(performance.now() - t)} ms · ${d.live.length} chaînes`; continue; }
+        await api(null, {}, src); r.lastChild.textContent = `${Math.round(performance.now() - t)} ms`;
+      }
       catch (e) { r.lastChild.textContent = e.message; }
     }
     const far = diag?.country && !["FR", "DE", "NL", "BE", "GB", "ES", "IT", "CH", "LU"].includes(diag.country);
@@ -1287,6 +1485,19 @@ function mergePrograms(primary, extra) {
 
 async function fullEPG(stream) {
   const acc = sourceOf(stream);
+  if (isM3U(acc)) {
+    let programs = [];
+    const url = epgUrlOf(acc);
+    if (url && stream.epg) {
+      const body = await fetch("/epg/xmltv/full", { method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ url, id: stream.epg, from: Date.now() - Math.max(1, stream.archiveDays) * 86400e3 - 3600e3, to: Date.now() + 86400e3 }) })
+        .then((r) => r.json()).catch(() => ({}));
+      programs = (body.programmes || []).map((p) => ({ id: `x-${p.s}`, title: p.t, description: p.d || "", start: new Date(p.s), end: new Date(p.e), archive: stream.archive }));
+    }
+    if (!programs.length) programs = content.epg.get(stream.id) || [];
+    if (!programs.some((p) => p.end > Date.now())) { const pub = await publicFullEPG(stream); if (pub.length) programs = mergePrograms(programs, pub); }
+    return programs;
+  }
   let programs = parseEPG(await api("get_simple_data_table", { stream_id: stream.sid }, acc).catch(() => null), acc?.timezone);
   if (!programs.length) programs = parseEPG(await api("get_short_epg", { stream_id: stream.sid, limit: 20 }, acc).catch(() => null), acc?.timezone);
   // Pas de programme à venir chez le fournisseur : on COMPLÈTE avec le guide public (on garde les jours passés).
@@ -1300,7 +1511,7 @@ async function fullEPG(stream) {
 /** Jours précédents absents de l'API : on les cherche dans le guide XMLTV complet du fournisseur (via le relais). */
 async function providerPastEPG(stream) {
   const acc = sourceOf(stream);
-  if (!acc || !stream.epg) return [];
+  if (!acc || !stream.epg || isM3U(acc)) return [];
   try {
     const res = await fetch("/epg/provider", { method: "POST", headers: { "content-type": "application/json" },
       body: JSON.stringify({ server: acc.server, username: acc.username, password: acc.password, epgId: stream.epg,
@@ -1887,6 +2098,7 @@ function showVLCHelp(url) {
 /** Adresse directe (sans relais) de ce qui est en cours de lecture. */
 function currentDirectURL() {
   if (player.mode === "live" && player.stream) {
+    if (player.stream.url) return player.shift ? urls.timeshift(player.stream, watchedTime(), player.shift.minutes) : player.stream.url;
     if (player.shift) return urls.timeshift(player.stream, new Date(watchedTime().getTime() - 0), player.shift.minutes).replace(/\.m3u8$/, ".ts");
     return urls.live(player.stream).replace(/\.m3u8$/, ".ts");
   }
@@ -3035,7 +3247,7 @@ function mergeRemote(remote) {
 
 /** Première liaison d'un appareil qui a déjà ses propres sources : on réunit les deux. */
 function joinMerge(remote) {
-  const keyOf = (s) => `${s.server}|${s.username}`;
+  const keyOf = (s) => (s.type === "m3u" ? `m3u|${s.url}` : `${s.server}|${s.username}`);
   const remoteSources = Array.isArray(remote.sources) ? remote.sources : [];
   const byKey = new Map(remoteSources.map((s) => [keyOf(s), s]));
   const idMap = new Map();

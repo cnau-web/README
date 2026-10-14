@@ -150,8 +150,10 @@ export function match(name, epgId) {
 const providerCache = new Map();
 
 /** Lit xmltv.php une seule fois pour plusieurs chaînes à la fois (Map epgId → programmes). */
-async function readProviderChannels({ server, username, password, from, to }, wanted) {
-  const url = `${server.replace(/\/$/, "")}/xmltv.php?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
+const providerXmltvUrl = ({ server, username, password }) =>
+  `${server.replace(/\/$/, "")}/xmltv.php?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
+
+async function readXmltvChannels(url, from, to, wanted) {
   const res = await safeFetch(url, { headers: { "User-Agent": "OndeTV/1.0" }, signal: AbortSignal.timeout(120_000) });
   if (!res.ok) throw new Error(`xmltv.php : HTTP ${res.status}`);
   let stream = res.body;
@@ -204,8 +206,13 @@ const PROVIDER_TTL = 2 * 3600_000;
 const accounts = new Map(); // compte -> { lastAt, wanted:Set, running }
 
 async function providerPast(params) {
-  const epgId = params.epgId.toLowerCase();
-  const account = `${params.server}|${params.username}`;
+  return batchedXmltv(`${params.server}|${params.username}`, providerXmltvUrl(params), params.epgId, params.from, params.to);
+}
+
+async function batchedXmltv(account, xmlUrl, epgIdRaw, from, to) {
+  if (!epgIdRaw) return [];
+  const params = { from, to };
+  const epgId = epgIdRaw.toLowerCase();
   const key = `${account}|${epgId}`;
   const hit = providerCache.get(key);
   if (hit && Date.now() - hit.at < PROVIDER_TTL) return hit.list;
@@ -217,7 +224,7 @@ async function providerPast(params) {
   const wanted = new Set([...st.wanted].slice(-200));
   st.wanted.clear();
   st.lastAt = Date.now();
-  st.running = readProviderChannels(params, wanted).then((map) => {
+  st.running = readXmltvChannels(xmlUrl, params.from, params.to, wanted).then((map) => {
     for (const [id, list] of map) providerCache.set(`${account}|${id}`, { at: Date.now(), list });
     while (providerCache.size > 2000) providerCache.delete(providerCache.keys().next().value);
   }).catch((e) => {
@@ -227,6 +234,70 @@ async function providerPast(params) {
   }).finally(() => { st.running = null; });
   await st.running;
   return providerCache.get(key)?.list || [];
+}
+
+// ---------------------------------------------------------------- guide XMLTV d'une playlist M3U
+// Index compact de toutes les chaînes pour « maintenant / ensuite » (titres seulement, -2 h à +10 h),
+// rechargé toutes les heures ; 2 guides gardés au plus.
+
+const shortIndex = new Map(); // url -> { at, promise, data }
+
+async function loadShortIndex(url) {
+  const now = Date.now(), from = now - 2 * 3600e3, to = now + 10 * 3600e3;
+  const res = await safeFetch(url, { headers: { "User-Agent": "OndeTV/1.0" }, signal: AbortSignal.timeout(150_000) });
+  if (!res.ok) throw new Error(`guide : HTTP ${res.status}`);
+  let stream = res.body;
+  if (/\.gz(\?|$)/i.test(new URL(url).pathname) || (res.headers.get("content-type") || "").includes("gzip")) stream = stream.pipeThrough(new DecompressionStream("gzip"));
+  const progs = new Map(), names = new Map();
+  let buf = "";
+  const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += value;
+      let pos = 0;
+      while (true) {
+        const ci = buf.indexOf("<channel ", pos), pi = buf.indexOf("<programme ", pos);
+        const start = ci < 0 ? pi : pi < 0 ? ci : Math.min(ci, pi);
+        if (start < 0) { pos = Math.max(pos, buf.length - 20); break; }
+        const isChan = start === ci;
+        const end = buf.indexOf(isChan ? "</channel>" : "</programme>", start);
+        if (end < 0) { pos = start; break; }
+        const block = buf.slice(start, end + 12);
+        pos = end + (isChan ? 10 : 12);
+        const head = block.slice(0, block.indexOf(">") + 1);
+        if (isChan) {
+          const id = attr(head, "id");
+          for (const m of block.matchAll(/<display-name[^>]*>([^<]*)<\/display-name>/g)) { const n = norm(decode(m[1])); if (id && n && !names.has(n)) names.set(n, own(id.toLowerCase())); }
+          continue;
+        }
+        const s = xmltvTime(attr(head, "start")), e = xmltvTime(attr(head, "stop"));
+        if (!(e > from && s < to)) continue;
+        const ch = own((attr(head, "channel") || "").toLowerCase());
+        let list = progs.get(ch);
+        if (!list) { if (progs.size > 20000) continue; list = []; progs.set(ch, list); }
+        if (list.length < 30) list.push({ s, e, t: own(inner(block, "title") || "Sans titre") });
+      }
+      buf = buf.slice(pos);
+    }
+  } finally {
+    reader.cancel().catch(() => {});
+  }
+  for (const list of progs.values()) list.sort((a, b) => a.s - b.s);
+  return { progs, names };
+}
+
+async function shortGuide(url) {
+  let entry = shortIndex.get(url);
+  if (entry?.data && Date.now() - entry.at < 3600e3) return entry.data;
+  if (entry?.promise) return entry.promise;
+  entry = { at: Date.now(), promise: null, data: entry?.data || null };
+  entry.promise = loadShortIndex(url).then((d) => { entry.data = d; entry.at = Date.now(); return d; })
+    .finally(() => { entry.promise = null; });
+  shortIndex.set(url, entry);
+  while (shortIndex.size > 2) shortIndex.delete(shortIndex.keys().next().value);
+  return entry.data || entry.promise;
 }
 
 export async function handleEpg(request) {
@@ -247,6 +318,27 @@ export async function handleEpg(request) {
       return new Response(JSON.stringify({ programmes }), { headers });
     } catch (e) {
       return new Response(JSON.stringify({ error: e.message, programmes: [] }), { status: 502, headers });
+    }
+  }
+  if ((url.pathname === "/epg/xmltv/now" || url.pathname === "/epg/xmltv/full") && request.method === "POST") {
+    let b;
+    try { b = await request.json(); } catch { return new Response(JSON.stringify({ error: "JSON invalide" }), { status: 400, headers }); }
+    if (!/^https?:\/\//i.test(b.url || "")) return new Response(JSON.stringify({ error: "adresse du guide invalide" }), { status: 400, headers });
+    try {
+      if (url.pathname === "/epg/xmltv/full") {
+        const programmes = await batchedXmltv(`xmltv|${b.url}`, b.url, String(b.id || ""), Number(b.from) || Date.now() - 7 * 86400e3, Number(b.to) || Date.now() + 86400e3);
+        return new Response(JSON.stringify({ programmes }), { headers });
+      }
+      const g = await shortGuide(b.url);
+      const results = {};
+      for (const ch of (b.channels || []).slice(0, 200)) {
+        const id = (ch.id && g.progs.has(String(ch.id).toLowerCase())) ? String(ch.id).toLowerCase() : g.names.get(norm(ch.name));
+        const list = id && g.progs.get(id);
+        if (list?.length) results[ch.key] = list;
+      }
+      return new Response(JSON.stringify({ results }), { headers });
+    } catch (e) {
+      return new Response(JSON.stringify({ error: e.message, results: {}, programmes: [] }), { status: 502, headers });
     }
   }
   if (url.pathname !== "/epg/lookup" || request.method !== "POST") return new Response("{}", { status: 404, headers });

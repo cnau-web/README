@@ -2,6 +2,7 @@
 // Déploiement : Deno Deploy (entrypoint web/main.js) ou en local : deno run -A web/main.js
 import { handleProxy } from "./proxy.js";
 import { handleSync } from "./sync.js";
+import { handleM3U } from "./m3u.js";
 import { handleEpg, ensureLoaded as loadPublicEpg } from "./epg.js";
 import { allow, clientIP, tooMany, APP_CSP, COMMON_HEADERS, RELAY_HEADERS, withHeaders } from "./security.js";
 
@@ -98,6 +99,10 @@ async function route(request, info) {
     return out;
   }
   if (pathname === "/diag") return diag();
+  if (pathname === "/m3u") {
+    if (!allow(`m3u:${ip}`, 20)) return tooMany();
+    return handleM3U(request, config.secret);
+  }
   if (pathname === "/tv" || pathname === "/tv.apk" || pathname === "/OndeTV.apk") {
     if (!allow(`apk:${ip}`, 10)) return tooMany();
     return androidApk();

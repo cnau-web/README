@@ -126,6 +126,8 @@ export async function handleProxy(request, { secret, userAgent }) {
   }
 
   const signed = params.get("s") === (await sign(target.href, secret));
+  // Serveur cité dans une playlist M3U lue par le relais (signature par serveur).
+  const hostSigned = !!params.get("hs") && params.get("hs") === (await sign(`host:${target.host}`, secret));
   const entry = ENTRY_PATH.test(target.pathname);
 
   const range = request.headers.get("range");
@@ -166,7 +168,7 @@ export async function handleProxy(request, { secret, userAgent }) {
   }
 
   const contentType = upstream.headers.get("content-type") || "";
-  if (!signed && !entry && !contentType.toLowerCase().startsWith("image/")) {
+  if (!signed && !hostSigned && !entry && !contentType.toLowerCase().startsWith("image/")) {
     upstream.body?.cancel();
     return new Response("Interdit", { status: 403 });
   }

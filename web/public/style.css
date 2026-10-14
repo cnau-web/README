@@ -515,3 +515,4 @@ body.tv .poster .img, body.lite .poster .img, body.tv .feature, body.lite .featu
 body.tv .center-controls button, body.lite .center-controls button { box-shadow: none; }
 body.tv .loading::before, body.lite .loading::before { animation-duration: 1.2s; }
 body.tv .sheet-panel, body.lite .sheet-panel { animation: none; }
+.source-type { margin-bottom: 4px; } .source-type .chip { flex: 1; text-align: center; }
