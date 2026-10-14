@@ -67,6 +67,17 @@ function toggle(list, id) {
 
 const proxy = (url) => `/x?url=${encodeURIComponent(url)}`;
 
+/** Lien M3U ou lien Xtream complet (…/get.php?username=…&password=…) : on en extrait les identifiants. */
+function credentialsFromLink(raw) {
+  try {
+    let s = String(raw || "").trim();
+    if (!/^https?:\/\//i.test(s)) s = "http://" + s;
+    const u = new URL(s);
+    const username = u.searchParams.get("username"), password = u.searchParams.get("password");
+    return username && password ? { username, password } : null;
+  } catch { return null; }
+}
+
 function normalizeServer(raw) {
   let s = raw.trim();
   if (!/^https?:\/\//i.test(s)) s = "http://" + s;
@@ -89,6 +100,7 @@ async function api(action, params, acc) {
       ? `Adresse introuvable : « ${new URL(acc.server).hostname} » n'existe pas sur Internet. Vérifiez l'orthographe et le port fournis par votre abonnement.`
       : `Serveur injoignable (${new URL(acc.server).host}). Vérifiez l'adresse et le port (souvent :8080).`);
   }
+  if (res.status === 403) throw new Error("Adresse refusée par le relais OndeTV (adresse locale ou réservée). Utilisez l'adresse publique fournie par votre abonnement.");
   if (!res.ok) throw new Error(`Erreur serveur (HTTP ${res.status}).`);
   const text = await res.text();
   try { return JSON.parse(text); } catch { throw new Error("Réponse illisible : vérifiez l'adresse du serveur (http/https, port)."); }
@@ -381,6 +393,15 @@ function sourceForm({ onDone, error = "", existing = null }) {
   const server = h("input", { class: "field", placeholder: "http://serveur.com:8080", inputmode: "url", autocapitalize: "off", autocorrect: "off", value: existing?.server || "" });
   const user = h("input", { class: "field", placeholder: "Nom d'utilisateur", autocapitalize: "off", autocorrect: "off", value: existing?.username || "" });
   const pass = h("input", { class: "field", placeholder: "Mot de passe", type: "password", autocomplete: "current-password" });
+  // Lien M3U collé dans le champ du serveur : identifiants remplis automatiquement.
+  server.addEventListener("input", () => {
+    const c = credentialsFromLink(server.value);
+    if (!c) return;
+    user.value = c.username; pass.value = c.password;
+    server.value = normalizeServer(server.value);
+    err.textContent = "";
+    toast("Identifiants récupérés depuis le lien");
+  });
   const err = h("div", { class: "error" }, error);
   const submitLabel = existing ? "Enregistrer" : sources.length ? "Ajouter la source" : "Se connecter";
   const submit = h("button", { class: "btn primary", type: "submit" }, submitLabel);
@@ -392,12 +413,16 @@ function sourceForm({ onDone, error = "", existing = null }) {
       submit.disabled = true;
       submit.textContent = "Connexion…";
       try {
-        const acc = { server: normalizeServer(server.value), username: user.value.trim(), password: pass.value.trim() || existing?.password || "" };
+        const fromLink = credentialsFromLink(server.value);
+        const acc = { server: normalizeServer(server.value), username: (user.value.trim() || fromLink?.username || ""), password: pass.value.trim() || fromLink?.password || existing?.password || "" };
         if (!acc.username || !acc.password) throw new Error("Nom d'utilisateur et mot de passe requis.");
         const auth = await api(null, {}, acc);
         const info = auth?.user_info;
-        if (!info || Number(info.auth) !== 1) throw new Error(info?.message || "Identifiants refusés par le serveur.");
-        if (info.status && info.status.toLowerCase() !== "active") throw new Error(`Abonnement non actif (statut : ${info.status}).`);
+        if (!info || Number(info.auth) !== 1) throw new Error(info?.message || "Le serveur répond, mais refuse ces identifiants. Vérifiez le nom d'utilisateur et le mot de passe (majuscules, espaces, chiffres 0/O et 1/l), ou collez directement le lien M3U de votre abonnement dans le champ du serveur.");
+        if (info.status && info.status.trim().toLowerCase() !== "active") {
+          const exp = num(info.exp_date) ? ` · expiré le ${new Date(num(info.exp_date) * 1000).toLocaleDateString("fr-FR")}` : "";
+          throw new Error(`Abonnement non actif chez le fournisseur (statut : ${info.status}${exp}).`);
+        }
         acc.timezone = auth.server_info?.timezone || null;
         acc.info = info;
         acc.name = name.value.trim() || existing?.name || hostLabel(acc.server);
