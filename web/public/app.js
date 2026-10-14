@@ -282,7 +282,7 @@ function setHidden(kind, ids, hide) {
   for (const id of ids) { if (hide) set.add(id); else set.delete(id); }
   library.hidden[kind] = [...set];
   if (library.meta) library.meta.groupsAt = Date.now();
-  saveLibrary(2000);
+  saveLibrary(300); // envoyé tout de suite : l'app peut être fermée juste après
 }
 
 // ---------------------------------------------------------------- utilitaires UI
@@ -1199,9 +1199,10 @@ function renderSearch(top, main) {
     ]);
     if (my !== token) return;
     const match = (x) => x.name.toLowerCase().includes(q);
-    const ch = live.filter((x) => match(x) || String(x.num) === q);
-    const mv = vod.filter(match);
-    const se = series.filter(match);
+    const hl = hiddenSet("live"), hv = hiddenSet("vod"), hs = hiddenSet("series");
+    const ch = live.filter((x) => !hl.has(x.cat) && (match(x) || String(x.num) === q));
+    const mv = vod.filter((x) => !hv.has(x.cat) && match(x));
+    const se = series.filter((x) => !hs.has(x.cat) && match(x));
     main.replaceChildren();
     if (!ch.length && !mv.length && !se.length) { main.append(h("div", { class: "empty" }, "Aucun résultat.")); return; }
     if (ch.length) {
@@ -3094,7 +3095,7 @@ function syncStatusText() {
 }
 
 document.addEventListener("visibilitychange", () => { if (!document.hidden) syncNow(); else if (syncState.code) syncNow(); });
-setInterval(() => { if (!document.hidden) syncNow(); }, 120000);
+setInterval(() => { if (!document.hidden) syncNow(); }, 60000);
 
 // ---------------------------------------------------------------- verrouillage par code
 // Code de 4 à 6 chiffres propre à chaque appareil (jamais synchronisé ni envoyé au serveur).
@@ -3272,6 +3273,8 @@ async function checkAppUpdate(manual = false) {
   openSheet((t) => {
     const progress = h("div", { class: "update-progress hidden" }, h("span"));
     const msg = h("p", { class: "muted" }, "Une nouvelle version de l'app Android TV est prête. Vos sources et réglages sont conservés.");
+    const oldInstaller = appVersionCode() <= 3; // versions 1.0.1 à 1.0.3 : installateur non pris en charge par Fire TV
+    if (oldInstaller) msg.textContent = "Cette mise à jour doit être installée une dernière fois avec Downloader (adresse ondetv.onrender.com/tv). Les suivantes s'installeront directement depuis ici.";
     const install = h("button", { class: "btn primary", onclick: () => {
       if (!Native.installUpdate) {
         msg.textContent = "Cette version doit être mise à jour une dernière fois avec Downloader : adresse ondetv.onrender.com/tv. Les suivantes s'installeront directement d'ici.";
@@ -3281,11 +3284,17 @@ async function checkAppUpdate(manual = false) {
       progress.classList.remove("hidden");
       Native.installUpdate();
     } }, "⬇ Installer maintenant");
+    if (oldInstaller) install.textContent = "Essayer quand même";
     globalThis.ondetvUpdateProgress = (pct) => {
       progress.firstChild.style.width = `${Math.max(3, pct)}%`;
-      if (pct >= 100) { install.textContent = "Installation…"; msg.textContent = "Confirmez l'installation dans la fenêtre d'Android (« Installer »). L'app redémarre ensuite."; }
+      if (pct >= 100) { install.textContent = "Installation…"; msg.textContent = "Dans la fenêtre d'Android qui s'ouvre, choisissez « Installer », puis « Ouvrir ». Vos réglages sont conservés."; }
     };
-    globalThis.ondetvUpdateError = (e) => { install.disabled = false; install.textContent = "Réessayer"; msg.textContent = `Échec du téléchargement : ${e}`; };
+    globalThis.ondetvUpdateError = (e) => {
+      install.disabled = false; install.textContent = "Réessayer"; progress.classList.add("hidden");
+      msg.textContent = e === "PERMISSION"
+        ? "Autorisez d'abord OndeTV à installer des applications, puis revenez ici et touchez « Réessayer ». Fire TV : Paramètres → Ma Fire TV → Options pour les développeurs → Installer des applications inconnues → OndeTV. Google TV : Paramètres → Applications → Sécurité et restrictions → Sources inconnues → OndeTV."
+        : `Échec : ${e}`;
+    };
     t.replaceChildren(h("div", { class: "detail update-sheet" },
       h("div", { class: "update-badge" }, "Nouveau"),
       h("h3", {}, `Mise à jour disponible · ${info.versionName || info.versionCode}`),
@@ -3296,6 +3305,8 @@ async function checkAppUpdate(manual = false) {
 
 let nativeCrash = "";
 try { nativeCrash = Native?.lastCrash?.() || ""; } catch { /* ancienne version */ }
+
+globalThis.ondetvResume = () => { syncNow(); checkAppUpdate().catch(() => {}); };
 
 function appSettings() {
   if (!Native) return [];

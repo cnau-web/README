@@ -2,9 +2,7 @@ package fr.ondetv.tv;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.app.PendingIntent;
 import android.app.UiModeManager;
-import android.content.pm.PackageInstaller;
 import android.os.Build;
 import android.content.Intent;
 import android.content.res.Configuration;
@@ -242,6 +240,8 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         hideSystemBars();
+        // Retour dans l'app : synchronisation immédiate (groupes masqués, favoris…) et recherche de mise à jour.
+        if (loaded) js("window.ondetvResume && window.ondetvResume()");
     }
 
     @Override
@@ -252,34 +252,51 @@ public class MainActivity extends Activity {
 
     private boolean trusted() { return HOST.equals(currentHost); }
 
-    /** Télécharge la nouvelle version depuis notre serveur et la confie à l'installateur d'Android. */
+    /**
+     * Télécharge la nouvelle version depuis notre serveur puis ouvre l'installateur d'Android
+     * (même méthode que l'app Downloader : fonctionne sur Fire TV comme sur Google TV).
+     */
     private void downloadAndInstall() {
         try {
+            if (Build.VERSION.SDK_INT >= 26 && !getPackageManager().canRequestPackageInstalls()) {
+                js("window.ondetvUpdateError && window.ondetvUpdateError('PERMISSION')");
+                ui.post(() -> {
+                    try {
+                        startActivity(new Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + getPackageName())));
+                    } catch (Exception ignored) { } // écran absent sur certaines Fire TV : l'app web affiche le chemin à suivre
+                });
+                return;
+            }
             HttpURLConnection c = (HttpURLConnection) new URL(HOME + "tv").openConnection();
             c.setConnectTimeout(20000);
             c.setReadTimeout(60000);
             if (c.getResponseCode() != 200) throw new Exception("HTTP " + c.getResponseCode());
             long total = c.getContentLength();
-            PackageInstaller pi = getPackageManager().getPackageInstaller();
-            PackageInstaller.SessionParams params = new PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL);
-            params.setAppPackageName(getPackageName());
-            int id = pi.createSession(params);
-            try (PackageInstaller.Session session = pi.openSession(id)) {
-                try (InputStream in = c.getInputStream(); OutputStream out = session.openWrite("OndeTV.apk", 0, total > 0 ? total : -1)) {
-                    byte[] buf = new byte[64 * 1024];
-                    long done = 0; int n, last = -1;
-                    while ((n = in.read(buf)) > 0) {
-                        out.write(buf, 0, n);
-                        done += n;
-                        int pct = total > 0 ? (int) (done * 100 / total) : -1;
-                        if (pct != last) { last = pct; js("window.ondetvUpdateProgress && window.ondetvUpdateProgress(" + pct + ")"); }
-                    }
-                    session.fsync(out);
+            java.io.File dir = Build.VERSION.SDK_INT >= 24 ? new java.io.File(getCacheDir(), "updates") : getExternalCacheDir();
+            if (dir == null) throw new Exception("stockage indisponible");
+            dir.mkdirs();
+            java.io.File apk = new java.io.File(dir, "OndeTV-update.apk");
+            try (InputStream in = c.getInputStream(); OutputStream out = new java.io.FileOutputStream(apk)) {
+                byte[] buf = new byte[64 * 1024];
+                long done = 0; int n, last = -1;
+                while ((n = in.read(buf)) > 0) {
+                    out.write(buf, 0, n);
+                    done += n;
+                    int pct = total > 0 ? (int) (done * 100 / total) : -1;
+                    if (pct != last) { last = pct; js("window.ondetvUpdateProgress && window.ondetvUpdateProgress(" + pct + ")"); }
                 }
-                int flags = PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0);
-                PendingIntent done = PendingIntent.getBroadcast(this, id, new Intent(this, UpdateReceiver.class), flags);
-                session.commit(done.getIntentSender());
             }
+            if (total > 0 && apk.length() != total) throw new Exception("téléchargement incomplet");
+            Uri uri = Build.VERSION.SDK_INT >= 24
+                    ? androidx.core.content.FileProvider.getUriForFile(this, getPackageName() + ".files", apk)
+                    : Uri.fromFile(apk);
+            Intent i = new Intent(Intent.ACTION_VIEW)
+                    .setDataAndType(uri, "application/vnd.android.package-archive")
+                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+            ui.post(() -> {
+                try { startActivity(i); }
+                catch (Exception e) { js("window.ondetvUpdateError && window.ondetvUpdateError(" + jsString("installateur introuvable : " + e.getMessage()) + ")"); }
+            });
         } catch (Exception e) {
             js("window.ondetvUpdateError && window.ondetvUpdateError(" + jsString(e.getMessage()) + ")");
         } finally {
