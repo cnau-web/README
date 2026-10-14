@@ -3,11 +3,12 @@
 import { handleProxy } from "./proxy.js";
 import { handleSync } from "./sync.js";
 import { handleEpg, ensureLoaded as loadPublicEpg } from "./epg.js";
+import { allow, clientIP, tooMany, APP_CSP, COMMON_HEADERS, RELAY_HEADERS, withHeaders } from "./security.js";
 
 const env = (name) => globalThis.Deno?.env.get(name);
 const config = {
   // Définissez PROXY_SECRET dans les variables d'environnement de l'hébergeur.
-  secret: env("PROXY_SECRET") || "ondetv-change-me",
+  secret: env("PROXY_SECRET") || crypto.randomUUID(), // jamais de clé connue par défaut
   userAgent: env("UPSTREAM_USER_AGENT") || "OndeTV/1.0",
 };
 
@@ -31,6 +32,7 @@ async function serveStatic(pathname) {
       headers: {
         "content-type": TYPES[ext] || "application/octet-stream",
         "cache-control": ext === "png" ? "public, max-age=604800" : "no-cache",
+        ...(ext === "html" ? { "content-security-policy": APP_CSP } : {}),
       },
     });
   } catch {
@@ -51,6 +53,16 @@ async function diag() {
 // Le fichier est publié par GitHub Actions (release « android-latest ») et relayé ici avec le bon type.
 const APK_URL = "https://github.com/cnau-web/README/releases/download/android-latest/OndeTV.apk";
 let apkCache = null;
+let versionCache = null;
+async function androidVersion() {
+  if (!versionCache || Date.now() - versionCache.at > 10 * 60000) {
+    const res = await fetch(APK_URL.replace("OndeTV.apk", "version.json"), { signal: AbortSignal.timeout(15000) }).catch(() => null);
+    const data = res?.ok ? await res.json().catch(() => null) : null;
+    versionCache = { at: Date.now(), data: data || { versionCode: 0 } };
+  }
+  return Response.json(versionCache.data, { headers: { "cache-control": "no-store" } });
+}
+
 async function androidApk() {
   if (!apkCache || Date.now() - apkCache.at > 10 * 60000) {
     const res = await fetch(APK_URL, { signal: AbortSignal.timeout(30000) }).catch(() => null);
@@ -64,14 +76,46 @@ async function androidApk() {
   } });
 }
 
-export async function handler(request) {
-  const { pathname } = new URL(request.url);
-  if (pathname === "/x") return handleProxy(request, config);
+async function route(request, info) {
+  const url = new URL(request.url);
+  const { pathname } = url;
+  const ip = clientIP(request, info);
+  // Écritures acceptées seulement depuis l'app elle-même (pas depuis un autre site).
+  const origin = request.headers.get("origin");
+  if (origin && request.method !== "GET" && request.method !== "HEAD" && new URL(origin).host !== url.host) {
+    return new Response("Origine refusée", { status: 403 });
+  }
+  if (pathname === "/x") {
+    const signed = url.searchParams.has("s");
+    // Les segments vidéo signés ne sont pas limités (lecture) ; le reste l'est, largement.
+    if (!signed && !allow(`x:${ip}`, 1500)) return tooMany();
+    const res = await handleProxy(request, config);
+    const out = withHeaders(res, RELAY_HEADERS);
+    // Une page HTML venue d'un serveur extérieur n'est jamais affichée comme une page de notre site.
+    const ct = out.headers.get("content-type") || "";
+    if (/html|xml|javascript/i.test(ct) && !/mpegurl/i.test(ct)) out.headers.set("content-type", "text/plain; charset=utf-8");
+    return out;
+  }
   if (pathname === "/diag") return diag();
-  if (pathname === "/tv" || pathname === "/tv.apk" || pathname === "/OndeTV.apk") return androidApk();
-  if (pathname.startsWith("/sync/")) return handleSync(request);
-  if (pathname.startsWith("/epg/")) return handleEpg(request);
+  if (pathname === "/tv" || pathname === "/tv.apk" || pathname === "/OndeTV.apk") {
+    if (!allow(`apk:${ip}`, 10)) return tooMany();
+    return androidApk();
+  }
+  if (pathname === "/tv/version") return androidVersion();
+  if (pathname.startsWith("/sync/")) {
+    if (!allow(`sync:${ip}`, request.method === "PUT" ? 30 : 120)) return tooMany();
+    return handleSync(request);
+  }
+  if (pathname.startsWith("/epg/")) {
+    if (!allow(`epg:${ip}`, pathname === "/epg/provider" ? 20 : 240)) return tooMany();
+    return handleEpg(request);
+  }
   return serveStatic(pathname);
+}
+
+export async function handler(request, info) {
+  const res = await route(request, info);
+  return withHeaders(res, COMMON_HEADERS);
 }
 
 if (import.meta.main) {

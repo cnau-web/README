@@ -27,8 +27,11 @@ jobs:
       - name: Construire
         working-directory: android
         run: gradle assembleRelease --no-daemon
-      - name: Renommer
-        run: cp android/app/build/outputs/apk/release/app-release.apk OndeTV.apk
+      - name: Renommer et décrire la version
+        run: |
+          cp android/app/build/outputs/apk/release/app-release.apk OndeTV.apk
+          echo "{\"versionCode\": ${GITHUB_RUN_NUMBER}, \"versionName\": \"1.0.${GITHUB_RUN_NUMBER}\"}" > version.json
+          cat version.json
       - name: Publier
         uses: softprops/action-gh-release@v2
         with:
@@ -39,7 +42,9 @@ jobs:
             Sur la TV : app « Downloader » → adresse ondetv.onrender.com/tv
           prerelease: false
           make_latest: true
-          files: OndeTV.apk
+          files: |
+            OndeTV.apk
+            version.json
           overwrite_files: true
       - uses: actions/upload-artifact@v4
         with:

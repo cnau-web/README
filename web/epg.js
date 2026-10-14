@@ -1,3 +1,4 @@
+import { safeFetch } from "./security.js";
 // Guides TV publics (XMLTV) en complément du guide du fournisseur IPTV :
 // utilisés quand une chaîne n'a pas de programme chez le fournisseur.
 //   France  : xmltvfr.fr (402 chaînes : TNT, Canal+, beIN, RMC Sport, DAZN, Eurosport…)
@@ -151,7 +152,7 @@ const providerBusy = new Map();
 
 async function readProviderChannel({ server, username, password, epgId, from, to }) {
   const url = `${server.replace(/\/$/, "")}/xmltv.php?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
-  const res = await fetch(url, { headers: { "User-Agent": "OndeTV/1.0" }, signal: AbortSignal.timeout(100_000) });
+  const res = await safeFetch(url, { headers: { "User-Agent": "OndeTV/1.0" }, signal: AbortSignal.timeout(100_000) });
   if (!res.ok) throw new Error(`xmltv.php : HTTP ${res.status}`);
   let stream = res.body;
   if ((res.headers.get("content-type") || "").includes("gzip") || url.endsWith(".gz")) stream = stream.pipeThrough(new DecompressionStream("gzip"));

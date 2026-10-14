@@ -2,7 +2,10 @@ package fr.ondetv.tv;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.PendingIntent;
 import android.app.UiModeManager;
+import android.content.pm.PackageInstaller;
+import android.os.Build;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
@@ -26,6 +29,11 @@ import android.widget.FrameLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+
 /**
  * OndeTV pour Android TV / Fire TV : l'app web (avec son mode télécommande) dans une WebView plein écran,
  * plus un lecteur Android (ExoPlayer) pour les formats que la WebView ne lit pas (MKV, AVI…).
@@ -40,6 +48,9 @@ public class MainActivity extends Activity {
     private long lastBack;
     private boolean loaded;
     private final Handler ui = new Handler(Looper.getMainLooper());
+    /** Hôte de la page affichée : le pont Android ne répond qu'à notre site. */
+    private volatile String currentHost = "";
+    private volatile boolean updating;
 
     @SuppressLint({"SetJavaScriptEnabled", "AddJavascriptInterface"})
     @Override
@@ -57,7 +68,12 @@ public class MainActivity extends Activity {
         s.setDomStorageEnabled(true);
         s.setDatabaseEnabled(true);
         s.setMediaPlaybackRequiresUserGesture(false);
-        s.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+        // Tout passe par notre serveur en HTTPS : aucun contenu non chiffré dans l'interface.
+        s.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
+        s.setAllowFileAccess(false);
+        s.setAllowContentAccess(false);
+        s.setGeolocationEnabled(false);
+        if (Build.VERSION.SDK_INT >= 26) s.setSafeBrowsingEnabled(true);
         s.setUserAgentString(s.getUserAgentString() + " OndeTV-AndroidTV/1");
         web.addJavascriptInterface(new Bridge(), "OndeAndroid");
 
@@ -68,6 +84,16 @@ public class MainActivity extends Activity {
                 if (HOST.equals(u.getHost())) return false;
                 try { startActivity(new Intent(Intent.ACTION_VIEW, u)); } catch (Exception ignored) { }
                 return true;
+            }
+
+            @Override
+            public void onPageStarted(WebView view, String url, Bitmap favicon) {
+                currentHost = Uri.parse(url).getHost() == null ? "" : Uri.parse(url).getHost();
+            }
+
+            @Override
+            public void doUpdateVisitedHistory(WebView view, String url, boolean isReload) {
+                currentHost = Uri.parse(url).getHost() == null ? "" : Uri.parse(url).getHost();
             }
 
             @Override
@@ -175,7 +201,48 @@ public class MainActivity extends Activity {
         web.saveState(out);
     }
 
-    /** Fonctions appelées par l'app web (window.OndeAndroid). */
+    private boolean trusted() { return HOST.equals(currentHost); }
+
+    /** Télécharge la nouvelle version depuis notre serveur et la confie à l'installateur d'Android. */
+    private void downloadAndInstall() {
+        try {
+            HttpURLConnection c = (HttpURLConnection) new URL(HOME + "tv").openConnection();
+            c.setConnectTimeout(20000);
+            c.setReadTimeout(60000);
+            if (c.getResponseCode() != 200) throw new Exception("HTTP " + c.getResponseCode());
+            long total = c.getContentLength();
+            PackageInstaller pi = getPackageManager().getPackageInstaller();
+            PackageInstaller.SessionParams params = new PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL);
+            params.setAppPackageName(getPackageName());
+            int id = pi.createSession(params);
+            try (PackageInstaller.Session session = pi.openSession(id)) {
+                try (InputStream in = c.getInputStream(); OutputStream out = session.openWrite("OndeTV.apk", 0, total > 0 ? total : -1)) {
+                    byte[] buf = new byte[64 * 1024];
+                    long done = 0; int n, last = -1;
+                    while ((n = in.read(buf)) > 0) {
+                        out.write(buf, 0, n);
+                        done += n;
+                        int pct = total > 0 ? (int) (done * 100 / total) : -1;
+                        if (pct != last) { last = pct; js("window.ondetvUpdateProgress && window.ondetvUpdateProgress(" + pct + ")"); }
+                    }
+                    session.fsync(out);
+                }
+                int flags = PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0);
+                PendingIntent done = PendingIntent.getBroadcast(this, id, new Intent(this, UpdateReceiver.class), flags);
+                session.commit(done.getIntentSender());
+            }
+        } catch (Exception e) {
+            js("window.ondetvUpdateError && window.ondetvUpdateError(" + jsString(e.getMessage()) + ")");
+        } finally {
+            updating = false;
+        }
+    }
+
+    private static String jsString(String s) {
+        return "'" + String.valueOf(s).replace("\\", "\\\\").replace("'", "\\'").replace("\n", " ") + "'";
+    }
+
+    /** Fonctions appelées par l'app web (window.OndeAndroid), seulement depuis notre site. */
     class Bridge {
         @JavascriptInterface
         public boolean isTV() {
@@ -187,6 +254,7 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public void play(String url, String title, String subtitle, long startMs) {
+            if (!trusted() || url == null || !(url.startsWith("http://") || url.startsWith("https://"))) return;
             ui.post(() -> {
                 Intent i = new Intent(MainActivity.this, PlayerActivity.class);
                 i.putExtra("url", url);
@@ -199,10 +267,23 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public void keepScreenOn(boolean on) {
+            if (!trusted()) return;
             ui.post(() -> {
                 if (on) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
                 else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
             });
+        }
+
+        @JavascriptInterface
+        public int versionCode() {
+            try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionCode; } catch (Exception e) { return 0; }
+        }
+
+        @JavascriptInterface
+        public void installUpdate() {
+            if (!trusted() || updating) return;
+            updating = true;
+            new Thread(MainActivity.this::downloadAndInstall, "ondetv-update").start();
         }
 
         @JavascriptInterface

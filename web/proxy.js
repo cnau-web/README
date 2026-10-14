@@ -5,6 +5,8 @@
 // (player_api.php, /live/, /movie/, /series/, /timeshift/) et les images.
 // Les segments HLS, réécrits par le relais, portent une signature HMAC.
 
+import { safeFetch } from "./security.js";
+
 const ENTRY_PATH = /(\/player_api\.php$|^\/(live|movie|series|timeshift)\/|\/streaming\/timeshift\.php$)/i;
 const PASS_HEADERS = ["content-type", "content-length", "content-range", "accept-ranges", "last-modified", "etag"];
 
@@ -44,7 +46,7 @@ function fetchSegment(url, userAgent) {
   const hit = segments.get(url);
   if (hit) return hit.promise;
   const promise = (async () => {
-    const res = await fetch(url, { headers: { "User-Agent": userAgent, "Accept": "*/*" }, signal: AbortSignal.timeout(20_000) });
+    const res = await safeFetch(url, { headers: { "User-Agent": userAgent, "Accept": "*/*" }, signal: AbortSignal.timeout(20_000) });
     const length = Number(res.headers.get("content-length") || 0);
     if (!res.ok || length > SEGMENT_MAX_BYTES) {
       segments.delete(url);
@@ -156,9 +158,10 @@ export async function handleProxy(request, { secret, userAgent }) {
     // Délai maximal pour obtenir la réponse (pas pour la lire : un film peut durer 2 h).
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(new Error("délai dépassé")), 20_000);
-    try { upstream = await fetch(target.href, { method: request.method, headers, redirect: "follow", signal: ctrl.signal }); }
+    try { upstream = await safeFetch(target.href, { method: request.method, headers, signal: ctrl.signal }); }
     finally { clearTimeout(timer); }
   } catch (e) {
+    if (e.message === "adresse non autorisée" || e.message === "protocole refusé") return new Response("Adresse non autorisée", { status: 403 });
     return new Response(`Serveur injoignable : ${e.message}`, { status: 502 });
   }
 

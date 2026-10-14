@@ -428,12 +428,22 @@ function resetContent() {
 
 // ---------------------------------------------------------------- structure à onglets
 
+// Icônes vectorielles (traits) de la barre d'onglets.
+const ICONS = {
+  live: '<rect x="2.5" y="6.5" width="19" height="13" rx="3"/><path d="M8 2.5l4 4 4-4"/><path d="M7 19.5v1.5M17 19.5v1.5"/>',
+  movies: '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M7.5 3v18M16.5 3v18M3 8h4.5M3 16h4.5M16.5 8H21M16.5 16H21M3 12h18"/>',
+  series: '<rect x="2.5" y="6.5" width="15.5" height="13" rx="2.5"/><path d="M6.5 3h12a3 3 0 0 1 3 3v9.5"/><path d="M8.5 10.3v5.4l4.6-2.7z"/>',
+  search: '<circle cx="11" cy="11" r="7"/><path d="M20.5 20.5L16 16"/>',
+  settings: '<path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/>',
+};
+const icon = (name) => h("span", { html: `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${ICONS[name]}</svg>` });
+
 const TABS = [
-  { id: "live", label: "Direct", icon: "📺", render: renderLive },
-  { id: "movies", label: "Films", icon: "🎬", render: renderMovies },
-  { id: "series", label: "Séries", icon: "🎞️", render: renderSeries },
-  { id: "search", label: "Recherche", icon: "🔍", render: renderSearch },
-  { id: "settings", label: "Réglages", icon: "⚙️", render: renderSettings },
+  { id: "live", label: "Direct", render: renderLive },
+  { id: "movies", label: "Films", render: renderMovies },
+  { id: "series", label: "Séries", render: renderSeries },
+  { id: "search", label: "Recherche", render: renderSearch },
+  { id: "settings", label: "Réglages", render: renderSettings },
 ];
 let currentTab = store.get("ondetv.tab", "live");
 let cleanup = null;
@@ -443,7 +453,7 @@ function renderShell() {
   const main = h("div", { class: "content" });
   const bar = h("nav", { class: "tabbar" }, TABS.map((t) =>
     h("button", { class: t.id === currentTab ? "active" : "", onclick: () => { currentTab = t.id; store.set("ondetv.tab", t.id); renderShell(); } },
-      h("span", {}, t.icon), t.label)));
+      icon(t.id), t.label)));
   app.replaceChildren(h("div", { class: "shell" }, top, main, bar));
   cleanup?.();
   cleanup = null;
@@ -481,6 +491,7 @@ async function renderLive(top, main) {
   top.append(h("h2", {}, "Direct"));
   main.replaceChildren(h("div", { class: "loading" }, "Chargement des chaînes…"));
   try { await loadLive(); } catch (e) { return failure(main, e, () => renderShell()); }
+  top.querySelector("h2").append(h("span", { class: "page-sub" }, `${channelsFor("__all").length} chaînes`));
   if (content.liveErrors?.length) toastPage(`Source indisponible : ${content.liveErrors.join(" · ")}`);
 
   const select = h("select", { onchange: () => { liveCategory = select.value; store.set("ondetv.liveCat", liveCategory); draw(); } },
@@ -686,6 +697,7 @@ function poster(item, onclick, progressFraction) {
   const img = h("div", { class: "img" });
   const src = image(item.icon);
   if (src) img.style.backgroundImage = `url("${src}")`;
+  else { img.classList.add("noimg"); img.append(item.name); }
   if (item.rating) img.append(h("span", { class: "rating" }, `★ ${item.rating.toFixed(1)}`));
   if (progressFraction) img.append(h("div", { class: "bar" }, h("i", { style: { width: `${progressFraction * 100}%` } })));
   if (multiSource() && item.src) img.append(h("span", { class: "src-badge" }, sourceName(item)));
@@ -730,7 +742,7 @@ async function renderCatalog(top, main, kind) {
   side.append(
     h("div", { class: "panel-head" }, h("strong", {}, isMovies ? "Catégories de films" : "Catégories de séries"),
       h("button", { class: "icon-btn side-close", onclick: () => toggleSide(false), "aria-label": "Fermer" }, "✕")),
-    sideSearch, sideSources, sideList);
+    sideSearch, ...(sideSources ? [sideSources] : []), sideList);
 
   function choose(id) {
     selected = id;
@@ -803,6 +815,11 @@ async function renderCatalog(top, main, kind) {
     area.scrollTop = 0;
     if (!list.length) { area.append(h("div", { class: "empty" }, q ? "Aucun résultat." : "Rien à afficher.")); return; }
     if (q) area.append(h("div", { class: "section-label" }, `${list.length} résultat${list.length > 1 ? "s" : ""}${multiSource() ? " · toutes sources" : ""}`));
+    else {
+      const star = list.slice(0, 30).find((x) => image(x.icon)) || list[0];
+      area.append(featureBanner(star, selected === "__resume" ? "Reprendre" : selected === "__fav" ? "Favori" : isMovies ? "Nouveauté" : "À la une", isMovies),
+        h("div", { class: "section-label" }, `${labelOf(selected)} · ${list.length}`));
+    }
     const grid = h("div", { class: "grid" });
     area.append(grid);
     stopChunks = renderChunked(grid, list, (x) => isMovies
@@ -810,6 +827,27 @@ async function renderCatalog(top, main, kind) {
       : poster(x, () => openSeries(x)), area, 90);
   }
   load();
+}
+
+/** Grand bandeau en tête du catalogue (film ou série mis en avant). */
+function featureBanner(item, kicker, isMovie) {
+  const src = image(item.icon);
+  const bg = h("div", { class: "feature-bg" });
+  const pic = h("div", { class: "feature-poster" });
+  if (src) { bg.style.backgroundImage = `url("${src}")`; pic.style.backgroundImage = `url("${src}")`; }
+  const key = `movie-${item.id}`;
+  const resume = isMovie && progressFraction(key) > 0 && progressFraction(key) < 0.95;
+  const facts = [item.year, item.rating ? `★ ${item.rating.toFixed(1)}` : null, isMovie && item.ext ? item.ext.toUpperCase() : null, multiSource() ? sourceName(item) : null].filter(Boolean).join(" · ");
+  return h("div", { class: "feature" }, bg, pic,
+    h("div", { class: "feature-body" },
+      h("span", { class: "feature-kicker" }, kicker),
+      h("h3", {}, item.name),
+      facts ? h("div", { class: "facts" }, facts) : null,
+      h("div", { class: "actions" },
+        isMovie
+          ? h("button", { class: "btn primary", onclick: () => playVOD(urls.movie(item, item.ext), item.name, null, key) }, resume ? "▶ Reprendre" : "▶ Lecture")
+          : h("button", { class: "btn primary", onclick: () => openSeries(item) }, "▶ Épisodes"),
+        h("button", { class: "btn", onclick: () => (isMovie ? openMovie(item) : openSeries(item)) }, "ⓘ Infos"))));
 }
 
 function renderMovies(top, main) { return renderCatalog(top, main, "movies"); }
@@ -965,6 +1003,10 @@ function renderSettings(top, main) {
       h("button", { class: "item", style: { width: "100%" }, onclick: () => openGroupManager("live") }, h("span", {}, "Gérer les groupes de chaînes"), h("span", {}, `${(library.hidden?.live || []).length} masqué(s) ›`)),
       h("button", { class: "item", style: { width: "100%" }, onclick: () => openGroupManager("vod") }, h("span", {}, "Gérer les catégories de films"), h("span", {}, `${(library.hidden?.vod || []).length} masquée(s) ›`)),
       h("button", { class: "item", style: { width: "100%" }, onclick: () => openGroupManager("series") }, h("span", {}, "Gérer les catégories de séries"), h("span", {}, `${(library.hidden?.series || []).length} masquée(s) ›`))),
+    h("div", { class: "section-label" }, "Sécurité"),
+    securitySettings(),
+    h("p", { class: "muted small-note" }, "Le code est propre à cet appareil. Vos mots de passe IPTV restent sur vos appareils ; la synchronisation est chiffrée avec votre code de synchronisation, que le serveur ne connaît pas."),
+    appSettings(),
     h("div", { class: "section-label" }, "Synchronisation entre appareils"),
     syncSettings(),
     h("div", { class: "section-label" }, "Lecteur du direct"),
@@ -1244,7 +1286,7 @@ let hlsLoader = null;
 function loadHlsJs() {
   hlsLoader ??= new Promise((resolve, reject) => {
     const s = document.createElement("script");
-    s.src = "https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js";
+    s.src = "hls.min.js"; // servi par notre serveur (version 1.5.17 vérifiée), aucun script externe
     s.onload = () => resolve(globalThis.Hls);
     s.onerror = () => reject(new Error("Impossible de charger le lecteur HLS."));
     document.head.append(s);
@@ -2779,7 +2821,7 @@ $("#channel-panel").addEventListener("scroll", () => wake(), { passive: true, ca
 
 // Clavier (iPad avec clavier, télécommande Bluetooth, ordinateur)
 document.addEventListener("keydown", (e) => {
-  if (player.el.classList.contains("hidden") || e.target.matches("input")) return;
+  if (player.el.classList.contains("hidden") || e.target.matches("input") || document.querySelector(".lock-screen")) return;
   const live = player.mode === "live";
   if (e.key === "Escape" || e.key === "Backspace") {
     if (anyOverlayOpen()) closePanels(); else $("#player-close").click();
@@ -3018,6 +3060,125 @@ function syncStatusText() {
 document.addEventListener("visibilitychange", () => { if (!document.hidden) syncNow(); else if (syncState.code) syncNow(); });
 setInterval(() => { if (!document.hidden) syncNow(); }, 120000);
 
+// ---------------------------------------------------------------- verrouillage par code
+// Code de 4 à 6 chiffres propre à chaque appareil (jamais synchronisé ni envoyé au serveur).
+// Seule une empreinte PBKDF2 salée est gardée ; après 5 erreurs, attente croissante.
+
+const LOCK_AFTER_MS = 5 * 60000;
+let lockState = store.get("ondetv.lock", null); // { salt, hash, fails, until }
+let hiddenSince = 0;
+
+async function pinHash(pin, salt) {
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(pin), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt: fromHex(salt), iterations: 200000 }, key, 256);
+  return toHex(new Uint8Array(bits));
+}
+const toHex = (b) => [...b].map((x) => x.toString(16).padStart(2, "0")).join("");
+const fromHex = (s) => Uint8Array.from(s.match(/../g).map((x) => parseInt(x, 16)));
+
+async function setPin(pin) {
+  const salt = toHex(crypto.getRandomValues(new Uint8Array(16)));
+  lockState = { salt, hash: await pinHash(pin, salt), fails: 0, until: 0 };
+  store.set("ondetv.lock", lockState);
+}
+async function checkPin(pin) {
+  if (!lockState) return true;
+  const ok = (await pinHash(pin, lockState.salt)) === lockState.hash;
+  if (ok) lockState.fails = 0;
+  else {
+    lockState.fails = (lockState.fails || 0) + 1;
+    if (lockState.fails >= 5) lockState.until = Date.now() + Math.min(30000 * 2 ** (lockState.fails - 5), 30 * 60000);
+  }
+  store.set("ondetv.lock", lockState);
+  return ok;
+}
+
+/** Écran de code : resolve(code) quand l'utilisateur valide. */
+function pinPad({ title, subtitle = "", onSubmit, cancellable = false }) {
+  document.querySelector(".lock-screen")?.remove();
+  let value = "";
+  const dots = h("div", { class: "pin-dots" });
+  const msg = h("p", { class: "pin-msg" }, subtitle);
+  const draw = () => dots.replaceChildren(...Array.from({ length: 6 }, (_, i) => h("span", { class: i < value.length ? "on" : "" })));
+  const screen = h("div", { class: "lock-screen", role: "dialog", "aria-modal": "true" });
+  const submit = async () => {
+    if (value.length < 4) { msg.textContent = "4 chiffres minimum"; return; }
+    const v = value; value = ""; draw();
+    const res = await onSubmit(v, (text) => { msg.textContent = text; screen.classList.remove("shake"); void screen.offsetWidth; screen.classList.add("shake"); });
+    if (res !== false) screen.remove();
+  };
+  const press = (k) => {
+    if (k === "⌫") value = value.slice(0, -1);
+    else if (k === "OK") { submit(); return; }
+    else if (value.length < 6) value += k;
+    draw();
+    if (value.length === 6) submit();
+  };
+  const keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "⌫", "0", "OK"];
+  screen.append(h("div", { class: "lock-card" },
+    h("div", { class: "lock-logo" }, h("span", {}, "◉"), "OndeTV"),
+    h("h2", {}, title), msg, dots,
+    h("div", { class: "pin-keys" }, keys.map((k) => h("button", { class: k === "OK" ? "ok" : "", onclick: () => press(k) }, k))),
+    cancellable ? h("button", { class: "btn", onclick: () => screen.remove() }, "Annuler") : null));
+  // Chiffres de la télécommande / du clavier : OK valide. Flèches : OK appuie sur la touche choisie.
+  let typed = false;
+  screen.addEventListener("keydown", (e) => {
+    if (/^[0-9]$/.test(e.key)) { typed = true; press(e.key); e.preventDefault(); e.stopPropagation(); }
+    else if (e.key === "Backspace") { press("⌫"); e.preventDefault(); e.stopPropagation(); }
+    else if (e.key === "Enter" && typed) { typed = false; submit(); e.preventDefault(); e.stopPropagation(); }
+    else if (e.key.startsWith("Arrow")) typed = false;
+  });
+  draw();
+  document.body.append(screen);
+  requestAnimationFrame(() => screen.querySelector(".pin-keys button")?.focus());
+  return screen;
+}
+
+function showLock() {
+  if (!lockState || document.querySelector(".lock-screen.locking")) return;
+  if (player.mode) video.pause();
+  const s = pinPad({
+    title: "Code de déverrouillage",
+    onSubmit: async (pin, fail) => {
+      if (lockState.until > Date.now()) { fail(`Trop d'essais. Réessayez dans ${Math.ceil((lockState.until - Date.now()) / 1000)} s`); return false; }
+      if (await checkPin(pin)) return true;
+      fail(lockState.until > Date.now() ? "Code incorrect. Appareil bloqué un moment." : `Code incorrect (${lockState.fails}/5)`);
+      return false;
+    },
+  });
+  s.classList.add("locking");
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) hiddenSince = Date.now();
+  else if (lockState && hiddenSince && Date.now() - hiddenSince > LOCK_AFTER_MS) showLock();
+});
+
+function securitySettings() {
+  const row = (label, value, action) => h("button", { class: "item", style: { width: "100%" }, onclick: action }, h("span", {}, label), h("span", {}, value));
+  const ask = (title, subtitle) => new Promise((resolve) => pinPad({ title, subtitle, cancellable: true, onSubmit: (v) => resolve(v) }));
+  return h("div", { class: "list" },
+    lockState
+      ? [row("Verrouillage par code", "Activé ✓", async () => {
+          const pin = await ask("Code actuel", "Pour désactiver le verrouillage");
+          if (!(await checkPin(pin))) { toast("Code incorrect"); return; }
+          lockState = null; store.del("ondetv.lock"); toast("Verrouillage désactivé"); renderShell();
+        }),
+        row("Changer le code", "›", async () => {
+          if (!(await checkPin(await ask("Code actuel")))) { toast("Code incorrect"); return; }
+          const a = await ask("Nouveau code", "4 à 6 chiffres"), b = await ask("Confirmez le nouveau code");
+          if (a !== b) { toast("Les deux codes sont différents"); return; }
+          await setPin(a); toast("Code modifié");
+        }),
+        row("Verrouiller maintenant", "🔒", () => showLock())]
+      : row("Verrouiller l'app par un code", "Désactivé ›", async () => {
+          const a = await ask("Choisissez un code", "4 à 6 chiffres, demandé à l'ouverture de l'app");
+          const b = await ask("Confirmez le code");
+          if (a !== b) { toast("Les deux codes sont différents"); return; }
+          await setPin(a); toast("Verrouillage activé"); renderShell();
+        }));
+}
+
 // ---------------------------------------------------------------- mode télécommande (Android TV, Fire TV)
 // Activé automatiquement dans l'app Android TV (OndeAndroid) ou avec ?tv=1 dans un navigateur de TV.
 
@@ -3053,6 +3214,54 @@ globalThis.ondetvNativeDone = (posMs, durMs) => {
   }
 };
 
+// --- mise à jour de l'app Android TV
+
+function appVersionCode() {
+  if (!Native) return 0;
+  try { return Native.versionCode ? Native.versionCode() : Number(String(Native.version()).split(".").pop()) || 0; } catch { return 0; }
+}
+
+async function checkAppUpdate(manual = false) {
+  if (!Native) return;
+  const last = store.get("ondetv.updCheck", 0);
+  if (!manual && Date.now() - last < 6 * 3600000) return;
+  store.set("ondetv.updCheck", Date.now());
+  const info = await fetch("/tv/version", { cache: "no-store" }).then((r) => r.json()).catch(() => null);
+  const current = appVersionCode();
+  if (!info?.versionCode || info.versionCode <= current) { if (manual) toast(`OndeTV est à jour (version ${Native.version?.() || current})`); return; }
+  openSheet((t) => {
+    const progress = h("div", { class: "update-progress hidden" }, h("span"));
+    const msg = h("p", { class: "muted" }, "Une nouvelle version de l'app Android TV est prête. Vos sources et réglages sont conservés.");
+    const install = h("button", { class: "btn primary", onclick: () => {
+      if (!Native.installUpdate) {
+        msg.textContent = "Cette version doit être mise à jour une dernière fois avec Downloader : adresse ondetv.onrender.com/tv. Les suivantes s'installeront directement d'ici.";
+        return;
+      }
+      install.disabled = true; install.textContent = "Téléchargement…";
+      progress.classList.remove("hidden");
+      Native.installUpdate();
+    } }, "⬇ Installer maintenant");
+    globalThis.ondetvUpdateProgress = (pct) => {
+      progress.firstChild.style.width = `${Math.max(3, pct)}%`;
+      if (pct >= 100) { install.textContent = "Installation…"; msg.textContent = "Confirmez l'installation dans la fenêtre d'Android (« Installer »). L'app redémarre ensuite."; }
+    };
+    globalThis.ondetvUpdateError = (e) => { install.disabled = false; install.textContent = "Réessayer"; msg.textContent = `Échec du téléchargement : ${e}`; };
+    t.replaceChildren(h("div", { class: "detail update-sheet" },
+      h("div", { class: "update-badge" }, "Nouveau"),
+      h("h3", {}, `Mise à jour disponible · ${info.versionName || info.versionCode}`),
+      msg, progress,
+      h("div", { class: "actions" }, install, h("button", { class: "btn", "data-close": "" }, "Plus tard"))));
+  });
+}
+
+function appSettings() {
+  if (!Native) return null;
+  return [h("div", { class: "section-label" }, "Application Android TV"),
+    h("div", { class: "list" },
+      h("button", { class: "item", style: { width: "100%" }, onclick: () => checkAppUpdate(true) },
+        h("span", {}, "Rechercher une mise à jour"), h("span", {}, `version ${Native.version?.() || "?"} ›`)))];
+}
+
 // --- navigation au pavé directionnel
 
 const FOCUSABLE = 'button, a[href], input:not([type="range"]):not([type="hidden"]), select, textarea, [role="button"], [tabindex]:not([tabindex="-1"])';
@@ -3067,6 +3276,8 @@ function visibleEl(el) {
 
 /** Couche active : la plus haute ouverte (menu, pavé, panneaux, fiche, lecteur, app). */
 function activeLayer() {
+  const lock = document.querySelector(".lock-screen");
+  if (lock) return lock;
   for (const sel of ["#menu", "#numpad", "#guide-panel", "#channel-panel"]) {
     const el = $(sel);
     if (!el.classList.contains("hidden")) return el;
@@ -3094,27 +3305,43 @@ function tvFocus(el) {
   el.scrollIntoView({ block: "nearest", inline: "nearest" });
 }
 
-function moveFocus(dir) {
-  const layer = activeLayer();
-  const list = focusables(layer);
-  if (!list.length) return false;
-  const cur = document.activeElement;
-  if (!cur || !layer.contains(cur) || !list.includes(cur)) { tvFocus(preferredFocus(layer, list)); return true; }
-  const a = cur.getBoundingClientRect();
+/** Meilleur candidat dans une direction, parmi une liste d'éléments (géométrie seulement : rapide). */
+function bestInDirection(cur, a, candidates, dir) {
   const ax = a.left + a.width / 2, ay = a.top + a.height / 2;
-  let best = null, bestScore = Infinity;
-  for (const el of list) {
+  const strict = [], loose = [];
+  for (const el of candidates) {
     if (el === cur) continue;
     const b = el.getBoundingClientRect();
+    if (!b.width || !b.height) continue;
     const bx = b.left + b.width / 2, by = b.top + b.height / 2;
-    let main, cross, overlap;
-    if (dir === "right") { main = b.left - a.right; cross = by - ay; overlap = b.bottom > a.top && b.top < a.bottom; if (bx <= ax + 1) continue; }
-    else if (dir === "left") { main = a.left - b.right; cross = by - ay; overlap = b.bottom > a.top && b.top < a.bottom; if (bx >= ax - 1) continue; }
-    else if (dir === "down") { main = b.top - a.bottom; cross = bx - ax; overlap = b.right > a.left && b.left < a.right; if (by <= ay + 1) continue; }
-    else { main = a.top - b.bottom; cross = bx - ax; overlap = b.right > a.left && b.left < a.right; if (by >= ay - 1) continue; }
-    const score = Math.max(main, 0) + (overlap ? 0 : Math.abs(cross) * 2 + 40);
-    if (score < bestScore) { bestScore = score; best = el; }
+    let main, cross, overlap, inside;
+    if (dir === "right") { if (bx <= ax + 1) continue; inside = b.left >= a.right - 10; main = b.left - a.right; cross = by - ay; overlap = b.bottom > a.top && b.top < a.bottom; }
+    else if (dir === "left") { if (bx >= ax - 1) continue; inside = b.right <= a.left + 10; main = a.left - b.right; cross = by - ay; overlap = b.bottom > a.top && b.top < a.bottom; }
+    else if (dir === "down") { if (by <= ay + 1) continue; inside = b.top >= a.bottom - 10; main = b.top - a.bottom; cross = bx - ax; overlap = b.right > a.left && b.left < a.right; }
+    else { if (by >= ay - 1) continue; inside = b.bottom <= a.top + 10; main = a.top - b.bottom; cross = bx - ax; overlap = b.right > a.left && b.left < a.right; }
+    // Un élément aligné passe devant ; sinon, la distance de côté compte, mais moins que l'écart principal.
+    const score = Math.max(main, 0) + (overlap ? 0 : Math.abs(cross) * 0.8 + 30);
+    (inside ? strict : loose).push([score, el]);
   }
+  for (const list of [strict, loose]) {
+    list.sort((x, y) => x[0] - y[0]);
+    // Vérification coûteuse (styles) seulement pour les meilleurs.
+    for (const [, el] of list.slice(0, 8)) if (visibleEl(el)) return el;
+  }
+  return null;
+}
+
+function moveFocus(dir) {
+  const layer = activeLayer();
+  const all = [...layer.querySelectorAll(FOCUSABLE)].filter((el) => el.id !== "tap-layer");
+  if (!all.length) return false;
+  const cur = document.activeElement;
+  const i = cur ? all.indexOf(cur) : -1;
+  if (i < 0 || !visibleEl(cur)) { const list = all.filter(visibleEl); tvFocus(preferredFocus(layer, list)); return true; }
+  const a = cur.getBoundingClientRect();
+  // D'abord les voisins dans le document (listes de milliers de chaînes), puis tout l'écran si besoin.
+  const near = all.slice(Math.max(0, i - 60), i + 61);
+  const best = bestInDirection(cur, a, near, dir) || (all.length > near.length ? bestInDirection(cur, a, all, dir) : null);
   if (best) tvFocus(best);
   return !!best;
 }
@@ -3127,6 +3354,9 @@ const focusInPlayerControls = () => {
 
 /** Bouton Retour de la télécommande. Renvoie false quand il n'y a plus rien à fermer (l'app propose alors de quitter). */
 globalThis.ondetvBack = () => {
+  if (document.querySelector(".lock-screen.locking")) return false;
+  const pad = document.querySelector(".lock-screen");
+  if (pad) { pad.remove(); return true; }
   if (anyOverlayOpen()) { closePanels(); wake(); return true; }
   if (!$("#sheet").classList.contains("hidden")) { closeSheet(); return true; }
   if (!player.el.classList.contains("hidden")) {
@@ -3140,6 +3370,7 @@ globalThis.ondetvBack = () => {
 
 /** Touches spéciales transmises par l'app Android (chaîne +/-, lecture/pause, menu). */
 globalThis.ondetvKey = (key) => {
+  if (document.querySelector(".lock-screen")) return;
   const live = player.mode === "live" && !player.el.classList.contains("hidden");
   if (key === "ChannelUp" && live) zapDirection(-1);
   else if (key === "ChannelDown" && live) zapDirection(1);
@@ -3152,7 +3383,7 @@ globalThis.ondetvKey = (key) => {
 if (TV_MODE) {
   document.addEventListener("keydown", (e) => {
     const dirs = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right" };
-    const inPlayer = !player.el.classList.contains("hidden");
+    const inPlayer = !player.el.classList.contains("hidden") && !document.querySelector(".lock-screen");
     if (e.key === "Escape" || e.key === "GoBack" || e.key === "BrowserBack") {
       if (!Native) { e.preventDefault(); e.stopImmediatePropagation(); globalThis.ondetvBack(); }
       return;
@@ -3227,6 +3458,8 @@ if (TV_MODE) {
 
 // ---------------------------------------------------------------- démarrage
 
+if (lockState) showLock();
+setTimeout(() => checkAppUpdate().catch(() => {}), 4000);
 const handoff = readHandoff();
 if (handoff?.sources?.length && !activeSources().length) {
   sources = handoff.sources;
