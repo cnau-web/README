@@ -1888,7 +1888,7 @@ $("#pip-prompt").addEventListener("click", (e) => {
   swipeToPiP();
 });
 
-async function swipeToPiP() { window.__sw = (window.__sw || 0) + 1;
+async function swipeToPiP() {
   if (!player.mode) return;
   if (isPiP()) { minimizeToPiP(); return; }
   await togglePiP();
