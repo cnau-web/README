@@ -347,3 +347,8 @@ input, select { font: inherit; color: var(--text); }
 .center-controls button { background: #ffffff24; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
 .center-controls button.big { background: #ffffff33; }
 .center-controls button.ch { background: #ffffff1a; }
+
+/* Qualité d'image */
+.quality-badge { flex: none; padding: 4px 8px; border-radius: 6px; border: 1px solid #ffffff55; font-size: 12px; font-weight: 800; letter-spacing: .03em; color: #fff; background: #0006; }
+.quality-badge.q4k { border-color: #f5c518; color: #f5c518; }
+.quality-badge.qfhd { border-color: var(--accent); color: #9ccfff; }

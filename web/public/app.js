@@ -2280,6 +2280,7 @@ function openOptions() {
   const sleepLeft = player.sleepAt ? `${Math.ceil((player.sleepAt - Date.now()) / 60000)} min` : "Désactivée";
   const stream = player.stream;
   openMenu("Options", [
+    { label: "Qualité d'image", value: qualityName(video.videoHeight) || "—", action: openQualityMenu },
     { label: "Format d'image", value: ASPECTS.find((a) => a.id === player.aspect).label, action: openAspectMenu },
     { label: "Minuterie de mise en veille", value: sleepLeft, action: () => openMenu("Mise en veille", [0, 15, 30, 60, 90, 120].map((m) => ({
       label: m ? `${m} minutes` : "Désactivée", selected: m === 0 && !player.sleepAt, action: () => setSleep(m),
@@ -2290,7 +2291,7 @@ function openOptions() {
     { label: isFullscreen() ? "Quitter le plein écran" : "Plein écran", action: toggleFullscreen },
     { label: "Lecteur iOS natif (PiP, AirPlay)", action: openNativeFullscreen },
     { label: "Recharger la chaîne", action: retry },
-    { label: "Informations du flux", action: () => toast(video.videoWidth ? `${video.videoWidth}×${video.videoHeight} · ${player.hls ? `lecteur stable · réserve ${Math.round(bufferAhead())} s` : "lecteur natif Safari"}` : "Flux non chargé") },
+    { label: "Informations du flux", action: () => toast(video.videoWidth ? `${qualityName(video.videoHeight)} · ${video.videoWidth}×${video.videoHeight} · ${player.hls ? `lecteur stable · réserve ${Math.round(bufferAhead())} s` : "lecteur natif Safari"}` : "Flux non chargé") },
     { label: "Préférences du lecteur", action: openPrefsMenu },
   ].filter(Boolean));
 }
@@ -2442,6 +2443,7 @@ function openVodOptions() {
   const sleepLeft = player.sleepAt ? `${Math.ceil((player.sleepAt - Date.now()) / 60000)} min` : "Désactivée";
   openMenu("Options", [
     { label: "Pistes audio et sous-titres", action: openTracksMenu },
+    { label: "Qualité d'image", value: qualityName(video.videoHeight) || "—", action: openQualityMenu },
     { label: "Vitesse de lecture", value: `×${video.playbackRate}`, action: openSpeedMenu },
     { label: "Format d'image", value: ASPECTS.find((a) => a.id === player.aspect).label, action: openAspectMenu },
     { label: "Minuterie de mise en veille", value: sleepLeft, action: () => openMenu("Mise en veille", [0, 15, 30, 60, 90, 120].map((m) => ({
@@ -2464,6 +2466,7 @@ $("#vod-ui").addEventListener("click", (e) => {
     forward: () => seekBy(30),
     play: togglePause,
     tracks: openTracksMenu,
+    quality: openQualityMenu,
     speed: openSpeedMenu,
     fullscreen: toggleFullscreen,
     aspect: cycleAspect,
@@ -2472,6 +2475,87 @@ $("#vod-ui").addEventListener("click", (e) => {
   })[b.dataset.vod]?.();
 });
 ["pointermove", "touchstart"].forEach((ev) => $("#vod-ui").addEventListener(ev, () => wake(), { passive: true }));
+
+// --- qualité d'image
+
+function qualityName(height) {
+  if (!height) return "";
+  if (height >= 2000) return "4K";
+  if (height >= 1000) return "1080p";
+  if (height >= 700) return "720p";
+  if (height >= 520) return "576p";
+  return `${height}p`;
+}
+function qualityLong(height) {
+  const n = qualityName(height);
+  return { "4K": "4K Ultra HD", "1080p": "1080p · Full HD", "720p": "720p · HD", "576p": "576p · SD" }[n] || (n ? `${n} · SD` : "inconnue");
+}
+
+function updateQualityBadge() {
+  const b = $("#quality-badge");
+  const hgt = video.videoHeight;
+  const name = qualityName(hgt);
+  b.classList.toggle("hidden", !name || !player.mode);
+  b.textContent = name === "1080p" ? "FHD" : name === "720p" ? "HD" : name;
+  b.classList.toggle("q4k", name === "4K");
+  b.classList.toggle("qfhd", name === "1080p");
+}
+video.addEventListener("loadedmetadata", updateQualityBadge);
+video.addEventListener("resize", updateQualityBadge);
+video.addEventListener("emptied", () => $("#quality-badge").classList.add("hidden"));
+
+/** Nom d'une chaîne sans préfixe de pays ni mention de qualité, pour trouver ses autres versions. */
+function baseChannelName(name) {
+  return String(name || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/^\s*(\[[^\]]*\]|\|[^|]*\||[a-z]{2,4}\s*[:|]|[a-z]{2,3}\s+-\s+)\s*/, "")
+    .replace(/\b(uhd|fhd|hd|sd|hq|lq|4k|8k|hevc|h\.?265|h\.?264|1080[pi]?|720p?|2160p?|576p?|480p?|50 ?fps|60 ?fps|backup|bkp|raw|vip|low|high|multi)\b/g, " ")
+    .replace(/[^a-z0-9+]/g, "");
+}
+function qualityHint(name) {
+  const n = String(name).toLowerCase();
+  if (/\b(4k|uhd|2160p?)\b/.test(n)) return 2160;
+  if (/\b(fhd|1080[pi]?)\b/.test(n)) return 1080;
+  if (/\b(hd|720p?)\b/.test(n)) return 720;
+  if (/\b(sd|576p?|480p?|lq|low)\b/.test(n)) return 480;
+  return 0;
+}
+function otherVersions(stream) {
+  const base = baseChannelName(stream.name);
+  if (!base) return [];
+  return content.live.filter((x) => x.id !== stream.id && baseChannelName(x.name) === base)
+    .sort((a, b) => qualityHint(b.name) - qualityHint(a.name));
+}
+
+function openQualityMenu() {
+  const items = [];
+  const hls = player.hls;
+  const current = video.videoHeight ? `${qualityLong(video.videoHeight)} (${video.videoWidth}×${video.videoHeight})` : "en cours de chargement";
+  if (hls && hls.levels?.length > 1) {
+    const auto = hls.autoLevelEnabled;
+    items.push({ label: `Auto${auto ? ` · ${qualityName(hls.levels[hls.currentLevel]?.height) || "…"}` : ""}`, selected: auto, action: () => { hls.currentLevel = -1; toast("Qualité automatique"); } });
+    hls.levels.map((l, i) => ({ l, i })).sort((a, b) => (b.l.height || 0) - (a.l.height || 0)).forEach(({ l, i }) => {
+      const kbps = l.bitrate ? ` · ${(l.bitrate / 1e6).toFixed(1)} Mb/s` : "";
+      items.push({ label: `${qualityLong(l.height)}${kbps}`, selected: !auto && hls.currentLevel === i,
+        action: () => { hls.currentLevel = i; toast(`Qualité : ${qualityName(l.height) || "choisie"}`); } });
+    });
+  } else {
+    const rate = hls?.levels?.[0]?.bitrate ? ` · ${(hls.levels[0].bitrate / 1e6).toFixed(1)} Mb/s` : "";
+    items.push({ label: `Qualité actuelle : ${current}${rate}`, action: () => {} });
+    items.push({ label: "Ce flux n'est proposé qu'en une seule qualité par votre fournisseur", action: () => {} });
+  }
+  if (player.mode === "live" && player.stream) {
+    const others = otherVersions(player.stream);
+    if (others.length) {
+      items.push({ label: "— Autres versions de cette chaîne —", action: () => {} });
+      for (const o of others) {
+        const q = qualityHint(o.name);
+        items.push({ label: `${o.name}${q ? ` (${qualityName(q)})` : ""}${multiSource() ? ` · ${sourceName(o)}` : ""}`, action: () => playLive(o) });
+      }
+    }
+  }
+  openMenu(`Qualité d'image · ${qualityName(video.videoHeight) || "…"}`, items);
+}
+$("#quality-badge").addEventListener("click", () => { wake(); openQualityMenu(); });
 
 // --- grandes commandes au centre
 $("#center-controls").addEventListener("click", (e) => {
@@ -2527,6 +2611,7 @@ $("#live-ui").addEventListener("click", (e) => {
     forward: () => skip(30),
     restart: restartProgram,
     golive: goLive,
+    quality: openQualityMenu,
     fullscreen: toggleFullscreen,
     vlc: () => openInVLC(currentDirectURL()),
     aspect: cycleAspect,
