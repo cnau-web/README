@@ -195,15 +195,18 @@ async function loadLive(force = false) {
 // EPG court, chargé à la demande (4 requêtes en parallèle au maximum).
 const epgQueue = [];
 let epgRunning = 0;
+// Rythme modéré envers le fournisseur : 2 demandes à la fois, les plus récentes (chaînes à l'écran) d'abord,
+// et les chaînes dépassées en faisant défiler vite sont abandonnées.
 function requestEPG(id) {
   if (content.epg.has(id) || content.epgPending.has(id)) return;
   content.epgPending.add(id);
   epgQueue.push(id);
+  while (epgQueue.length > 40) content.epgPending.delete(epgQueue.shift());
   pumpEPG();
 }
 function pumpEPG() {
-  while (epgRunning < 4 && epgQueue.length) {
-    const id = epgQueue.shift();
+  while (epgRunning < 2 && epgQueue.length) {
+    const id = epgQueue.pop();
     epgRunning++;
     const stream = content.liveById.get(id);
     if (!stream) { epgRunning--; content.epgPending.delete(id); continue; }
@@ -583,7 +586,8 @@ async function renderLive(top, main) {
   cleanup = () => { document.removeEventListener("epg", onEPG); stopChunks?.(); io.disconnect(); };
 
   const io = new IntersectionObserver((entries) => {
-    for (const e of entries) if (e.isIntersecting) { requestEPG(e.target.dataset.id); io.unobserve(e.target); }
+    // Toujours observée : une chaîne abandonnée (défilement rapide) est redemandée quand on y revient.
+    for (const e of entries) if (e.isIntersecting) { if (content.epg.has(e.target.dataset.id)) io.unobserve(e.target); else requestEPG(e.target.dataset.id); }
   }, { root: area, rootMargin: "200px" });
 
   function updateNow(row, id) {
@@ -1364,8 +1368,8 @@ const HLS_CONFIG = {
   nudgeMaxRetry: 6,
   manifestLoadingMaxRetry: 6,
   levelLoadingMaxRetry: 6,
-  fragLoadingMaxRetry: 8,
-  fragLoadingRetryDelay: 500,
+  fragLoadingMaxRetry: 6,
+  fragLoadingRetryDelay: 1000,
   startFragPrefetch: true,
   preferManagedMediaSource: true,
 };
@@ -1376,9 +1380,9 @@ const HLS_TV = {
   backBufferLength: 10,
   maxBufferSize: 25 * 1000 * 1000,
   liveSyncDurationCount: 3,
-  fragLoadingMaxRetry: 12,
-  levelLoadingMaxRetry: 10,
-  manifestLoadingMaxRetry: 10,
+  fragLoadingMaxRetry: 6,
+  levelLoadingMaxRetry: 6,
+  manifestLoadingMaxRetry: 6,
 };
 
 async function startVideo(url, startAt = 0) {
@@ -1403,6 +1407,16 @@ async function startVideo(url, startAt = 0) {
         player.hls = hls;
         hls.on(Hls.Events.ERROR, (_, d) => {
           if (!d.fatal || player.hls !== hls) return;
+          const code = d.response?.code;
+          if ([401, 403, 404, 405, 410, 451, 458, 509, 512].includes(code)) {
+            // Refus du fournisseur (connexions max atteintes, chaîne coupée…) : on n'insiste pas, pour ne pas être repéré.
+            hls.stopLoad();
+            status(code === 404 || code === 410
+              ? `Chaîne indisponible chez le fournisseur (code ${code}).`
+              : `Le fournisseur refuse la lecture (code ${code}). Le nombre maximal de connexions est peut-être atteint : arrêtez la lecture sur vos autres appareils puis réessayez.`,
+            [h("button", { class: "btn primary", onclick: () => { status(""); startVideo(player.currentUrl); } }, "Réessayer")]);
+            return;
+          }
           if (d.type === Hls.ErrorTypes.NETWORK_ERROR) {
             // Reprise douce, puis relance complète du flux si les coupures se répètent.
             const now = Date.now();
@@ -2199,7 +2213,7 @@ function drawPanel() {
   panel.rows.clear();
   list.replaceChildren();
   player.panelObserver = new IntersectionObserver((entries) => {
-    for (const e of entries) if (e.isIntersecting) { requestEPG(e.target.dataset.id); player.panelObserver.unobserve(e.target); }
+    for (const e of entries) if (e.isIntersecting) { if (content.epg.has(e.target.dataset.id)) player.panelObserver.unobserve(e.target); else requestEPG(e.target.dataset.id); }
   }, { root: list, rootMargin: "150px" });
 
   if (q) {

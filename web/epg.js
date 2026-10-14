@@ -148,17 +148,17 @@ export function match(name, epgId) {
 // Le fichier est lu en flux et seuls les programmes de la chaîne demandée sont gardés (cache 30 min).
 
 const providerCache = new Map();
-const providerBusy = new Map();
 
-async function readProviderChannel({ server, username, password, epgId, from, to }) {
+/** Lit xmltv.php une seule fois pour plusieurs chaînes à la fois (Map epgId → programmes). */
+async function readProviderChannels({ server, username, password, from, to }, wanted) {
   const url = `${server.replace(/\/$/, "")}/xmltv.php?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
-  const res = await safeFetch(url, { headers: { "User-Agent": "OndeTV/1.0" }, signal: AbortSignal.timeout(100_000) });
+  const res = await safeFetch(url, { headers: { "User-Agent": "OndeTV/1.0" }, signal: AbortSignal.timeout(120_000) });
   if (!res.ok) throw new Error(`xmltv.php : HTTP ${res.status}`);
   let stream = res.body;
   if ((res.headers.get("content-type") || "").includes("gzip") || url.endsWith(".gz")) stream = stream.pipeThrough(new DecompressionStream("gzip"));
-  const want = epgId.toLowerCase();
-  const out = [];
-  let buf = "", seen = false, othersAfter = 0;
+  const out = new Map([...wanted].map((id) => [id, []]));
+  const seen = new Set();
+  let buf = "", othersAfter = 0;
   const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
   try {
     outer: while (true) {
@@ -174,16 +174,18 @@ async function readProviderChannel({ server, username, password, epgId, from, to
         const block = buf.slice(start, end + 12);
         pos = end + 12;
         const head = block.slice(0, block.indexOf(">") + 1);
-        if ((attr(head, "channel") || "").toLowerCase() !== want) {
-          // Les programmes d'une chaîne sont presque toujours regroupés : inutile de lire tout le fichier.
-          if (seen && ++othersAfter > 400) break outer;
+        const ch = (attr(head, "channel") || "").toLowerCase();
+        const list = out.get(ch);
+        if (!list) {
+          // Toutes les chaînes voulues sont passées (programmes regroupés par chaîne) : inutile de lire la suite.
+          if (seen.size === out.size && ++othersAfter > 400) break outer;
           continue;
         }
-        seen = true; othersAfter = 0;
+        seen.add(ch); othersAfter = 0;
         const s = xmltvTime(attr(head, "start")), e = xmltvTime(attr(head, "stop"));
         if (e > from && s < to) {
           const desc = inner(block, "desc");
-          out.push({ s, e, t: own(inner(block, "title") || "Sans titre"), d: desc ? own(desc.slice(0, 200)) : undefined });
+          list.push({ s, e, t: own(inner(block, "title") || "Sans titre"), d: desc ? own(desc.slice(0, 200)) : undefined });
         }
       }
       buf = buf.slice(pos);
@@ -191,26 +193,40 @@ async function readProviderChannel({ server, username, password, epgId, from, to
   } finally {
     reader.cancel().catch(() => {});
   }
-  return out.sort((a, b) => a.s - b.s);
+  for (const list of out.values()) list.sort((a, b) => a.s - b.s);
+  return out;
 }
 
+// Ménagement du fournisseur : au plus un téléchargement du guide complet par abonnement toutes les 15 minutes.
+// Les chaînes demandées entre-temps sont regroupées dans le téléchargement suivant.
+const PROVIDER_COOLDOWN = 15 * 60_000;
+const PROVIDER_TTL = 2 * 3600_000;
+const accounts = new Map(); // compte -> { lastAt, wanted:Set, running }
+
 async function providerPast(params) {
-  const key = `${params.server}|${params.username}|${params.epgId.toLowerCase()}`;
-  const hit = providerCache.get(key);
-  if (hit && Date.now() - hit.at < 30 * 60_000) return hit.list;
-  // Une seule lecture à la fois par abonnement (les fournisseurs limitent les connexions).
+  const epgId = params.epgId.toLowerCase();
   const account = `${params.server}|${params.username}`;
-  const previous = providerBusy.get(account) || Promise.resolve();
-  const job = previous.catch(() => {}).then(() => readProviderChannel(params));
-  providerBusy.set(account, job);
-  try {
-    const list = await job;
-    providerCache.set(key, { at: Date.now(), list });
-    if (providerCache.size > 300) providerCache.delete(providerCache.keys().next().value);
-    return list;
-  } finally {
-    if (providerBusy.get(account) === job) providerBusy.delete(account);
-  }
+  const key = `${account}|${epgId}`;
+  const hit = providerCache.get(key);
+  if (hit && Date.now() - hit.at < PROVIDER_TTL) return hit.list;
+  let st = accounts.get(account);
+  if (!st) { st = { lastAt: 0, wanted: new Set(), running: null }; accounts.set(account, st); }
+  st.wanted.add(epgId);
+  if (st.running) { await st.running.catch(() => {}); return providerCache.get(key)?.list || []; }
+  if (Date.now() - st.lastAt < PROVIDER_COOLDOWN) return []; // sera inclus dans le prochain téléchargement
+  const wanted = new Set([...st.wanted].slice(-200));
+  st.wanted.clear();
+  st.lastAt = Date.now();
+  st.running = readProviderChannels(params, wanted).then((map) => {
+    for (const [id, list] of map) providerCache.set(`${account}|${id}`, { at: Date.now(), list });
+    while (providerCache.size > 2000) providerCache.delete(providerCache.keys().next().value);
+  }).catch((e) => {
+    st.lastAt = Date.now() - PROVIDER_COOLDOWN + 2 * 60_000; // après un échec : nouvel essai possible dans 2 minutes
+    for (const id of wanted) st.wanted.add(id);
+    throw e;
+  }).finally(() => { st.running = null; });
+  await st.running;
+  return providerCache.get(key)?.list || [];
 }
 
 export async function handleEpg(request) {
