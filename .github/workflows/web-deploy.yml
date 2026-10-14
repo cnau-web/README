@@ -9,6 +9,11 @@ on:
     paths: ["web/**", "render.yaml", ".github/workflows/web-deploy.yml"]
   workflow_dispatch:
 
+# Un seul déclenchement à la fois : deux déploiements simultanés peuvent rester bloqués sur Render.
+concurrency:
+  group: render-deploy
+  cancel-in-progress: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
