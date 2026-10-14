@@ -55,7 +55,8 @@ const APK_URL = "https://github.com/cnau-web/README/releases/download/android-la
 let apkCache = null;
 let versionCache = null;
 async function androidVersion() {
-  if (!versionCache || Date.now() - versionCache.at > 10 * 60000) {
+  const ttl = versionCache?.data?.versionCode ? 10 * 60000 : 60000; // un échec n'est gardé qu'une minute
+  if (!versionCache || Date.now() - versionCache.at > ttl) {
     const res = await fetch(APK_URL.replace("OndeTV.apk", "version.json"), { signal: AbortSignal.timeout(15000) }).catch(() => null);
     const data = res?.ok ? await res.json().catch(() => null) : null;
     versionCache = { at: Date.now(), data: data || { versionCode: 0 } };
