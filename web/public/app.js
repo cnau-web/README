@@ -121,7 +121,13 @@ async function api(action, params, acc) {
   if (res.status === 403) throw new Error("Adresse refusée par le relais OndeTV (adresse locale ou réservée). Utilisez l'adresse publique fournie par votre abonnement.");
   if (!res.ok) throw new Error(`Erreur serveur (HTTP ${res.status}).`);
   const text = (await res.text()).replace(/^\uFEFF/, "").trim();
-  try { return JSON.parse(text); } catch { /* réponse précédée d'avertissements PHP, etc. */ }
+  let parsed;
+  try { parsed = JSON.parse(text); } catch { /* réponse précédée d'avertissements PHP, etc. */ }
+  // Compte refusé pendant l'utilisation (liste des chaînes, films…) : on le dit au lieu d'afficher une liste vide.
+  if (action && parsed && !Array.isArray(parsed) && parsed.user_info && Number(parsed.user_info.auth) === 0) {
+    throw new Error(Native ? "compte refusé par le fournisseur" : "compte refusé par le fournisseur depuis le relais OndeTV (utilisable sur la TV, qui se connecte directement)");
+  }
+  if (parsed !== undefined) return parsed;
   const start = text.search(/[{[]/);
   if (start > 0) { try { return JSON.parse(text.slice(start)); } catch { /* illisible */ } }
   if (/<html|<!doctype/i.test(text)) throw new Error("Le serveur renvoie une page web au lieu de répondre à l'app (protection anti-robot ou adresse incomplète).");
