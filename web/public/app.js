@@ -662,7 +662,8 @@ function sourceForm({ onDone, error = "", existing = null }) {
           const raw = auth ? JSON.stringify(auth).replaceAll(acc.password, "•••").slice(0, 160) : "";
           if (raw) err.dataset.detail = `Réponse du serveur : ${raw}`;
           else delete err.dataset.detail;
-          throw new Error(lastError?.message || info?.message || "Le serveur répond, mais refuse ces identifiants. Vérifiez le nom d'utilisateur et le mot de passe (majuscules, espaces, chiffres 0/O et 1/l), ou collez directement le lien M3U de votre abonnement dans le champ du serveur.");
+          throw new Error(lastError?.message || info?.message || (Native ? "Le serveur refuse ce compte. Vérifiez le nom d'utilisateur et le mot de passe (majuscules, espaces, 0/O, 1/l)."
+            : "Le serveur refuse ce compte. Si ces identifiants marchent dans une autre app, votre fournisseur bloque sans doute les connexions passant par un serveur (le relais OndeTV, en Allemagne) : touchez « Enregistrer quand même », la source fonctionnera sur la TV, qui se connecte directement. Sinon, vérifiez le nom d'utilisateur et le mot de passe."));
         }
         acc.server = workingServer;
         if (ua) acc.ua = ua; else delete acc.ua;
