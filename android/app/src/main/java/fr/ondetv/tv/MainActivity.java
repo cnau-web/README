@@ -145,7 +145,7 @@ public class MainActivity extends Activity {
                 String target = u.getQueryParameter("url");
                 if (target == null || !(target.startsWith("http://") || target.startsWith("https://"))) return null;
                 try {
-                    return DirectRelay.fetch(target, req.getRequestHeaders());
+                    return DirectRelay.fetch(target, req.getRequestHeaders(), u.getQueryParameter("ua"));
                 } catch (Exception e) {
                     Log.w("OndeTV", "relais local : " + e.getMessage());
                     return null; // en cas d'échec, la requête part vers le serveur OndeTV comme avant

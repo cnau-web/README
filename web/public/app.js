@@ -45,6 +45,7 @@ function migrateSingleAccount() {
 function hostLabel(server) { try { return new URL(server).hostname; } catch { return "Source"; } }
 function saveSources() {
   store.set("ondetv.sources", sources);
+  if (typeof refreshHostUA === "function") refreshHostUA();
   if (library?.meta) { library.meta.sourcesAt = Date.now(); store.set("ondetv.library.v2", library); }
   if (typeof scheduleSync === "function") scheduleSync(2000);
 }
@@ -67,10 +68,20 @@ function toggle(list, id) {
 
 // Serveurs cités dans une playlist M3U : signature fournie par le relais (seuls eux sont acceptés).
 const hostSigs = new Map();
-const proxy = (url) => {
-  let hs = "";
-  try { const sig = hostSigs.get(new URL(url).host); if (sig) hs = `&hs=${sig}`; } catch { /* adresse invalide */ }
-  return `/x?url=${encodeURIComponent(url)}${hs}`;
+// Signature d'application (User-Agent) retenue pour certains serveurs exigeants, par nom de serveur.
+const hostUA = new Map();
+function refreshHostUA() {
+  hostUA.clear();
+  for (const src of sources || []) if (src.ua && src.server) { try { hostUA.set(new URL(src.server).host, src.ua); } catch { /* ignoré */ } }
+}
+const proxy = (url, uaOverride) => {
+  let extra = "";
+  try {
+    const host = new URL(url).host;
+    const sig = hostSigs.get(host); if (sig) extra += `&hs=${sig}`;
+    const ua = uaOverride || hostUA.get(host); if (ua) extra += `&ua=${encodeURIComponent(ua)}`;
+  } catch { /* adresse invalide */ }
+  return `/x?url=${encodeURIComponent(url)}${extra}`;
 };
 
 /** Lien M3U ou lien Xtream complet (…/get.php?username=…&password=…) : on en extrait les identifiants. */
@@ -100,7 +111,7 @@ async function api(action, params, acc) {
   u.searchParams.set("password", acc.password);
   if (action) u.searchParams.set("action", action);
   for (const [k, v] of Object.entries(params)) u.searchParams.set(k, v);
-  const res = await fetch(proxy(u.href));
+  const res = await fetch(proxy(u.href, acc.ua));
   if (res.status === 502) {
     const detail = await res.text().catch(() => "");
     throw new Error(/dns|resolve|lookup|not known/i.test(detail)
@@ -109,8 +120,12 @@ async function api(action, params, acc) {
   }
   if (res.status === 403) throw new Error("Adresse refusée par le relais OndeTV (adresse locale ou réservée). Utilisez l'adresse publique fournie par votre abonnement.");
   if (!res.ok) throw new Error(`Erreur serveur (HTTP ${res.status}).`);
-  const text = await res.text();
-  try { return JSON.parse(text); } catch { throw new Error("Réponse illisible : vérifiez l'adresse du serveur (http/https, port)."); }
+  const text = (await res.text()).replace(/^\uFEFF/, "").trim();
+  try { return JSON.parse(text); } catch { /* réponse précédée d'avertissements PHP, etc. */ }
+  const start = text.search(/[{[]/);
+  if (start > 0) { try { return JSON.parse(text.slice(start)); } catch { /* illisible */ } }
+  if (/<html|<!doctype/i.test(text)) throw new Error("Le serveur renvoie une page web au lieu de répondre à l'app (protection anti-robot ou adresse incomplète).");
+  throw new Error("Réponse illisible : vérifiez l'adresse du serveur (http/https, port).");
 }
 
 const asList = (v) => Array.isArray(v) ? v : (v && typeof v === "object" ? Object.values(v) : []);
@@ -524,6 +539,29 @@ function renderLogin(error = "") {
   app.replaceChildren(h("div", { class: "login" }, h("div", { class: "login-col" }, form, syncBox)));
 }
 
+// Signatures d'application courantes : certains serveurs n'acceptent que des lecteurs connus.
+const UA_CANDIDATES = [null, "okhttp/4.12.0", "VLC/3.0.20 LibVLC/3.0.20", "IPTVSmartersPlayer", "Mozilla/5.0 (Linux; Android 12) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"];
+
+/** Essaie le serveur avec plusieurs signatures (et en http si l'https échoue) jusqu'à une réponse valable. */
+async function probeXtream(acc) {
+  const servers = [acc.server];
+  if (acc.server.startsWith("https://")) servers.push(acc.server.replace(/^https:/, "http:"));
+  let last = { auth: null, ua: null, server: acc.server, error: null };
+  for (const server of servers) {
+    for (const ua of UA_CANDIDATES) {
+      try {
+        const auth = await api(null, {}, { ...acc, server, ua: ua || undefined });
+        if (auth?.user_info && Number(auth.user_info.auth) === 1) return { auth, ua, server, error: null };
+        last = { auth, ua, server, error: null };
+      } catch (e) {
+        last = { ...last, error: e };
+        if (/introuvable/i.test(e.message)) break; // nom de serveur inexistant : rien à essayer de plus
+      }
+    }
+  }
+  return last;
+}
+
 /** Formulaire d'ajout (ou de modification) d'une source Xtream. */
 function sourceForm({ onDone, error = "", existing = null }) {
   const name = h("input", { class: "field", placeholder: "Nom de la source (facultatif)", value: existing?.name || "" });
@@ -542,6 +580,23 @@ function sourceForm({ onDone, error = "", existing = null }) {
   const err = h("div", { class: "error" }, error);
   const submitLabel = existing ? "Enregistrer" : sources.length ? "Ajouter la source" : "Se connecter";
   const submit = h("button", { class: "btn primary", type: "submit" }, submitLabel);
+
+  // Serveur qui refuse la vérification depuis le relais (protection, adresse de serveur bloquée…) :
+  // on peut l'enregistrer quand même ; il fonctionnera notamment sur la TV, qui se connecte directement.
+  let pendingAcc = null;
+  const forceBtn = h("button", { type: "button", class: "btn hidden", onclick: () => {
+    if (!pendingAcc) return;
+    const acc = { ...pendingAcc, info: { status: "non vérifié" }, timezone: existing?.timezone || null, name: name.value.trim() || existing?.name || hostLabel(pendingAcc.server), enabled: existing?.enabled ?? true };
+    if (existing) Object.assign(existing, acc);
+    else {
+      if (sources.some((x) => x.server === acc.server && x.username === acc.username)) { err.textContent = "Cette source est déjà ajoutée."; return; }
+      acc.id = `s${Date.now().toString(36)}`;
+      sources.push(acc);
+    }
+    saveSources(); resetContent();
+    toast("Source enregistrée sans vérification");
+    onDone();
+  } }, "Enregistrer quand même");
 
   // Type de source : Xtream Codes (identifiants) ou lien M3U (playlist)
   let mode = existing?.type === "m3u" ? "m3u" : "xtream";
@@ -594,14 +649,23 @@ function sourceForm({ onDone, error = "", existing = null }) {
           if (await saveM3U()) { saveSources(); resetContent(); onDone(); }
           return;
         }
+        forceBtn.classList.add("hidden");
         const fromLink = credentialsFromLink(server.value);
         const acc = { server: normalizeServer(server.value), username: (user.value.trim() || fromLink?.username || ""), password: pass.value.trim() || fromLink?.password || existing?.password || "" };
         if (!acc.username || !acc.password) throw new Error("Nom d'utilisateur et mot de passe requis.");
-        const auth = await api(null, {}, acc);
+        pendingAcc = acc;
+        const { auth, ua, server: workingServer, error: lastError } = await probeXtream(acc);
         const info = auth?.user_info;
-        if (!info || Number(info.auth) !== 1) throw new Error(info?.message || "Le serveur répond, mais refuse ces identifiants. Vérifiez le nom d'utilisateur et le mot de passe (majuscules, espaces, chiffres 0/O et 1/l), ou collez directement le lien M3U de votre abonnement dans le champ du serveur.");
-        if (info.status && info.status.trim().toLowerCase() !== "active") {
+        if (!info || Number(info.auth) !== 1) {
+          forceBtn.classList.remove("hidden");
+          throw new Error(lastError?.message || info?.message || "Le serveur répond, mais refuse ces identifiants. Vérifiez le nom d'utilisateur et le mot de passe (majuscules, espaces, chiffres 0/O et 1/l), ou collez directement le lien M3U de votre abonnement dans le champ du serveur.");
+        }
+        acc.server = workingServer;
+        if (ua) acc.ua = ua; else delete acc.ua;
+        const st = String(info.status || "").trim().toLowerCase();
+        if (["expired", "banned", "disabled"].includes(st)) {
           const exp = num(info.exp_date) ? ` · expiré le ${new Date(num(info.exp_date) * 1000).toLocaleDateString("fr-FR")}` : "";
+          forceBtn.classList.remove("hidden");
           throw new Error(`Abonnement non actif chez le fournisseur (statut : ${info.status}${exp}).`);
         }
         acc.timezone = auth.server_info?.timezone || null;
@@ -624,7 +688,7 @@ function sourceForm({ onDone, error = "", existing = null }) {
         submit.textContent = submitLabel;
       }
     },
-  }, tabs, name, server, user, pass, m3uUrl, m3uEpg, m3uHint, err, submit);
+  }, tabs, name, server, user, pass, m3uUrl, m3uEpg, m3uHint, err, submit, forceBtn);
   if (existing) pass.placeholder = "Mot de passe (inchangé si vide)";
   drawMode();
   return form;
@@ -3786,6 +3850,7 @@ if (TV_MODE) {
 
 // ---------------------------------------------------------------- démarrage
 
+refreshHostUA();
 if (lockState) showLock();
 setTimeout(() => checkAppUpdate().catch(() => {}), 4000);
 const handoff = readHandoff();

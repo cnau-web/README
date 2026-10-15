@@ -70,8 +70,8 @@ export async function sign(url, secret) {
   return [...new Uint8Array(mac).slice(0, 12)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-async function proxiedURL(target, secret) {
-  return `/x?url=${encodeURIComponent(target)}&s=${await sign(target, secret)}`;
+async function proxiedURL(target, secret, ua) {
+  return `/x?url=${encodeURIComponent(target)}&s=${await sign(target, secret)}${ua ? `&ua=${encodeURIComponent(ua)}` : ""}`;
 }
 
 export function isPlaylist(url, contentType) {
@@ -80,7 +80,7 @@ export function isPlaylist(url, contentType) {
 }
 
 /** Réécrit chaque URI d'une playlist HLS pour qu'elle repasse par le relais. */
-export async function rewritePlaylist(body, baseURL, secret, prefetch) {
+export async function rewritePlaylist(body, baseURL, secret, prefetch, ua) {
   const lines = body.split(/\r?\n/);
   const out = [];
   const media = [];
@@ -92,13 +92,13 @@ export async function rewritePlaylist(body, baseURL, secret, prefetch) {
       let rewritten = trimmed;
       for (const m of matches) {
         const abs = new URL(m[1], baseURL).href;
-        rewritten = rewritten.replace(m[0], `URI="${await proxiedURL(abs, secret)}"`);
+        rewritten = rewritten.replace(m[0], `URI="${await proxiedURL(abs, secret, ua)}"`);
       }
       out.push(rewritten);
     } else {
       const abs = new URL(trimmed, baseURL).href;
       media.push(abs);
-      out.push(await proxiedURL(abs, secret));
+      out.push(await proxiedURL(abs, secret, ua));
     }
   }
   // Direct : le lecteur va demander les tout derniers segments ; on les charge déjà.
@@ -111,12 +111,16 @@ export async function rewritePlaylist(body, baseURL, secret, prefetch) {
   return out.join("\n");
 }
 
-export async function handleProxy(request, { secret, userAgent }) {
+export async function handleProxy(request, { secret, userAgent: defaultUA }) {
   if (request.method !== "GET" && request.method !== "HEAD") {
     return new Response("Méthode non autorisée", { status: 405 });
   }
   const params = new URL(request.url).searchParams;
   const raw = params.get("url");
+  // Certains serveurs n'acceptent que des applications connues : la source peut imposer sa signature (User-Agent).
+  const askedUA = params.get("ua");
+  const ua = askedUA && /^[\x20-\x7e]{1,200}$/.test(askedUA) ? askedUA : null;
+  const userAgent = ua || defaultUA;
   let target;
   try {
     target = new URL(raw);
@@ -178,7 +182,7 @@ export async function handleProxy(request, { secret, userAgent }) {
     const text = await upstream.text();
     if (text.trimStart().startsWith("#EXTM3U")) {
       const prefetch = (url) => { fetchSegment(url, userAgent).catch(() => {}); };
-      return new Response(await rewritePlaylist(text, finalURL, secret, prefetch), {
+      return new Response(await rewritePlaylist(text, finalURL, secret, prefetch, ua), {
         status: 200,
         headers: { "content-type": "application/vnd.apple.mpegurl", "cache-control": "no-store" },
       });

@@ -48,8 +48,9 @@ export async function isPublicHost(hostname) {
       Deno.resolveDns(host, "A").catch(() => []),
       Deno.resolveDns(host, "AAAA").catch(() => []),
     ]);
-    const all = [...a, ...aaaa];
-    ok = all.length > 0 && a.every((ip) => !ipv4Private(ip)) && aaaa.every((ip) => !ipv6Private(ip));
+    // Seules les adresses privées sont bloquées : si le nom ne se résout pas ici, la connexion échouera d'elle-même
+    // (évite de refuser à tort un serveur dont le DNS répond mal au relais).
+    ok = a.every((ip) => !ipv4Private(ip)) && aaaa.every((ip) => !ipv6Private(ip));
   } catch { ok = false; }
   dnsCache.set(host, { at: Date.now(), ok });
   if (dnsCache.size > 5000) dnsCache.delete(dnsCache.keys().next().value);
