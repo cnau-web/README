@@ -658,6 +658,10 @@ function sourceForm({ onDone, error = "", existing = null }) {
         const info = auth?.user_info;
         if (!info || Number(info.auth) !== 1) {
           forceBtn.classList.remove("hidden");
+          // Réponse exacte du serveur (jamais le mot de passe) pour le diagnostic.
+          const raw = auth ? JSON.stringify(auth).replaceAll(acc.password, "•••").slice(0, 160) : "";
+          if (raw) err.dataset.detail = `Réponse du serveur : ${raw}`;
+          else delete err.dataset.detail;
           throw new Error(lastError?.message || info?.message || "Le serveur répond, mais refuse ces identifiants. Vérifiez le nom d'utilisateur et le mot de passe (majuscules, espaces, chiffres 0/O et 1/l), ou collez directement le lien M3U de votre abonnement dans le champ du serveur.");
         }
         acc.server = workingServer;
@@ -683,6 +687,7 @@ function sourceForm({ onDone, error = "", existing = null }) {
         onDone();
       } catch (e2) {
         err.textContent = e2.message;
+        if (err.dataset.detail) err.append(h("small", { class: "error-detail" }, err.dataset.detail));
       } finally {
         submit.disabled = false;
         submit.textContent = submitLabel;
