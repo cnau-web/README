@@ -110,8 +110,8 @@ export const APP_CSP = [
   "worker-src 'self' blob:",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
-  "media-src 'self' blob:",
-  "connect-src 'self'",
+  "media-src 'self' blob: https:",
+  "connect-src 'self' https:", // relais France facultatif (autre adresse) ; les scripts restent limités à notre site
   "font-src 'self'",
   "object-src 'none'",
   "base-uri 'none'",

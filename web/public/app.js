@@ -70,18 +70,30 @@ function toggle(list, id) {
 const hostSigs = new Map();
 // Signature d'application (User-Agent) retenue pour certains serveurs exigeants, par nom de serveur.
 const hostUA = new Map();
+// Relais France (facultatif) : certains serveurs n'acceptent que des connexions venant de France.
+const hostRelay = new Map();
 function refreshHostUA() {
-  hostUA.clear();
-  for (const src of sources || []) if (src.ua && src.server) { try { hostUA.set(new URL(src.server).host, src.ua); } catch { /* ignoré */ } }
+  hostUA.clear(); hostRelay.clear();
+  for (const src of sources || []) {
+    if (!src.server) continue;
+    try {
+      const host = new URL(src.server).host;
+      if (src.ua) hostUA.set(host, src.ua);
+      if (src.relayUrl) hostRelay.set(host, src.relayUrl);
+    } catch { /* ignoré */ }
+  }
 }
-const proxy = (url, uaOverride) => {
+const relayBase = (url) => { try { return hostRelay.get(new URL(url).host) || ""; } catch { return ""; } };
+const proxy = (url, uaOverride, relayOverride) => {
   let extra = "";
   try {
     const host = new URL(url).host;
     const sig = hostSigs.get(host); if (sig) extra += `&hs=${sig}`;
     const ua = uaOverride || hostUA.get(host); if (ua) extra += `&ua=${encodeURIComponent(ua)}`;
   } catch { /* adresse invalide */ }
-  return `/x?url=${encodeURIComponent(url)}${extra}`;
+  // L'app TV se connecte directement (relais local) : le relais France ne sert qu'à l'iPhone / l'iPad.
+  const base = globalThis.OndeAndroid ? "" : (relayOverride ?? relayBase(url));
+  return `${base}/x?url=${encodeURIComponent(url)}${extra}`;
 };
 
 /** Lien M3U ou lien Xtream complet (…/get.php?username=…&password=…) : on en extrait les identifiants. */
@@ -111,7 +123,7 @@ async function api(action, params, acc) {
   u.searchParams.set("password", acc.password);
   if (action) u.searchParams.set("action", action);
   for (const [k, v] of Object.entries(params)) u.searchParams.set(k, v);
-  const res = await fetch(proxy(u.href, acc.ua));
+  const res = await fetch(proxy(u.href, acc.ua, acc.relayUrl ?? undefined));
   if (res.status === 502) {
     const detail = await res.text().catch(() => "");
     throw new Error(/dns|resolve|lookup|not known/i.test(detail)
@@ -550,6 +562,18 @@ const UA_CANDIDATES = [null, "okhttp/4.12.0", "VLC/3.0.20 LibVLC/3.0.20", "IPTVS
 
 /** Essaie le serveur avec plusieurs signatures (et en http si l'https échoue) jusqu'à une réponse valable. */
 async function probeXtream(acc) {
+  const first = await probeXtreamVia(acc);
+  if (first.auth?.user_info && Number(first.auth.user_info.auth) === 1) return first;
+  // Refusé par le relais principal : nouvel essai par le relais France s'il est configuré.
+  const fr = store.get("ondetv.relayFr", "");
+  if (fr && !globalThis.OndeAndroid && acc.relayUrl !== fr) {
+    const viaFr = await probeXtreamVia({ ...acc, relayUrl: fr });
+    if (viaFr.auth?.user_info && Number(viaFr.auth.user_info.auth) === 1) { acc.relayUrl = fr; return viaFr; }
+  }
+  return first;
+}
+
+async function probeXtreamVia(acc) {
   const servers = [acc.server];
   if (acc.server.startsWith("https://")) servers.push(acc.server.replace(/^https:/, "http:"));
   let last = { auth: null, ua: null, server: acc.server, error: null };
@@ -1343,6 +1367,7 @@ function renderSettings(top, main) {
     securitySettings(),
     h("p", { class: "muted small-note" }, "Le code est propre à cet appareil. Vos mots de passe IPTV restent sur vos appareils ; la synchronisation est chiffrée avec votre code de synchronisation, que le serveur ne connaît pas."),
     ...appSettings(),
+    ...relaySettings(),
     h("div", { class: "section-label" }, "Synchronisation entre appareils"),
     syncSettings(),
     h("div", { class: "section-label" }, "Lecteur du direct"),
@@ -3538,6 +3563,43 @@ document.addEventListener("visibilitychange", () => {
   if (document.hidden) hiddenSince = Date.now();
   else if (lockState && hiddenSince && Date.now() - hiddenSince > LOCK_AFTER_MS) showLock();
 });
+
+// ---------------------------------------------------------------- relais France
+
+function relaySettings() {
+  if (globalThis.OndeAndroid) return []; // la TV se connecte directement
+  const saved = store.get("ondetv.relayFr", "");
+  const input = h("input", { class: "field", placeholder: "https://votre-compte.alwaysdata.net", inputmode: "url", autocapitalize: "off", autocorrect: "off", value: saved });
+  const state = h("p", { class: "muted small-note" }, saved ? "Relais enregistré." : "Facultatif : pour les fournisseurs qui refusent les connexions venant de l'étranger.");
+  const xtream = sources.filter((src) => !isM3U(src));
+  const list = h("div", { class: "list" }, xtream.map((src) => {
+    const on = !!src.relayUrl;
+    return h("button", { class: `toggle${on ? " on" : ""}`, onclick: () => {
+      const url = store.get("ondetv.relayFr", "");
+      if (!on && !url) { toast("Enregistrez d'abord l'adresse du relais"); return; }
+      src.relayUrl = on ? undefined : url;
+      if (!src.relayUrl) delete src.relayUrl;
+      saveSources(); resetContent(); renderShell();
+    } }, h("span", {}, src.name, h("small", {}, on ? "passe par le relais France" : "relais principal (Allemagne)")), h("span", { class: "switch" }));
+  }));
+  const test = async () => {
+    const url = input.value.trim().replace(/\/+$/, "");
+    if (!/^https:\/\//i.test(url)) { state.textContent = "L'adresse doit commencer par https://"; return; }
+    state.textContent = "Test du relais…";
+    try {
+      const r = await fetch(`${url}/health`, { cache: "no-store" }).then((x) => x.json());
+      if (!r.ok) throw new Error("réponse inattendue");
+      store.set("ondetv.relayFr", url);
+      for (const src of sources) if (src.relayUrl) src.relayUrl = url;
+      saveSources();
+      state.textContent = `Relais opérationnel ✓ ${[r.city, r.country].filter(Boolean).join(", ")}`;
+    } catch (e) { state.textContent = `Relais injoignable : ${e.message}. Vérifiez l'adresse et que le site est démarré.`; }
+  };
+  return [h("div", { class: "section-label" }, "Relais France"),
+    h("div", { class: "list", style: { padding: "12px", display: "grid", gap: "10px" } }, input, h("button", { class: "btn primary", onclick: test }, "Tester et enregistrer")),
+    state,
+    xtream.length ? list : null].filter(Boolean);
+}
 
 function securitySettings() {
   const row = (label, value, action) => h("button", { class: "item", style: { width: "100%" }, onclick: action }, h("span", {}, label), h("span", {}, value));
