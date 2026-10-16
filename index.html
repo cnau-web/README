@@ -823,8 +823,20 @@ function textOk(v,e,wrong){
  /* the key words: those of the answer that no wrong proposal uses */
  const ww=(wrong||[]).flatMap(o=>words(o));let K=ew.filter(w=>!ww.some(x=>wmatch(x,w)));if(!K.length)K=ew;
  const hit=K.filter(w=>vw.some(x=>wmatch(x,w))).length;
- return K.length<=2?hit===K.length:hit>=1;
+ if(K.length===1)return hit===1;
+ /* several key words: for a long answer one key word is enough; for two words, the main (longest) one */
+ const main=K.reduce((m,w)=>w.length>m.length?w:m,"");
+ if(K.length>=3)return hit>=1;
+ return vw.some(x=>wmatch(x,main))||hit>=2;
 }
+/* other answers the explanation accepts ("… aussi accepté", "… también vale") */
+const ALTSTOP=new Set("aussi accepte acceptee acceptes acceptees acceptez acceptable reponse reponses bonne bonnes marche marchent serait seraient egalement accepte tambien valen vale valdria seria aceptada aceptado aceptadas aceptala aceptalas respuesta respuestas buena buenas funcionan funciona sirve".split(" "));
+function altOk(v,id){const vw=words(v).filter(w=>w.length>=3&&!/\d/.test(w));if(!vw.length)return false;
+ for(const w of [CARDS[id][1][2],CARDS[id][2][2]])for(const sent of String(w||"").split(/\n|[.!?]\s+/)){
+  if(!/accept|aussi|tambi[eé]n|\bval(e|en)\b|serait|ser[ií]a/i.test(sent))continue;
+  const sw=words(sent).filter(x=>x.length>=3&&!ALTSTOP.has(x));
+  if(vw.some(a=>sw.some(b=>wmatch(a,b))))return true}
+ return false}
 function grade(v,id){
  if(!v||id==null)return false;
  const fr=CARDS[id][1],es=CARDS[id][2];
@@ -832,7 +844,7 @@ function grade(v,id){
  const ci=fr[3]?fr[3].indexOf(fr[1]):-1,mi=matchIdx(v,id);
  if(mi>=0&&ci>=0)return mi===ci;
  const wf=fr[3]?fr[3].filter((_,i)=>i!==ci):[],we=es[3]?es[3].filter((_,i)=>i!==ci):[];
- return textOk(v,fr[1],wf)||textOk(v,es[1],we);
+ return textOk(v,fr[1],wf)||textOk(v,es[1],we)||altOk(v,id);
 }
 function matchIdx(v,id){const nv=norm(v),dv=digits(v);for(const L of [1,2]){const o=CARDS[id][L][3];if(!o)continue;
  for(let i=0;i<o.length;i++){const dg=digits(o[i]);if(dg?(dv!==""&&dv===dg):(nv!==""&&nv===norm(o[i])))return i}}return -1}
@@ -996,7 +1008,9 @@ let autoK=null;
 function autoReveal(){
  if(ROLE()!=="host"||S.phase!=="q"||S.play==="buzzer")return;
  const el=eligible(S);if(!el.length)return;const ans=answersNow(curKey());
- if(el.every(i=>ans[S.players[i].k]!=null)){const k=curKey();if(autoT&&autoK===k)return;clearTimeout(autoT);autoK=k;autoT=setTimeout(()=>{autoT=null;if(S.phase==="q"&&curKey()===k)doReveal()},900)}
+ /* everyone answered: reveal once the answers stop changing for 1.5 s (people may still be typing) */
+ if(el.every(i=>ans[S.players[i].k]!=null)){const k=curKey(),sig=k+JSON.stringify(ans);if(autoT&&autoK===sig)return;clearTimeout(autoT);autoK=sig;autoT=setTimeout(()=>{autoT=null;if(S.phase==="q"&&curKey()===k&&JSON.stringify(answersNow(k))===JSON.stringify(ans))doReveal();else autoReveal()},1500)}
+ else{clearTimeout(autoT);autoT=null}
 }
 function buildSt(){return{tmax:S.tmax,play:S.play,bz:S.bz&&S.play==="buzzer"?{w:S.bz.who,u:S.bz.until,l:S.bz.locked,n:S.bz.n,tr:S.bz.tries.slice(-6)}:null,pen:S.phase==="a"?S.pen:null,mc:S.deck[S.i]!=null?showMC(S.deck[S.i]):false,ph:S.phase==="home"?"wait":S.phase,cid:S.deck[S.i]??null,key:curKey(),round:S.round,rounds:S.rounds,per:S.per,inRound:S.inRound,timer:S.timer,dl:S.deadline,pz:S.pausedLeft,
  tied:S.tied,pl:S.players.map(p=>[p.k,p.n,p.c,p.s]),cor:S.correct,ans:S.phase==="a"?S.answers:null,gage:S.gage,rev:S.revealed,drumAt:S.drumAt,code:S.online&&S.online.code,hk:myKey}}
@@ -1221,7 +1235,7 @@ function question(){
   ${online?readyHTML():`<div class="actions"><button class="btn primary" data-act="validate" id="vbtn">${l.validate(V.correct.length)}</button></div>`}`
  :ctrl?`<div class="actions"><button class="btn primary" data-act="reveal">${l.reveal}</button><button class="btn quiet" data-act="skip">${l.skip}</button></div>`:""}`;
  const af=document.getElementById("ansf"),ai=document.getElementById("ansin");
- if(ai){let t=null;ai.oninput=()=>{clearTimeout(t);const v=ai.value.trim();if(v&&!BUZ())t=setTimeout(()=>{if(!(myAns&&myAns.v===v))sendAns(v)},450)}}
+ if(ai){let t=null;ai.oninput=()=>{clearTimeout(t);const v=ai.value.trim();if(v&&!BUZ())t=setTimeout(()=>{if(!(myAns&&myAns.v===v))sendAns(v)},800)}}
  if(af)af.onsubmit=e=>{e.preventDefault();const v=document.getElementById("ansin").value.trim();if(v)sendAns(v)};
  if(!shown&&V.timer)startTick(C);
  if(!shown&&buz){bzInt=setInterval(()=>{const e=document.getElementById("bzleft"),b=V.bz;if(e&&b&&b.who!=null)e.textContent=L().ansLeft(Math.max(0,Math.ceil((b.until-Date.now())/1000)));
