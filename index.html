@@ -992,10 +992,11 @@ function hostPeers(){
 }
 function answersNow(key){const m={};for(const p of PEERS){const a=p.presence&&p.presence.ans;if(a&&a.k===key&&a.v!=null&&a.v!=="")m[keyOf(p)]=String(a.v).slice(0,40)}return m}
 function eligible(V){const pk=presentKeys();return (V.tied||V.players.map((_,i)=>i)).filter(i=>V.players[i]&&pk.has(V.players[i].k))}
+let autoK=null;
 function autoReveal(){
  if(ROLE()!=="host"||S.phase!=="q"||S.play==="buzzer")return;
  const el=eligible(S);if(!el.length)return;const ans=answersNow(curKey());
- if(el.every(i=>ans[S.players[i].k]!=null)){const k=curKey();clearTimeout(autoT);autoT=setTimeout(()=>{if(S.phase==="q"&&curKey()===k)doReveal()},900)}
+ if(el.every(i=>ans[S.players[i].k]!=null)){const k=curKey();if(autoT&&autoK===k)return;clearTimeout(autoT);autoK=k;autoT=setTimeout(()=>{autoT=null;if(S.phase==="q"&&curKey()===k)doReveal()},900)}
 }
 function buildSt(){return{tmax:S.tmax,play:S.play,bz:S.bz&&S.play==="buzzer"?{w:S.bz.who,u:S.bz.until,l:S.bz.locked,n:S.bz.n,tr:S.bz.tries.slice(-6)}:null,pen:S.phase==="a"?S.pen:null,mc:S.deck[S.i]!=null?showMC(S.deck[S.i]):false,ph:S.phase==="home"?"wait":S.phase,cid:S.deck[S.i]??null,key:curKey(),round:S.round,rounds:S.rounds,per:S.per,inRound:S.inRound,timer:S.timer,dl:S.deadline,pz:S.pausedLeft,
  tied:S.tied,pl:S.players.map(p=>[p.k,p.n,p.c,p.s]),cor:S.correct,ans:S.phase==="a"?S.answers:null,gage:S.gage,rev:S.revealed,drumAt:S.drumAt,code:S.online&&S.online.code,hk:myKey}}
@@ -1220,7 +1221,7 @@ function question(){
   ${online?readyHTML():`<div class="actions"><button class="btn primary" data-act="validate" id="vbtn">${l.validate(V.correct.length)}</button></div>`}`
  :ctrl?`<div class="actions"><button class="btn primary" data-act="reveal">${l.reveal}</button><button class="btn quiet" data-act="skip">${l.skip}</button></div>`:""}`;
  const af=document.getElementById("ansf"),ai=document.getElementById("ansin");
- if(ai){let t=null;ai.oninput=()=>{clearTimeout(t);const v=ai.value.trim();if(v&&!BUZ())t=setTimeout(()=>sendAns(v),450)}}
+ if(ai){let t=null;ai.oninput=()=>{clearTimeout(t);const v=ai.value.trim();if(v&&!BUZ())t=setTimeout(()=>{if(!(myAns&&myAns.v===v))sendAns(v)},450)}}
  if(af)af.onsubmit=e=>{e.preventDefault();const v=document.getElementById("ansin").value.trim();if(v)sendAns(v)};
  if(!shown&&V.timer)startTick(C);
  if(!shown&&buz){bzInt=setInterval(()=>{const e=document.getElementById("bzleft"),b=V.bz;if(e&&b&&b.who!=null)e.textContent=L().ansLeft(Math.max(0,Math.ceil((b.until-Date.now())/1000)));
