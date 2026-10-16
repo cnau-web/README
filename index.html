@@ -254,6 +254,12 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .tries .okk{color:#7be0b5}.tries .ko{color:#ffb3ad}
 .notice.bad{background:rgba(229,72,77,.15);color:#ffb3ad}
 .pen{color:#ffb3ad;font-weight:700}
+.dual{display:block;font-size:.8em;font-style:italic;font-weight:500;opacity:.72;margin-top:3px;font-family:var(--body)}
+.q .dual{font-size:.72em}
+.ans .a .dual{font-size:.55em;opacity:.8}
+.gage .dual{color:var(--soft)}
+.tg.lgt{color:var(--ink);background:var(--gold);padding:2px 6px;border-radius:6px;letter-spacing:.04em}
+.lang button{padding:0 11px}
 .readyp .btn.on{background:var(--ok);color:#fff;box-shadow:0 4px 0 #13734c}
 .recap{display:flex;flex-direction:column;gap:10px}
 .rc{background:rgba(255,255,255,.06);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:6px}
@@ -625,6 +631,7 @@ const T={
 };
 
 Object.assign(T.fr,{
+ langHint:"Chacun joue dans sa langue : FR, ES ou FR+ES, en haut de l'accueil ou dans le Menu. Les réponses comptent dans les deux langues.",
  playT:"Le mode de jeu",plays:{classic:["Classique","Tout le monde répond à chaque question"],buzzer:["Buzzer","Le plus rapide appuie et répond seul. Bonne réponse +1, mauvaise réponse −1"]},
  buzz:"BUZZ",buzzHint:"Le premier qui appuie répond seul. Mauvaise réponse : −1 point.",yourTurn:"À toi ! Réponds vite",buzzed:n=>`${n} a buzzé !`,buzzedS:"Seul ce joueur peut répondre. S'il se trompe, le buzzer se rouvre.",bzAuto:"La réponse s'affiche dès que quelqu'un trouve, ou à la fin du chrono.",
  lockedMe:"Raté ! Tu ne peux plus buzzer sur cette question.",spectate:"Tu regardes : seuls les ex aequo peuvent buzzer.",ansLeft:s=>`${s} s pour répondre`,tries:"Tentatives",noTry:"pas de réponse",penalty:"−1",
@@ -647,6 +654,7 @@ Object.assign(T.fr,{
  codeErr:"Le code fait 4 lettres.",nameErr:"Écris ton prénom.",auto:"La réponse s'affiche quand tout le monde a répondu ou à la fin du chrono.",full:"La salle est pleine (12 joueurs)."
 });
 Object.assign(T.es,{
+ langHint:"Cada uno juega en su idioma: FR, ES o FR+ES, arriba en el inicio o en el Menú. Las respuestas valen en los dos idiomas.",
  playT:"El modo de juego",plays:{classic:["Clásico","Todos responden a cada pregunta"],buzzer:["Pulsador","El más rápido pulsa y responde solo. Acierto +1, fallo −1"]},
  buzz:"¡YA!",buzzHint:"El primero que pulsa responde solo. Respuesta mala: −1 punto.",yourTurn:"¡Te toca! Responde rápido",buzzed:n=>`¡${n} ha pulsado!`,buzzedS:"Solo este jugador puede responder. Si falla, el pulsador se vuelve a abrir.",bzAuto:"La respuesta aparece en cuanto alguien acierta o al acabar el tiempo.",
  lockedMe:"¡Fallaste! Ya no puedes pulsar en esta pregunta.",spectate:"Estás mirando: solo los empatados pueden pulsar.",ansLeft:s=>`${s} s para responder`,tries:"Intentos",noTry:"sin respuesta",penalty:"−1",
@@ -671,7 +679,7 @@ Object.assign(T.es,{
 
 /* ---------- state ---------- */
 const KS="pnb3-state",KH="pnb3-hist",KU="pnb3-used",KP="pnb3-player";
-function fresh(){return{v:3,lang:"fr",phase:"home",resumePhase:"q",mode:"local",otab:"host",myName:"",joinCode:"",
+function fresh(){return{v:3,dual:false,lang:/^es/i.test((navigator.languages&&navigator.languages[0])||navigator.language||"")?"es":"fr",phase:"home",resumePhase:"q",mode:"local",otab:"host",myName:"",joinCode:"",
  players:["Pablo","Lucía","Marco","Inès"].map((n,c)=>({k:"x"+c,n,s:0,c})),example:true,
  cats:{seq:true,eni:true,pie:true,cal:true,cul:true},diff:"mid",rounds:3,per:6,timer:30,
  inGame:false,deck:[],i:0,round:1,inRound:0,correct:[],tied:null,gage:0,revealed:false,drumAt:0,notice:"",board:false,
@@ -819,7 +827,7 @@ async function openRoom(code,role){
  joining=false;
  NR.onPeers(onPeers,()=>{});
  const name=role==="host"?S.myName:P.name;
- const pr={role,n:String(name).slice(0,16),ans:myAns};
+ const pr={role,n:String(name).slice(0,16),ans:myAns,lg:S.dual?"fr+es":S.lang};
  if(role==="host")pr.st=buildSt();
  NR.presence(pr).catch(()=>{});
  return true;
@@ -903,7 +911,7 @@ function render(){
  renderMenu();
  if(role==="host")publishSt();
 }
-function langToggle(){return `<div class="lang" role="group" aria-label="Langue / Idioma">${["fr","es"].map(l=>`<button data-act="lang" data-v="${l}" aria-pressed="${S.lang===l}">${l.toUpperCase()}</button>`).join("")}</div>`}
+function langToggle(){return `<div class="lang" role="group" aria-label="Langue / Idioma">${["fr","es"].map(l=>`<button data-act="lang" data-v="${l}" aria-pressed="${S.lang===l&&!S.dual}">${l.toUpperCase()}</button>`).join("")}<button data-act="lang" data-v="dual" aria-pressed="${!!S.dual}">FR+ES</button></div>`}
 function gameTop(){
  const l=L();
  const nd=`<p class="notice" id="netdown" ${NETDOWN?"":"hidden"}>${l.netErr}</p>`;let l1,segs="";
@@ -995,13 +1003,14 @@ const IC_PHONES='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stro
 function lobbyHTML(){
  const l=L(),pk=presentKeys(),hk=ROLE()==="host"?myKey:V.hk;
  if(!V.players.length)return `<p class="hint2">${l.waitHost}</p>`;
- return V.players.map(p=>{const here=pk.has(p.k);return `<div class="lrow ${here?"":"away"}">${av(p)}<span class="nm">${esc(p.n)}</span>${p.k===myKey?`<span class="tg">${l.you}</span>`:""}${p.k===hk?`<span class="tg gold">${l.hostTag}</span>`:""}${here?"":`<span class="tg">${l.away}</span>`}</div>`}).join("");
+ const lg={};for(const q of PEERS){const x=q.presence&&q.presence.lg;if(x)lg[keyOf(q)]=String(x).toUpperCase().slice(0,5)}
+ return V.players.map(p=>{const here=pk.has(p.k);return `<div class="lrow ${here?"":"away"}">${av(p)}<span class="nm">${esc(p.n)}</span>${lg[p.k]?`<span class="tg lgt">${esc(lg[p.k])}</span>`:""}${p.k===myKey?`<span class="tg">${l.you}</span>`:""}${p.k===hk?`<span class="tg gold">${l.hostTag}</span>`:""}${here?"":`<span class="tg">${l.away}</span>`}</div>`}).join("");
 }
 function presentCount(){const pk=presentKeys();return V.players.filter(p=>pk.has(p.k)).length}
 function lobby(){
  const l=L(),host=ROLE()==="host",code=host?S.online.code:P.code;
  app.innerHTML=gameTop()+`<article class="card" style="text-align:center;align-items:center">
-  <span class="lbl">${l.lobbyCode}</span><div class="codebig">${esc(code)}</div><p class="hint" style="margin:0">${l.lobbyHow}</p>
+  <span class="lbl">${l.lobbyCode}</span><div class="codebig">${esc(code)}</div><p class="hint" style="margin:0">${l.lobbyHow}</p><p class="hint" style="margin:0">${l.langHint}</p>
   ${STANDALONE&&host?`<div class="invite"><span class="lbl">${l.linkLbl}</span><input id="invlink" readonly value="${esc(inviteLink(code))}"><button class="btn primary" data-act="copylink" id="copybtn">${l.copyLink}</button></div>`:""}</article>
   <section class="panel"><div class="ph"><h3>${l.connected}</h3></div><div class="lobby" id="lobbylist">${lobbyHTML()}</div></section>
   ${host?`<div class="actions"><button class="btn primary" id="startbtn" data-act="startonline" ${presentCount()<2?"disabled":""}>${l.startOnline}</button><button class="btn quiet" data-act="gohome2">${l.editSettings}</button></div>
@@ -1015,6 +1024,9 @@ function playerWait(){
 }
 
 function catOf(id){return CARDS[id][0]}
+const OL=()=>S.lang==="es"?"fr":"es";
+function dualTxt(id,i,main){if(!S.dual)return esc(main);const o=CARDS[id][S.lang==="es"?1:2][i];return o&&o!==main?`${esc(main)}<span class="dual" lang="${OL()}">${esc(o)}</span>`:esc(main)}
+function dualOpt(id,k,o){if(!S.dual)return esc(o);const oo=CARDS[id][S.lang==="es"?1:2][3],x=oo&&oo[k];return x&&x!==o?`${esc(o)}<span class="dual" lang="${OL()}">${esc(x)}</span>`:esc(o)}
 function face(id){return CARDS[id][S.lang==="es"?2:1]}
 const cidOf=v=>v.cid!==undefined?v.cid:S.deck[S.i];
 function remaining(){if(V.pausedLeft!=null)return V.pausedLeft;return Math.max(0,Math.ceil((V.deadline-Date.now())/1000))}
@@ -1031,8 +1043,8 @@ function question(){
  const mine=myAns&&myAns.k===myKeyNow?myAns.v:"";
  const myIdx=V.players.findIndex(p=>p.k===myKey),buz=BUZ()&&!!V.bz,bzMine=buz&&V.bz.who===myIdx&&myIdx>=0;
  const canAnswer=online&&!shown&&(buz?bzMine:(!V.tied||V.tied.some(i=>V.players[i]&&V.players[i].k===myKey)));
- const optHTML=opts?`<div class="opts">${opts.map((o,k)=>canAnswer?`<button class="opt pick ${mine==="#"+k?"sel":""}" data-act="pick" data-v="${k}"><span class="k">${"ABCD"[k]}</span><span>${esc(o)}</span></button>`
-  :`<div class="opt ${shown?(o===a?"right":"dim"):""}"><span class="k">${"ABCD"[k]}</span><span>${esc(o)}</span></div>`).join("")}</div>`:"";
+ const optHTML=opts?`<div class="opts">${opts.map((o,k)=>canAnswer?`<button class="opt pick ${mine==="#"+k?"sel":""}" data-act="pick" data-v="${k}"><span class="k">${"ABCD"[k]}</span><span>${dualOpt(id,k,o)}</span></button>`
+  :`<div class="opt ${shown?(o===a?"right":"dim"):""}"><span class="k">${"ABCD"[k]}</span><span>${dualOpt(id,k,o)}</span></div>`).join("")}</div>`:"";
  const C=2*Math.PI*28;
  const ansMap=V.answers||{};
  const whoChip=k=>{const p=V.players[k];const on=V.correct.includes(k);const sa=online?showAns(ansMap[p.k],id):null;
@@ -1044,9 +1056,9 @@ function question(){
  ${V.tied?`<p class="notice">${l.tieSub} : ${V.tied.map(k=>esc(V.players[k]?.n||"?")).join(", ")}</p>`:""}
  <article class="card" id="card" style="--c:var(--${c})">
   <div class="cardhd"><span class="badge">${ICON[c]}${l.catS[c]}</span><span class="lvl dk" title="${l.lv[LEVEL[id]]}">${[1,2,3].map(n=>`<i class="${n<=LEVEL[id]?"on":""}"></i>`).join("")}<span class="lt">${l.lv[LEVEL[id]]}</span></span></div>
-  <p class="q">${esc(q)}</p>
+  <p class="q">${dualTxt(id,0,q)}</p>
   ${optHTML}
-  ${shown?`<div class="ans"><span class="lbl">${l.answer}</span><div class="a">${esc(a)}</div>${w?`<div class="expl"><span class="lbl">${l.expl}</span>${esc(w)}</div>`:""}</div>`
+  ${shown?`<div class="ans"><span class="lbl">${l.answer}</span><div class="a">${dualTxt(id,1,a)}</div>${w?`<div class="expl"><span class="lbl">${l.expl}</span>${esc(w)}</div>`:""}${S.dual&&CARDS[id][S.lang==="es"?1:2][2]?`<div class="expl" lang="${OL()}"><span class="lbl">${T[OL()].expl}</span>${esc(CARDS[id][S.lang==="es"?1:2][2])}</div>`:""}</div>`
   :V.timer?`<div class="timer" id="tm"><button class="ring" ${ctrl?`data-act="pause"`:"disabled"} aria-label="${l.tapPause}"><svg viewBox="0 0 66 66"><circle class="tr" cx="33" cy="33" r="28" fill="none" stroke-width="6"/><circle class="pr" id="pr" cx="33" cy="33" r="28" fill="none" stroke-width="6" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-remaining()/V.timer)}"/></svg><span id="secs">${remaining()}</span></button><p id="tmsg">${V.pausedLeft!=null?l.paused:online?(buz?l.bzAuto:l.auto):l.tapPause}</p></div>`
   :`<div class="timer"><p>${online?l.auto:l.think}</p></div>`}
  </article>
@@ -1089,7 +1101,7 @@ function recapHTML(){const l=L(),E=recapEntries();if(!E.length)return `<p class=
   const hasAns=ONLINE()&&e.ans;
   const pen=new Set(e.pen||[]);const lines=hasAns?Object.values(names).map(p=>{const sa=showAns(e.ans[p.k],e.id);const ok=cor.has(p.k);return `<span class="${ok?"okk":"ko"}">${ok?"✓":"✗"} ${esc(p.n)} · ${sa?esc(sa):l.noAnswer}${pen.has(p.k)?" (−1)":""}</span>`}).join("")
    :(cor.size?`<span class="okk">✓ ${l.got} : ${[...cor].map(k=>esc(names[k]?names[k].n:"?")).join(", ")}</span>`:`<span class="ko">${l.nobodyGot}</span>`);
-  return `<div class="rc" style="--c:var(--${c})"><div class="rch"><i></i>${n+1} · ${l.catS[c]}</div><p class="rq">${esc(q)}</p><p class="ra">${esc(a)}</p><div class="rl">${lines}</div>${w?`<details><summary>${l.showExpl}</summary><div class="expl">${esc(w)}</div></details>`:""}</div>`}).join("")}</div>`}
+  return `<div class="rc" style="--c:var(--${c})"><div class="rch"><i></i>${n+1} · ${l.catS[c]}</div><p class="rq">${dualTxt(e.id,0,q)}</p><p class="ra">${dualTxt(e.id,1,a)}</p><div class="rl">${lines}</div>${w?`<details><summary>${l.showExpl}</summary><div class="expl">${esc(w)}</div></details>`:""}</div>`}).join("")}</div>`}
 function startTick(C){
  stopTimer();
  const upd=()=>{const s=document.getElementById("secs"),pr=document.getElementById("pr"),tm=document.getElementById("tm");if(!s){stopTimer();return}
@@ -1133,7 +1145,7 @@ function final(){
  }
  app.innerHTML=gameTop()+`<article class="card verdict" style="--c:var(--bad)"><span class="lbl">${l.isLoser}</span>
   <div class="big pop">${esc(p.n)}</div><p class="hint" style="margin:0">${l.pts(p.s)}</p>
-  <div class="gage"><span class="lbl">${l.gage}</span>${esc(G[V.gage%G.length])}</div></article>
+  <div class="gage"><span class="lbl">${l.gage}</span>${esc(G[V.gage%G.length])}${S.dual?`<span class="dual" lang="${OL()}">${esc(GAGES[OL()][V.gage%G.length])}</span>`:""}</div></article>
  ${boardHTML([k])}
  ${ctrl?`<div class="actions"><button class="btn ghost" data-act="othergage">${l.otherGage}</button><button class="btn primary" data-act="rematch">${l.rematch}</button><button class="btn ghost" data-act="recap">${l.recap}</button><button class="btn quiet" data-act="gohome">${l.home}</button></div>`:`<div class="actions"><button class="btn ghost" data-act="recap">${l.recap}</button><button class="btn ghost" data-act="leave">${l.leave}</button></div>`}`;
 }
@@ -1198,7 +1210,7 @@ document.addEventListener("click",e=>{
  if(act==="closemenu"&&e.target!==b)return;
  const ctl=CTRL();
  switch(act){
-  case"lang":S.lang=v;lastPKey="";render();break;
+  case"lang":if(v==="dual")S.dual=true;else{S.lang=v;S.dual=false}lastPKey="";if(NR)NR.presence({lg:S.dual?"fr+es":S.lang}).catch(()=>{});render();break;
   case"mode":S.mode=v;joinErr="";render();break;
   case"otab":S.otab=v;joinErr="";render();break;
   case"create":createRoom();break;
