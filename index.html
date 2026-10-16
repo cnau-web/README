@@ -269,6 +269,10 @@ input,textarea{font-size:16px!important}
 .seqblk{display:block;margin-top:10px;font-family:var(--body);font-weight:700;font-size:1.05em;letter-spacing:.12em;word-spacing:.2em;line-height:1.6;background:var(--cream);border-radius:12px;padding:8px 12px}
 .dual .seqblk,.rq .seqblk{display:inline;background:none;padding:0;margin:0}
 .rq .stroop{display:inline;font-size:1em;margin:0}
+.btn svg{flex:none}
+.btn.wa{background:#25d366;color:#08331b;box-shadow:0 4px 0 #1a9e4b;text-decoration:none}
+.btn.ghost.dark{color:var(--ink);border-color:var(--line);min-height:46px;font-size:15px}
+.sharegame{margin:16px auto 0;display:inline-flex;align-items:center;gap:8px;height:42px;padding:0 16px;border-radius:999px;border:1.5px solid rgba(244,183,60,.6);color:var(--gold);font-weight:700;font-size:15px}
 .readyp .btn.on{background:var(--ok);color:#fff;box-shadow:0 4px 0 #13734c}
 .recap{display:flex;flex-direction:column;gap:10px}
 .rc{background:rgba(255,255,255,.06);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:6px}
@@ -698,6 +702,7 @@ const T={
 };
 
 Object.assign(T.fr,{
+ shareBtn:"Partager le lien",waBtn:"Envoyer sur WhatsApp",shareGame:"Partager le jeu",shared:"Partagé !",
  langHint:"Chacun joue dans sa langue : FR, ES ou FR+ES, en haut de l'accueil ou dans le Menu. Les réponses comptent dans les deux langues.",
  playT:"Le mode de jeu",plays:{classic:["Classique","Tout le monde répond à chaque question"],buzzer:["Buzzer","Le plus rapide appuie et répond seul. Bonne réponse +1, mauvaise réponse −1"]},
  buzz:"BUZZ",buzzHint:"Le premier qui appuie répond seul. Mauvaise réponse : −1 point.",yourTurn:"À toi ! Réponds vite",buzzed:n=>`${n} a buzzé !`,buzzedS:"Seul ce joueur peut répondre. S'il se trompe, le buzzer se rouvre.",bzAuto:"La réponse s'affiche dès que quelqu'un trouve, ou à la fin du chrono.",
@@ -721,6 +726,7 @@ Object.assign(T.fr,{
  codeErr:"Le code fait 4 lettres.",nameErr:"Écris ton prénom.",auto:"La réponse s'affiche quand tout le monde a répondu ou à la fin du chrono.",full:"La salle est pleine (12 joueurs)."
 });
 Object.assign(T.es,{
+ shareBtn:"Compartir el enlace",waBtn:"Enviar por WhatsApp",shareGame:"Compartir el juego",shared:"¡Compartido!",
  langHint:"Cada uno juega en su idioma: FR, ES o FR+ES, arriba en el inicio o en el Menú. Las respuestas valen en los dos idiomas.",
  playT:"El modo de juego",plays:{classic:["Clásico","Todos responden a cada pregunta"],buzzer:["Pulsador","El más rápido pulsa y responde solo. Acierto +1, fallo −1"]},
  buzz:"¡YA!",buzzHint:"El primero que pulsa responde solo. Respuesta mala: −1 punto.",yourTurn:"¡Te toca! Responde rápido",buzzed:n=>`¡${n} ha pulsado!`,buzzedS:"Solo este jugador puede responder. Si falla, el pulsador se vuelve a abrir.",bzAuto:"La respuesta aparece en cuanto alguien acierta o al acabar el tiempo.",
@@ -928,6 +934,12 @@ async function openRoom(code,role){
 }
 async function leaveRoom(){const r=NR;NR=null;PEERS=[];hostSt=null;myAns=null;if(r){try{await r.leave()}catch(e){}}}
 function applyHash(){const m=/^#([A-Za-z]{4})$/.exec(location.hash||"");if(m&&!S.online&&!P){S.mode="online";S.otab="join";S.joinCode=m[1].toUpperCase();if(S.phase!=="home"&&!S.inGame)S.phase="home"}}
+const canShare=()=>STANDALONE&&!!navigator.share;
+function inviteMsg(code,noLink){return `On joue au Plus Nul de la Bande ! Code : ${code}\n¡Jugamos a El Más Tonto del Grupo! Código: ${code}`+(noLink?"":`\n${inviteLink(code)}`)}
+function gameMsg(){return "Le Plus Nul de la Bande · El Más Tonto del Grupo"}
+function doShare(text,url,btn){const done=()=>{if(btn)btn.textContent=L().shared};
+ if(navigator.share){navigator.share({title:"Le Plus Nul de la Bande",text,url}).then(done,()=>{})}
+ else{try{navigator.clipboard.writeText(text+"\n"+url).then(()=>{if(btn)btn.textContent=L().copied},()=>{})}catch(e){}}}
 function inviteLink(code){return location.href.split("#")[0]+"#"+code}
 function onPeers(ch){
  PEERS=ch.peers.filter(p=>p.kind==="viewer");
@@ -1080,7 +1092,7 @@ function home(){
  }
  app.innerHTML=`
  <div class="top" style="grid-template-columns:1fr auto"><span></span>${langToggle()}</div>
- <header class="hero"><div class="eyebrow">${l.eyebrow}</div><h1>${l.t1}<em>${l.t2}</em></h1><p>${l.tagline}</p></header>
+ <header class="hero"><div class="eyebrow">${l.eyebrow}</div><h1>${l.t1}<em>${l.t2}</em></h1><p>${l.tagline}</p>${STANDALONE?`<button class="sharegame" data-act="sharegame">${IC_SHARE}${l.shareGame}</button>`:""}</header>
  ${S.online?"":`<section class="sec"><h2>${l.modeT}</h2><div class="diffs">${["local","online"].map(m=>`<button class="diff" data-act="mode" data-v="${m}" aria-pressed="${S.mode===m}"><span class="mi-ic">${m==="local"?IC_PHONE:IC_PHONES}</span><span style="min-width:0"><b>${l.modes[m][0]}</b><small>${l.modes[m][1]}</small></span></button>`).join("")}</div></section>`}
  ${body}`;
  const f=document.getElementById("addf");
@@ -1091,6 +1103,8 @@ function home(){
  const mn=document.getElementById("myname");if(mn)mn.oninput=()=>{S.myName=mn.value;save()};
  const jc=document.getElementById("jcode");if(jc)jc.oninput=()=>{jc.value=jc.value.toUpperCase().replace(/[^A-Z]/g,"");S.joinCode=jc.value;save()};
 }
+const IC_SHARE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>';
+const IC_WA='<svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3a.5.5 0 0 0 0-.5l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.8 11.9 11.9 0 0 0 4.6 4c1.7.7 2.4.8 3.2.7a2.8 2.8 0 0 0 1.8-1.3 2.3 2.3 0 0 0 .2-1.3c-.1-.1-.3-.2-.5-.3z"/></svg>';
 const IC_PHONE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg>';
 const IC_PHONES='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2.5" y="5" width="8" height="15" rx="2"/><rect x="13.5" y="5" width="8" height="15" rx="2"/><path d="M6 17h1M17 17h1M11 3.5c.6-.6 1.4-.6 2 0"/></svg>';
 
@@ -1105,7 +1119,10 @@ function lobby(){
  const l=L(),host=ROLE()==="host",code=host?S.online.code:P.code;
  app.innerHTML=gameTop()+`<article class="card" style="text-align:center;align-items:center">
   <span class="lbl">${l.lobbyCode}</span><div class="codebig">${esc(code)}</div><p class="hint" style="margin:0">${l.lobbyHow}</p><p class="hint" style="margin:0">${l.langHint}</p>
-  ${STANDALONE&&host?`<div class="invite"><span class="lbl">${l.linkLbl}</span><input id="invlink" readonly value="${esc(inviteLink(code))}"><button class="btn primary" data-act="copylink" id="copybtn">${l.copyLink}</button></div>`:""}</article>
+  ${STANDALONE&&host?`<div class="invite"><span class="lbl">${l.linkLbl}</span>
+   ${canShare()?`<button class="btn primary" data-act="sharelink" data-v="${esc(code)}">${IC_SHARE}${l.shareBtn}</button>`:""}
+   <a class="btn wa" href="https://wa.me/?text=${encodeURIComponent(inviteMsg(code))}" target="_blank" rel="noopener">${IC_WA}${l.waBtn}</a>
+   <input id="invlink" readonly value="${esc(inviteLink(code))}" aria-label="${l.linkLbl}"><button class="btn ghost dark" data-act="copylink" id="copybtn">${l.copyLink}</button></div>`:""}</article>
   <section class="panel"><div class="ph"><h3>${l.connected}</h3></div><div class="lobby" id="lobbylist">${lobbyHTML()}</div></section>
   ${host?`<div class="actions"><button class="btn primary" id="startbtn" data-act="startonline" ${presentCount()<2?"disabled":""}>${l.startOnline}</button><button class="btn quiet" data-act="gohome2">${l.editSettings}</button></div>
   ${presentCount()<2?`<p class="err" id="needp">${l.needPlayers}</p>`:""}`:`<p class="notice">${l.joinedWait}</p>`}`;
@@ -1333,6 +1350,8 @@ document.addEventListener("click",e=>{
   case"board":S.board=true;renderMenu();break;
   case"recap":menuOpen=true;S.recap=true;renderMenu();break;
   case"qcm":S.qcm=v;render();break;
+  case"sharelink":doShare(inviteMsg(v,true),inviteLink(v),b);break;
+  case"sharegame":doShare(gameMsg(),location.href.split("#")[0],null);break;
   case"play":S.play=v;render();break;
   case"buzz":{if(!V||V.phase!=="q"||!V.bz||V.bz.who!=null)break;b.disabled=true;b.textContent="…";if(NR)NR.presence({buzz:{k:keyNow(),n:V.bz.n,t:Date.now()}}).catch(()=>{});if(ROLE()==="host")setTimeout(buzzCheck,150);break}
   case"copylink":{const inp=document.getElementById("invlink");const ok=()=>{b.textContent=L().copied};
