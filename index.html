@@ -1,0 +1,1087 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d1430">
+<title>Le Plus Nul de la Bande</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,900;1,9..144,900&family=Outfit:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: game-show night stage. One column (max 600px); sticky top bar in game; full-width stacked actions so buttons never collide. Single committed dark look. */
+:root{
+  --night:#0d1430; --night2:#172150; --paper:#fffaf1; --cream:#f5eedf; --ink:#171b38;
+  --gold:#f4b73c; --gold-dk:#b9821a; --soft:#aab3dc; --muted:#666b8c; --line:#e6ddc9;
+  --ok:#1f9d6a; --ok-bg:#e3f5ec; --bad:#e5484d;
+  --seq:#13958a; --eni:#7656e8; --pie:#de4a3f; --cal:#e07a17; --cul:#2d6be0;
+  --display:"Fraunces",Georgia,"Times New Roman",serif;
+  --body:"Outfit",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{margin:0;background:var(--night);color:var(--paper);font-family:var(--body);font-size:16px;line-height:1.5;
+  background-image:radial-gradient(ellipse 80% 45% at 50% -8%,rgba(244,183,60,.20),transparent 70%),
+  radial-gradient(circle at 50% 50%,transparent 38%,rgba(255,255,255,.035) 39% 41%,transparent 42%);
+  background-size:100% 100%,52px 52px;background-attachment:fixed,scroll}
+button{font:inherit;cursor:pointer;border:0;color:inherit;background:none}
+button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+button:disabled{opacity:.45;cursor:not-allowed}
+.app{max-width:600px;margin:0 auto;padding-inline:16px;padding-block:0 36px;display:flex;flex-direction:column;gap:16px}
+
+/* top bar */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;padding-block:10px;background:linear-gradient(var(--night) 75%,rgba(13,20,48,0))}
+.pill{display:inline-flex;align-items:center;gap:6px;height:44px;padding:0 14px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);font-weight:600;font-size:14px;white-space:nowrap}
+.pill svg{width:18px;height:18px;flex:none}
+.prog{min-width:0;text-align:center}
+.prog .l1{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.segs{display:flex;gap:3px;margin-top:6px}
+.segs i{flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,.14)}
+.segs i.d{background:var(--gold)} .segs i.n{background:var(--paper)}
+.lang{display:inline-flex;border-radius:999px;border:1px solid rgba(255,255,255,.2);overflow:hidden;height:40px}
+.lang button{padding:0 14px;font-weight:700;font-size:13px;letter-spacing:.06em;color:var(--soft)}
+.lang button[aria-pressed="true"]{background:var(--gold);color:var(--ink)}
+@media (max-width:380px){.pill .t{display:none}.pill{padding:0 12px}}
+
+/* hero */
+.hero{position:relative;border-radius:26px;padding:34px 22px 28px;text-align:center;background:linear-gradient(160deg,var(--night2),#0f1838)}
+.hero::before,.hero::after{content:"";position:absolute;inset:0;border-radius:26px;padding:7px;pointer-events:none;
+  background:radial-gradient(circle,var(--gold) 2.6px,transparent 3.2px) 0 0/18px 18px;
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+.hero::after{background-position:9px 9px;background-image:radial-gradient(circle,#fff3cf 2.6px,transparent 3.2px);animation:blink 1.1s steps(2,end) infinite}
+@keyframes blink{50%{opacity:.15}}
+.eyebrow{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);font-weight:600}
+.hero h1{font-family:var(--display);font-weight:900;font-size:clamp(40px,12vw,64px);line-height:.95;margin:10px 0 6px;letter-spacing:-.01em;text-wrap:balance}
+.hero h1 em{display:block;font-style:italic;color:var(--gold);font-size:.62em;margin-top:4px}
+.hero p{margin:10px auto 0;max-width:34ch;color:var(--soft)}
+
+/* panels */
+.sec{background:var(--paper);color:var(--ink);border-radius:22px;padding:20px 18px;display:flex;flex-direction:column;gap:14px}
+.sec h2{display:flex;align-items:center;gap:10px;margin:0;font-family:var(--display);font-weight:900;font-size:22px;line-height:1.1}
+.sec h2 .n{width:30px;height:30px;border-radius:50%;background:var(--ink);color:var(--gold);display:grid;place-items:center;font-family:var(--body);font-size:14px;font-weight:700;flex:none}
+.hint{margin:0;color:var(--muted);font-size:14px}
+.add{display:flex;gap:8px}
+.add input{flex:1;min-width:0;font:inherit;padding:12px 14px;border-radius:14px;border:2px solid var(--line);background:#fff;color:var(--ink);height:50px}
+.plist{display:flex;flex-wrap:wrap;gap:8px}
+.pl{display:inline-flex;align-items:center;gap:8px;background:var(--cream);border-radius:999px;padding:4px 4px 4px 4px;font-weight:600;max-width:100%}
+.pl .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pl .x{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:var(--muted)}
+.pl .x:hover{background:#fff;color:var(--bad)}
+.av{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-weight:700;color:#fff;background:var(--pc);flex:none;font-size:14px}
+
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tile{display:flex;align-items:center;gap:10px;padding:10px;border-radius:16px;border:2px solid var(--line);background:#fff;color:var(--ink);text-align:left;min-height:62px;min-width:0}
+.tile .ic{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:var(--cream);color:var(--c);flex:none}
+.tile .ic svg{width:20px;height:20px}
+.tile b{display:block;font-weight:700;font-size:15px;line-height:1.2}
+.tile small{color:var(--muted);font-size:12.5px}
+.tile[aria-pressed="true"]{border-color:var(--c);background:color-mix(in srgb,var(--c) 9%,#fff)}
+.tile[aria-pressed="true"] .ic{background:var(--c);color:#fff}
+.tile.wide{grid-column:1/-1}
+.tile.mix .ic{color:var(--ink)}
+.tile.mix[aria-pressed="true"] .ic{color:#fff;background:conic-gradient(var(--seq) 0 20%,var(--eni) 0 40%,var(--pie) 0 60%,var(--cal) 0 80%,var(--cul) 0)}
+.tile.mix[aria-pressed="true"]{border-color:var(--ink);background:var(--cream)}
+@media (max-width:360px){.tiles{grid-template-columns:1fr}}
+
+.presets{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.preset{padding:10px 12px;border-radius:14px;border:2px solid var(--line);background:#fff;color:var(--ink);text-align:left;min-width:0}
+.preset b{display:block;font-weight:700}
+.preset small{color:var(--muted)}
+.preset[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:var(--paper)}
+.preset[aria-pressed="true"] small{color:var(--gold)}
+.stepper{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:12px;border-top:1px solid var(--line)}
+.stepper .lb{font-weight:600}
+.ctl{display:flex;align-items:center;gap:6px;flex:none}
+.sb{width:44px;height:44px;border-radius:12px;background:var(--cream);color:var(--ink);font-size:22px;font-weight:700;display:grid;place-items:center}
+.val{min-width:2.6ch;text-align:center;font-family:var(--display);font-weight:900;font-size:26px;font-variant-numeric:tabular-nums}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{height:40px;padding:0 14px;border-radius:999px;background:var(--cream);color:var(--ink);font-weight:600}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--gold)}
+.sum{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;background:var(--cream);border-radius:14px;padding:12px 14px}
+.sum b{font-family:var(--display);font-weight:900;font-size:22px}
+.link{color:var(--muted);text-decoration:underline;text-underline-offset:3px;font-size:14px;padding:8px 0;text-align:left}
+.link.warn{color:var(--bad)}
+
+/* buttons */
+.actions{display:grid;gap:10px}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:56px;padding:12px 18px;border-radius:16px;font-weight:700;font-size:17px;text-align:center}
+.btn.primary{background:var(--gold);color:var(--ink);box-shadow:0 4px 0 var(--gold-dk)}
+.btn.primary:active{transform:translateY(2px);box-shadow:0 2px 0 var(--gold-dk)}
+.btn.ghost{background:transparent;color:var(--paper);border:1.5px solid rgba(255,255,255,.28);min-height:50px;font-size:16px}
+.btn.quiet{min-height:44px;font-size:15px;color:var(--soft);font-weight:600}
+.sticky{position:sticky;bottom:0;z-index:5;margin-inline:-16px;padding:20px 16px calc(env(safe-area-inset-bottom,0px) + 14px);background:linear-gradient(rgba(13,20,48,0),var(--night) 40%)}
+.err{margin:0;text-align:center;color:#ffb3ad;font-size:14px}
+
+.resume{border:2px solid var(--gold);border-radius:22px;padding:18px;background:rgba(244,183,60,.08);display:flex;flex-direction:column;gap:12px}
+.resume h3{margin:0;font-family:var(--display);font-weight:900;font-size:22px;color:var(--gold)}
+.resume p{margin:0;color:var(--soft)}
+
+/* question card */
+.card{background:var(--paper);color:var(--ink);border-radius:24px;padding:22px 20px;box-shadow:0 22px 50px rgba(0,0,0,.35);display:flex;flex-direction:column;gap:14px}
+.badge{display:inline-flex;align-items:center;gap:8px;padding:6px 14px 6px 8px;border-radius:999px;background:var(--c);color:#fff;font-weight:700;font-size:12px;letter-spacing:.12em;text-transform:uppercase}
+.badge svg{width:18px;height:18px}
+.q{margin:0;font-family:var(--display);font-weight:600;font-size:clamp(22px,6vw,28px);line-height:1.25;text-wrap:balance}
+.q.small{font-size:clamp(17px,4.5vw,19px);color:var(--muted)}
+.opts{display:grid;grid-template-columns:1fr;gap:8px}
+@media (min-width:460px){.opts{grid-template-columns:1fr 1fr}}
+.opt{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:14px;border:2px solid var(--line);background:#fff;font-weight:600;min-width:0}
+.opt .k{width:28px;height:28px;border-radius:8px;background:var(--ink);color:var(--paper);display:grid;place-items:center;font-size:13px;font-weight:700;flex:none}
+.opt.right{border-color:var(--ok);background:var(--ok-bg)} .opt.right .k{background:var(--ok)}
+.opt.dim{opacity:.4}
+.timer{display:flex;align-items:center;gap:14px;padding-top:14px;border-top:1px dashed var(--line)}
+.ring{position:relative;width:66px;height:66px;border-radius:50%;flex:none}
+.ring svg{width:66px;height:66px;transform:rotate(-90deg)}
+.ring .tr{stroke:var(--cream)} .ring .pr{stroke:var(--c);transition:stroke-dashoffset 1s linear}
+.ring span{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--display);font-weight:900;font-size:22px;font-variant-numeric:tabular-nums}
+.timer p{margin:0;color:var(--muted);font-size:14px}
+.timer.low .pr{stroke:var(--bad)}
+.timer.up p{color:var(--bad);font-weight:700}
+.card.shake{animation:shake .45s}
+@keyframes shake{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+.ans{padding-top:14px;border-top:1px dashed var(--line);display:flex;flex-direction:column;gap:10px}
+.lbl{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.ans .a{font-family:var(--display);font-weight:900;font-size:clamp(28px,8.5vw,40px);line-height:1.1;color:var(--c);animation:pop .35s ease-out}
+.expl{background:var(--cream);border-radius:16px;padding:14px 16px;white-space:pre-line;line-height:1.6;font-size:15.5px}
+.expl .lbl{display:block;margin-bottom:4px}
+.notice{margin:0;padding:10px 14px;border-radius:12px;background:rgba(244,183,60,.12);color:var(--gold);font-size:14px}
+
+.panel{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:22px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.ph{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.ph h3{margin:0;font-family:var(--display);font-weight:900;font-size:21px}
+.quick{display:flex;gap:6px}
+.quick button{height:34px;padding:0 12px;border-radius:999px;border:1px solid rgba(255,255,255,.2);font-size:13px;font-weight:600;color:var(--soft)}
+.who{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.pc{display:flex;align-items:center;gap:8px;padding:6px 10px 6px 6px;border-radius:999px;background:rgba(255,255,255,.07);border:2px solid transparent;min-height:48px;font-weight:600;text-align:left;min-width:0}
+.pc .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pc .ck{width:22px;height:22px;border-radius:50%;border:2px solid rgba(255,255,255,.3);flex:none;display:grid;place-items:center}
+.pc[aria-pressed="true"]{background:rgba(31,157,106,.25);border-color:var(--ok)}
+.pc[aria-pressed="true"] .ck{background:var(--ok);border-color:var(--ok)}
+.pc[aria-pressed="true"] .ck::after{content:"";width:9px;height:5px;border:solid #fff;border-width:0 0 2.5px 2.5px;transform:rotate(-45deg) translate(1px,-1px)}
+
+/* scoreboard */
+.board{display:flex;flex-direction:column;gap:6px}
+.row{display:grid;grid-template-columns:24px 32px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 12px;border-radius:16px;background:rgba(255,255,255,.06)}
+.row .rk{font-family:var(--display);font-weight:900;color:var(--soft);text-align:center}
+.row .nm{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .bar{height:5px;border-radius:3px;background:rgba(255,255,255,.1);margin-top:5px;overflow:hidden}
+.row .bar i{display:block;height:100%;background:var(--gold);border-radius:3px}
+.row .sc{font-family:var(--display);font-weight:900;font-size:22px;font-variant-numeric:tabular-nums}
+.row.top1{background:rgba(244,183,60,.14)}
+.row.last{background:rgba(229,72,77,.18);box-shadow:inset 0 0 0 2px var(--bad)}
+.row.last .bar i{background:var(--bad)}
+.tag{display:inline-block;margin-left:6px;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#ffb3ad;font-weight:700;vertical-align:middle}
+.h2{margin:0;font-family:var(--display);font-weight:900;font-size:28px;line-height:1.1;text-wrap:balance}
+.h2 small{display:block;font-family:var(--body);font-weight:500;font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:6px}
+
+/* verdict */
+.verdict{text-align:center;align-items:center}
+.verdict .lbl{color:var(--muted)}
+.big{font-family:var(--display);font-weight:900;font-size:clamp(44px,14vw,72px);line-height:1;color:var(--bad);word-break:break-word;margin:6px 0}
+.big.pop{animation:pop .5s cubic-bezier(.2,1.6,.4,1)}
+@keyframes pop{from{transform:scale(.3);opacity:0}to{transform:none;opacity:1}}
+.gage{width:100%;text-align:left;background:var(--ink);color:var(--paper);border-radius:16px;padding:14px 16px}
+.gage .lbl{color:var(--gold);display:block;margin-bottom:4px}
+
+/* menu sheet */
+.sheet{position:fixed;inset:0;z-index:50;background:rgba(5,8,22,.72);display:flex;align-items:flex-end;justify-content:center;padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+.sheet .box{width:100%;max-width:560px;background:var(--night2);border:1px solid rgba(255,255,255,.14);border-radius:24px;padding:18px;display:flex;flex-direction:column;gap:12px;animation:up .2s ease-out;max-height:85vh;overflow:auto}
+@keyframes up{from{transform:translateY(20px);opacity:0}}
+.sheet .hd{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.sheet h3{margin:0;font-family:var(--display);font-weight:900;font-size:24px}
+.mi{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;padding:14px 16px;border-radius:16px;background:rgba(255,255,255,.06);text-align:left;font-weight:600}
+.mi small{color:var(--soft);font-weight:400}
+.mi.danger{color:#ffb3ad}
+
+.diffs{display:grid;gap:8px}
+.diff{display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:16px;border:2px solid var(--line);background:#fff;color:var(--ink);text-align:left}
+.diff b{display:block;font-weight:700}
+.diff small{color:var(--muted);font-size:13px}
+.diff[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:var(--paper)}
+.diff[aria-pressed="true"] small{color:var(--soft)}
+.lvl{display:inline-flex;align-items:flex-end;gap:3px;flex:none}
+.lvl i{width:6px;border-radius:2px;background:var(--line)}
+.lvl i:nth-child(1){height:10px}.lvl i:nth-child(2){height:15px}.lvl i:nth-child(3){height:20px}
+.lvl i.on{background:var(--gold)}
+.diff:not([aria-pressed="true"]) .lvl i.on{background:var(--ink)}
+.cardhd{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.lvl.dk{align-items:center}
+.lvl.dk i{width:5px}.lvl.dk i:nth-child(1){height:8px}.lvl.dk i:nth-child(2){height:12px}.lvl.dk i:nth-child(3){height:16px}
+.lvl.dk i.on{background:var(--c)}
+.lvl .lt{margin-left:6px;font-size:12px;font-weight:600;color:var(--muted)}
+.pill.code{font-family:var(--display);font-weight:900;letter-spacing:.14em;color:var(--gold)}
+.errp{margin:0;color:var(--bad);font-weight:600;font-size:14px}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--cream);padding:4px;border-radius:14px}
+.tabs button{min-height:44px;border-radius:10px;font-weight:700;color:var(--muted);font-size:14px;padding:4px 8px}
+.tabs button[aria-pressed="true"]{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.field label{display:block;font-weight:600;margin-bottom:6px;font-size:14px}
+.field input{width:100%;font:inherit;padding:12px 14px;border-radius:14px;border:2px solid var(--line);background:#fff;color:var(--ink);height:52px}
+.field input.codein{text-transform:uppercase;letter-spacing:.35em;font-family:var(--display);font-weight:900;font-size:24px;text-align:center}
+.codebig{font-family:var(--display);font-weight:900;font-size:clamp(52px,17vw,84px);letter-spacing:.14em;line-height:1;color:var(--ink);padding-left:.14em}
+.lobby{display:flex;flex-direction:column;gap:6px}
+.lrow{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:14px;background:rgba(255,255,255,.06);min-width:0}
+.lrow .nm{font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lrow.away{opacity:.45}
+.tg{font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--soft);flex:none}
+.tg.gold{color:var(--gold)}
+.hint2{margin:0;color:var(--soft);font-size:14px}
+.dots{display:flex;flex-wrap:wrap;gap:6px}
+.dot{display:inline-flex;align-items:center;gap:6px;padding:3px 10px 3px 3px;border-radius:999px;background:rgba(255,255,255,.07);font-size:13px;font-weight:600;max-width:100%}
+.dot .av{width:26px;height:26px;font-size:12px}
+.dot.ok{background:rgba(31,157,106,.3)}
+.opt.pick{cursor:pointer;text-align:left;color:var(--ink);font:inherit;font-weight:600}
+.opt.sel{border-color:var(--c);background:color-mix(in srgb,var(--c) 12%,#fff)}
+.opt.sel .k{background:var(--c)}
+.pc .nm small{display:block;color:var(--soft);font-weight:500;font-size:13px;overflow:hidden;text-overflow:ellipsis}
+.pc .nm small i{opacity:.7}
+.pc.ro{cursor:default}
+.who:has(small){grid-template-columns:1fr}
+.mi-ic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--cream);flex:none}
+.mi-ic svg{width:22px;height:22px}
+.diff[aria-pressed="true"] .mi-ic{background:var(--gold);color:var(--ink)}
+.spin{width:44px;height:44px;border-radius:50%;border:4px solid var(--line);border-top-color:var(--gold);animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+[hidden]{display:none!important}
+.invite{display:flex;flex-direction:column;gap:8px;width:100%;margin-top:6px;text-align:left}
+.invite input{width:100%;font:inherit;font-size:14px;padding:10px 12px;border-radius:12px;border:2px solid var(--line);background:#fff;color:var(--ink)}
+.readyp .btn.on{background:var(--ok);color:#fff;box-shadow:0 4px 0 #13734c}
+.recap{display:flex;flex-direction:column;gap:10px}
+.rc{background:rgba(255,255,255,.06);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:6px}
+.rch{display:flex;align-items:center;gap:8px;font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--soft);font-weight:700}
+.rch i{width:10px;height:10px;border-radius:50%;background:var(--c)}
+.rq{margin:0;font-weight:600;line-height:1.4}
+.ra{margin:0;font-family:var(--display);font-weight:900;color:var(--gold);font-size:20px}
+.rl{display:flex;flex-direction:column;gap:3px;font-size:14px}
+.rl .okk{color:#7be0b5}.rl .ko{color:#ffb3ad}
+.rc details summary{cursor:pointer;color:var(--soft);font-size:14px;font-weight:600;padding:4px 0}
+.rc .expl{margin-top:6px;color:var(--ink)}
+.add input::placeholder{color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+
+<div class="app" id="app"></div>
+<div id="sheet"></div>
+
+<script>
+const CARDS = [
+/* ---------- SUITES LOGIQUES ---------- */
+["seq",["2, 6, 12, 20, 30, … ?","42","Regarde les écarts entre deux nombres : 6−2 = 4, 12−6 = 6, 20−12 = 8, 30−20 = 10.\nL'écart augmente de 2 à chaque fois, donc le suivant est 12.\n30 + 12 = 42.\nBonus : chaque terme vaut n × (n+1) : 1×2, 2×3, 3×4, 4×5, 5×6, puis 6×7 = 42."],["2, 6, 12, 20, 30, … ?","42","Mira la diferencia entre cada número: 6−2 = 4, 12−6 = 6, 20−12 = 8, 30−20 = 10.\nLa diferencia sube de 2 en 2, así que la siguiente es 12.\n30 + 12 = 42.\nExtra: cada término es n × (n+1): 1×2, 2×3, 3×4, 4×5, 5×6 y luego 6×7 = 42."]],
+["seq",["U, D, T, Q, C, S, … ?","S","Ce ne sont pas des lettres au hasard : ce sont les initiales des nombres.\nU(n), D(eux), T(rois), Q(uatre), C(inq), S(ix)…\nLe suivant est S(ept)."],["U, D, T, C, C, S, … ?","S","No son letras al azar: son las iniciales de los números.\nU(no), D(os), T(res), C(uatro), C(inco), S(eis)…\nLa siguiente es S(iete)."]],
+["seq",["L, M, M, J, V, S, … ?","D","Ce sont les initiales des jours de la semaine.\nL(undi), M(ardi), M(ercredi), J(eudi), V(endredi), S(amedi)…\nLe suivant est D(imanche)."],["L, M, X, J, V, S, … ?","D","Son las iniciales de los días de la semana.\nL(unes), M(artes), X (miércoles, se usa X para no repetir la M), J(ueves), V(iernes), S(ábado)…\nLa siguiente es D(omingo)."]],
+["seq",["1, 1, 2, 3, 5, 8, … ?","13","C'est la suite de Fibonacci : chaque nombre est la somme des deux précédents.\n1+1 = 2, 1+2 = 3, 2+3 = 5, 3+5 = 8…\nDonc 5 + 8 = 13."],["1, 1, 2, 3, 5, 8, … ?","13","Es la sucesión de Fibonacci: cada número es la suma de los dos anteriores.\n1+1 = 2, 1+2 = 3, 2+3 = 5, 3+5 = 8…\nAsí que 5 + 8 = 13."]],
+["seq",["100, 98, 94, 88, 80, … ?","70","Regarde ce qu'on enlève à chaque étape : −2, −4, −6, −8.\nOn retire à chaque fois 2 de plus que la fois d'avant, donc on retire maintenant 10.\n80 − 10 = 70."],["100, 98, 94, 88, 80, … ?","70","Mira cuánto se resta en cada paso: −2, −4, −6, −8.\nCada vez se resta 2 más que la anterior, así que ahora toca restar 10.\n80 − 10 = 70."]],
+["seq",["2, 3, 5, 7, 11, 13, … ?","17","Ce sont les nombres premiers : divisibles seulement par 1 et par eux-mêmes.\nAprès 13 : 14 (= 2×7), 15 (= 3×5) et 16 (= 2×8) ne sont pas premiers.\n17 ne se divise que par 1 et 17, c'est donc le suivant."],["2, 3, 5, 7, 11, 13, … ?","17","Son los números primos: solo se pueden dividir entre 1 y entre sí mismos.\nDespués de 13: 14 (= 2×7), 15 (= 3×5) y 16 (= 2×8) no son primos.\n17 solo se divide entre 1 y 17, así que es el siguiente."]],
+["seq",["J, F, M, A, M, J, … ?","J","Ce sont les initiales des mois de l'année.\nJ(anvier), F(évrier), M(ars), A(vril), M(ai), J(uin)…\nLe suivant est J(uillet)."],["E, F, M, A, M, J, … ?","J","Son las iniciales de los meses del año.\nE(nero), F(ebrero), M(arzo), A(bril), M(ayo), J(unio)…\nLa siguiente es J(ulio)."]],
+["seq",["3, 9, 27, 81, … ?","243","On multiplie par 3 à chaque fois : 3×3 = 9, 9×3 = 27, 27×3 = 81.\nDonc 81 × 3 = 243.\n(Ce sont les puissances de 3.)"],["3, 9, 27, 81, … ?","243","Se multiplica por 3 cada vez: 3×3 = 9, 9×3 = 27, 27×3 = 81.\nAsí que 81 × 3 = 243.\n(Son las potencias de 3.)"]],
+["seq",["1, 4, 9, 16, 25, … ?","36","Ce sont les carrés : 1×1, 2×2, 3×3, 4×4, 5×5.\nLe suivant est 6×6 = 36.\nAutre façon de voir : les écarts sont 3, 5, 7, 9, puis 11. 25 + 11 = 36."],["1, 4, 9, 16, 25, … ?","36","Son los cuadrados: 1×1, 2×2, 3×3, 4×4, 5×5.\nEl siguiente es 6×6 = 36.\nOtra forma: las diferencias son 3, 5, 7, 9 y luego 11. 25 + 11 = 36."]],
+["seq",["2, 4, 8, 16, 32, … ?","64","Chaque nombre est le double du précédent.\n32 × 2 = 64.\n(Ce sont les puissances de 2, la base de l'informatique : 64, 128, 256…)"],["2, 4, 8, 16, 32, … ?","64","Cada número es el doble del anterior.\n32 × 2 = 64.\n(Son las potencias de 2, la base de la informática: 64, 128, 256…)"]],
+["seq",["1, 3, 6, 10, 15, … ?","21","On ajoute 2, puis 3, puis 4, puis 5.\nLe prochain ajout est donc 6 : 15 + 6 = 21.\nCe sont les nombres triangulaires : le nombre de boules pour former un triangle, comme au billard."],["1, 3, 6, 10, 15, … ?","21","Se suma 2, luego 3, 4 y 5.\nAhora toca sumar 6: 15 + 6 = 21.\nSon los números triangulares: las bolas necesarias para formar un triángulo, como en el billar."]],
+["seq",["0, 1, 8, 27, 64, … ?","125","Ce sont les cubes : 0×0×0 = 0, 1×1×1 = 1, 2×2×2 = 8, 3×3×3 = 27, 4×4×4 = 64.\nLe suivant est 5×5×5 = 125."],["0, 1, 8, 27, 64, … ?","125","Son los cubos: 0×0×0 = 0, 1×1×1 = 1, 2×2×2 = 8, 3×3×3 = 27, 4×4×4 = 64.\nEl siguiente es 5×5×5 = 125."]],
+["seq",["5, 10, 9, 18, 17, 34, … ?","33","Deux opérations qui alternent : ×2 puis −1.\n5 ×2 = 10, −1 = 9, ×2 = 18, −1 = 17, ×2 = 34.\nAu tour du −1 : 34 − 1 = 33."],["5, 10, 9, 18, 17, 34, … ?","33","Dos operaciones que se alternan: ×2 y luego −1.\n5 ×2 = 10, −1 = 9, ×2 = 18, −1 = 17, ×2 = 34.\nAhora toca −1: 34 − 1 = 33."]],
+["seq",["Z, X, V, T, R, … ?","P","L'alphabet à l'envers, en sautant une lettre à chaque fois.\nZ (on saute Y), X (on saute W), V (on saute U), T (on saute S), R…\nOn saute Q : la suivante est P."],["Z, X, V, T, R, … ?","P","El abecedario al revés, saltando una letra cada vez.\nZ (se salta Y), X (se salta W), V (se salta U), T (se salta S), R…\nSe salta Q: la siguiente es P."]],
+["seq",["1, 2, 4, 7, 11, 16, … ?","22","Les écarts augmentent de 1 à chaque fois : +1, +2, +3, +4, +5.\nLe prochain est +6 : 16 + 6 = 22."],["1, 2, 4, 7, 11, 16, … ?","22","Las diferencias suben de 1 en 1: +1, +2, +3, +4, +5.\nLa siguiente es +6: 16 + 6 = 22."]],
+["seq",["3, 5, 9, 17, 33, … ?","65","Chaque nombre = le précédent × 2, moins 1.\n3×2−1 = 5, 5×2−1 = 9, 9×2−1 = 17, 17×2−1 = 33.\n33 × 2 − 1 = 65.\nAutre façon : les écarts doublent (2, 4, 8, 16, puis 32)."],["3, 5, 9, 17, 33, … ?","65","Cada número = el anterior × 2, menos 1.\n3×2−1 = 5, 5×2−1 = 9, 9×2−1 = 17, 17×2−1 = 33.\n33 × 2 − 1 = 65.\nOtra forma: las diferencias se duplican (2, 4, 8, 16 y luego 32)."]],
+["seq",["1, 3, 7, 15, 31, … ?","63","Chaque nombre = le précédent × 2, plus 1.\n1×2+1 = 3, 3×2+1 = 7, 7×2+1 = 15, 15×2+1 = 31.\n31 × 2 + 1 = 63.\nAstuce : ce sont les puissances de 2 moins 1 (2, 4, 8, 16, 32, 64, moins 1)."],["1, 3, 7, 15, 31, … ?","63","Cada número = el anterior × 2, más 1.\n1×2+1 = 3, 3×2+1 = 7, 7×2+1 = 15, 15×2+1 = 31.\n31 × 2 + 1 = 63.\nTruco: son las potencias de 2 menos 1 (2, 4, 8, 16, 32, 64, menos 1)."]],
+["seq",["81, 27, 9, 3, … ?","1","On divise par 3 à chaque fois.\n81 ÷ 3 = 27, 27 ÷ 3 = 9, 9 ÷ 3 = 3.\n3 ÷ 3 = 1."],["81, 27, 9, 3, … ?","1","Se divide entre 3 cada vez.\n81 ÷ 3 = 27, 27 ÷ 3 = 9, 9 ÷ 3 = 3.\n3 ÷ 3 = 1."]],
+["seq",["10, 20, 15, 30, 25, … ?","50","Deux opérations qui alternent : ×2 puis −5.\n10 ×2 = 20, −5 = 15, ×2 = 30, −5 = 25.\nAu tour du ×2 : 25 × 2 = 50."],["10, 20, 15, 30, 25, … ?","50","Dos operaciones que se alternan: ×2 y luego −5.\n10 ×2 = 20, −5 = 15, ×2 = 30, −5 = 25.\nAhora toca ×2: 25 × 2 = 50."]],
+["seq",["1, 4, 3, 6, 5, 8, … ?","7","On avance de 3, on recule de 1, et on recommence.\n1 +3 = 4, −1 = 3, +3 = 6, −1 = 5, +3 = 8.\nAu tour du −1 : 8 − 1 = 7."],["1, 4, 3, 6, 5, 8, … ?","7","Se avanza 3, se retrocede 1, y vuelta a empezar.\n1 +3 = 4, −1 = 3, +3 = 6, −1 = 5, +3 = 8.\nAhora toca −1: 8 − 1 = 7."]],
+["seq",["6, 11, 21, 36, 56, … ?","81","Regarde les écarts : +5, +10, +15, +20.\nIls augmentent de 5 à chaque fois, donc le prochain est +25.\n56 + 25 = 81."],["6, 11, 21, 36, 56, … ?","81","Mira las diferencias: +5, +10, +15, +20.\nSuben de 5 en 5, así que la siguiente es +25.\n56 + 25 = 81."]],
+["seq",["12h00, 12h45, 13h30, 14h15, … ?","15h00","On ajoute 45 minutes à chaque fois.\n12h00 + 45 min = 12h45, + 45 min = 13h30, + 45 min = 14h15.\n14h15 + 45 min = 15h00."],["12:00, 12:45, 13:30, 14:15, … ?","15:00","Se suman 45 minutos cada vez.\n12:00 + 45 min = 12:45, + 45 min = 13:30, + 45 min = 14:15.\n14:15 + 45 min = 15:00."]],
+
+/* ---------- ÉNIGMES ---------- */
+["eni",["Le père de Marie a 5 filles : Nana, Nene, Nini, Nono. Comment s'appelle la cinquième ?","Marie","On ne cite que 4 prénoms, et le cerveau veut continuer la série avec « Nunu ».\nMais la phrase commence par « Le père de Marie » : Marie est forcément l'une de ses filles.\nLa cinquième, c'est donc Marie."],["El padre de María tiene 5 hijas: Nana, Nene, Nini, Nono. ¿Cómo se llama la quinta?","María","Solo se dicen 4 nombres y el cerebro quiere seguir la serie con «Nunu».\nPero la frase empieza con «El padre de María»: María es una de sus hijas.\nLa quinta, por tanto, es María."]],
+["eni",["Un avion s'écrase pile sur la frontière franco-espagnole. Dans quel pays enterre-t-on les survivants ?","Nulle part","La question pousse à choisir entre la France et l'Espagne.\nMais les survivants sont… vivants.\nOn ne les enterre donc nulle part."],["Un avión se estrella justo en la frontera entre Francia y España. ¿En qué país entierran a los supervivientes?","En ninguno","La pregunta te hace elegir entre Francia y España.\nPero los supervivientes están… vivos.\nAsí que no se les entierra en ningún sitio."]],
+["eni",["Pendant une course, tu doubles le deuxième. Tu es à quelle place ?","Deuxième","Réflexe : « je suis premier ». Faux.\nTu étais derrière le deuxième, donc troisième. En le doublant, tu prends sa place.\nTu es deuxième, et lui passe troisième. Le premier est toujours devant toi."],["En una carrera adelantas al segundo. ¿En qué posición vas?","Segundo","El reflejo es decir «primero». Error.\nIbas detrás del segundo, o sea tercero. Al adelantarle, ocupas su puesto.\nVas segundo y él pasa a tercero. El primero sigue delante."]],
+["eni",["Combien de mois de l'année ont 28 jours ?","Les 12","On pense tout de suite à février.\nMais la question est « ont 28 jours », pas « ont seulement 28 jours ».\nTous les mois ont au moins 28 jours, donc les 12."],["¿Cuántos meses del año tienen 28 días?","Los 12","Uno piensa enseguida en febrero.\nPero la pregunta es «tienen 28 días», no «tienen solo 28 días».\nTodos los meses tienen al menos 28 días, así que los 12."]],
+["eni",["Un fermier a 17 moutons. Tous meurent sauf 9. Combien lui en reste-t-il ?","9","Le réflexe est de calculer 17 − 9 = 8.\nMais « tous meurent sauf 9 » veut dire que 9 restent en vie.\nIl lui reste donc 9 moutons (et 8 sont morts)."],["Un granjero tiene 17 ovejas. Mueren todas menos 9. ¿Cuántas le quedan?","9","El reflejo es calcular 17 − 9 = 8.\nPero «mueren todas menos 9» quiere decir que 9 siguen vivas.\nLe quedan 9 ovejas (y han muerto 8)."]],
+["eni",["Qu'est-ce qui devient plus grand quand on lui enlève quelque chose ?","Un trou","Presque tout rétrécit quand on lui retire de la matière.\nUn trou, c'est l'inverse : plus on enlève de terre, plus il est grand."],["¿Qué se hace más grande cuanto más le quitas?","Un agujero","Casi todo se hace más pequeño cuando le quitas algo.\nUn agujero es lo contrario: cuanta más tierra sacas, más grande es."]],
+["eni",["Tu entres dans une pièce sombre avec une seule allumette. Il y a une bougie, une lampe à pétrole et un barbecue. Tu allumes quoi en premier ?","L'allumette","On hésite entre la bougie, la lampe et le barbecue.\nMais pour allumer n'importe lequel des trois, il faut d'abord une flamme.\nLa première chose à allumer est donc l'allumette."],["Entras en una habitación a oscuras con una sola cerilla. Hay una vela, un quinqué y una barbacoa. ¿Qué enciendes primero?","La cerilla","Dudas entre la vela, el quinqué y la barbacoa.\nPero para encender cualquiera de los tres hace falta primero una llama.\nLo primero que enciendes es la cerilla."]],
+["eni",["Un escargot est au fond d'un puits de 10 m. Il monte de 3 m le jour et glisse de 2 m la nuit. En combien de jours sort-il ?","8 jours","Le piège est de dire 10 jours (+1 m net par jour).\nAprès chaque jour + nuit, il gagne 1 m : au bout de 7 jours et 7 nuits, il est à 7 m.\nLe 8e jour, il monte de 3 m : 7 + 3 = 10 m. Il est sorti avant la nuit, il ne glisse plus."],["Un caracol está en el fondo de un pozo de 10 m. Sube 3 m de día y resbala 2 m de noche. ¿En cuántos días sale?","8 días","La trampa es decir 10 días (+1 m neto al día).\nCada día y noche avanza 1 m: tras 7 días y 7 noches está a 7 m.\nEl 8.º día sube 3 m: 7 + 3 = 10 m. Sale antes de la noche, así que ya no resbala."]],
+["eni",["Combien de fois peut-on soustraire 10 de 100 ?","Une seule fois","On a envie de répondre 10.\nMais la première fois, on soustrait 10 de 100 et on obtient 90.\nEnsuite, on soustrait 10 de 90, puis de 80… plus jamais de 100."],["¿Cuántas veces puedes restar 10 a 100?","Solo una","Dan ganas de decir 10.\nPero la primera vez le restas 10 a 100 y queda 90.\nDespués le restas 10 a 90, luego a 80… nunca más a 100."]],
+["eni",["Qu'est-ce qui a des dents mais ne mord jamais ?","Un peigne","On pense à un animal, mais il n'y a rien de vivant ici.\nUn peigne a plein de dents et ne mord personne.\n(Une fermeture éclair ou une scie marchent aussi : accepte-les.)"],["¿Qué tiene dientes pero nunca muerde?","Un peine","Uno piensa en un animal, pero no es nada vivo.\nUn peine tiene muchos dientes y no muerde a nadie.\n(Una cremallera o una sierra también valen: acéptalas.)"]],
+["eni",["Plus tu en fais, plus tu en laisses derrière toi. Qu'est-ce que c'est ?","Des pas","Chaque pas que tu fais reste derrière toi.\nPlus tu marches, plus tu en laisses.\n(Les empreintes de pas sont aussi une bonne réponse.)"],["Cuantos más das, más dejas atrás. ¿Qué son?","Los pasos","Cada paso que das se queda atrás.\nCuanto más caminas, más dejas.\n(Las huellas también valen.)"]],
+["eni",["Qu'est-ce qui t'appartient mais que les autres utilisent plus que toi ?","Ton prénom","Ton prénom est à toi.\nMais ce sont surtout les autres qui le disent pour t'appeler ; toi, tu le dis rarement."],["¿Qué es tuyo pero los demás lo usan más que tú?","Tu nombre","Tu nombre es tuyo.\nPero son los demás quienes lo dicen para llamarte; tú casi nunca lo dices."]],
+["eni",["Un homme regarde une photo et dit : « Je n'ai ni frère ni sœur, mais le père de cet homme est le fils de mon père. » Qui est sur la photo ?","Son fils","Découpe la phrase.\n« Le fils de mon père » : il n'a pas de frère, donc c'est lui-même.\nLa phrase devient : « Le père de cet homme, c'est moi ».\nL'homme sur la photo est donc son fils."],["Un hombre mira una foto y dice: «No tengo hermanos, pero el padre de ese hombre es el hijo de mi padre». ¿Quién sale en la foto?","Su hijo","Divide la frase.\n«El hijo de mi padre»: no tiene hermanos, así que es él mismo.\nLa frase queda: «El padre de ese hombre soy yo».\nEl de la foto es su hijo."]],
+["eni",["Qu'est-ce qui monte et ne redescend jamais ?","L'âge","Beaucoup de choses montent puis redescendent : un ballon, un ascenseur, la température.\nTon âge, lui, ne fait que monter, d'un an chaque année."],["¿Qué sube y nunca baja?","La edad","Muchas cosas suben y luego bajan: un globo, un ascensor, la temperatura.\nTu edad solo sube, un año cada año."]],
+["eni",["Deux pères et deux fils vont à la pêche. Chacun attrape un poisson, et ils rentrent avec 3 poissons. Comment est-ce possible ?","Ils sont 3","On imagine 4 personnes, mais ils ne sont que 3 : un grand-père, son fils et son petit-fils.\nLe fils du milieu est à la fois père et fils.\nDeux pères + deux fils = 3 personnes, donc 3 poissons."],["Dos padres y dos hijos van a pescar. Cada uno pesca un pez y vuelven con 3 peces. ¿Cómo es posible?","Son 3","Uno se imagina 4 personas, pero son 3: un abuelo, su hijo y su nieto.\nEl del medio es a la vez padre e hijo.\nDos padres + dos hijos = 3 personas, así que 3 peces."]],
+["eni",["Qu'est-ce qui se mouille en séchant ?","Une serviette","Ça paraît contradictoire.\nMais quand une serviette te sèche, c'est elle qui devient mouillée."],["¿Qué se moja mientras seca?","Una toalla","Parece una contradicción.\nPero cuando una toalla te seca, es ella la que se moja."]],
+["eni",["Qu'est-ce qui a des villes sans maisons, des forêts sans arbres et des rivières sans eau ?","Une carte","Sur une carte, il y a des villes, des forêts et des rivières.\nMais ce ne sont que des dessins : pas de vraies maisons, ni de vrais arbres, ni de vraie eau."],["¿Qué tiene ciudades sin casas, bosques sin árboles y ríos sin agua?","Un mapa","En un mapa hay ciudades, bosques y ríos.\nPero solo están dibujados: no hay casas, ni árboles, ni agua de verdad."]],
+["eni",["Qu'est-ce qui peut remplir une pièce sans prendre de place ?","La lumière","Tout objet prend de la place.\nLa lumière remplit toute la pièce dès qu'on allume, sans occuper le moindre centimètre.\n(Le silence, l'air ou une odeur sont aussi acceptés.)"],["¿Qué puede llenar una habitación sin ocupar espacio?","La luz","Todo objeto ocupa espacio.\nLa luz llena la habitación en cuanto la enciendes, sin ocupar ni un centímetro.\n(El silencio, el aire o un olor también valen.)"]],
+["eni",["Trois interrupteurs dans le couloir, une ampoule dans une pièce fermée. Tu ne peux entrer qu'une seule fois. Comment savoir quel interrupteur allume l'ampoule ?","Avec la chaleur","1. Allume l'interrupteur 1 et attends 5 minutes : l'ampoule chauffe.\n2. Éteins le 1, allume le 2, puis entre.\n3. Ampoule allumée → c'est le 2.\nAmpoule éteinte mais chaude → c'est le 1.\nAmpoule éteinte et froide → c'est le 3."],["Tres interruptores en el pasillo y una bombilla en una habitación cerrada. Solo puedes entrar una vez. ¿Cómo sabes qué interruptor la enciende?","Con el calor","1. Enciende el interruptor 1 y espera 5 minutos: la bombilla se calienta.\n2. Apaga el 1, enciende el 2 y entra.\n3. Bombilla encendida → es el 2.\nApagada pero caliente → es el 1.\nApagada y fría → es el 3."]],
+["eni",["Qu'est-ce qui est plein de trous mais retient quand même l'eau ?","Une éponge","On croit que des trous laissent passer l'eau.\nUne éponge est pleine de trous, et c'est justement grâce à eux qu'elle retient l'eau."],["¿Qué está lleno de agujeros pero aun así retiene el agua?","Una esponja","Uno cree que los agujeros dejan pasar el agua.\nUna esponja está llena de agujeros, y precisamente gracias a ellos retiene el agua."]],
+["eni",["Si tu prononces mon nom, je disparais. Qui suis-je ?","Le silence","Le silence n'existe que tant que personne ne parle.\nDès que tu dis « silence », tu fais du bruit, et il disparaît."],["Si dices mi nombre, desaparezco. ¿Quién soy?","El silencio","El silencio solo existe mientras nadie habla.\nEn cuanto dices «silencio», haces ruido y desaparece."]],
+["eni",["Qu'est-ce qui a un cou mais pas de tête ?","Une bouteille","La partie étroite en haut d'une bouteille s'appelle le col, ou le goulot.\nUne bouteille a donc un cou, mais pas de tête.\n(Une chemise ou une guitare marchent aussi.)"],["¿Qué tiene cuello pero no tiene cabeza?","Una botella","La parte estrecha de arriba se llama el cuello de la botella.\nTiene cuello, pero no cabeza.\n(Una camisa o una guitarra también valen.)"]],
+["eni",["Un homme pousse sa voiture jusqu'à un hôtel et annonce au propriétaire qu'il est ruiné. Que se passe-t-il ?","Il joue au Monopoly","Ça ressemble à un fait divers, mais c'est un jeu de société.\nAu Monopoly, le pion « voiture » arrive sur une case avec un hôtel.\nLe joueur doit payer un loyer énorme, ce qui le ruine."],["Un hombre empuja su coche hasta un hotel y le dice al dueño que está arruinado. ¿Qué pasa?","Juega al Monopoly","Parece una noticia, pero es un juego de mesa.\nEn el Monopoly, la ficha del «coche» cae en una casilla con hotel.\nEl jugador tiene que pagar un alquiler enorme y se arruina."]],
+["eni",["Je suis toujours devant toi, mais tu ne peux jamais me voir. Qui suis-je ?","Le futur","Le futur est toujours devant toi, dans le temps.\nMais dès qu'il arrive, il devient le présent : tu ne le vois jamais vraiment."],["Siempre estoy delante de ti, pero nunca me puedes ver. ¿Quién soy?","El futuro","El futuro siempre está delante de ti, en el tiempo.\nPero en cuanto llega se convierte en presente: nunca lo ves de verdad."]],
+
+/* ---------- PIÈGES ---------- */
+["pie",["Combien d'animaux de chaque espèce Moïse a-t-il fait monter dans l'arche ?","Aucun","On répond « deux » par réflexe, car on connaît l'histoire.\nMais dans la Bible, celui qui construit l'arche, c'est Noé, pas Moïse.\nMoïse n'a fait monter aucun animal."],["¿Cuántos animales de cada especie subió Moisés al arca?","Ninguno","Por reflejo se responde «dos», porque conocemos la historia.\nPero en la Biblia el del arca es Noé, no Moisés.\nMoisés no subió ningún animal."]],
+["pie",["Une batte et une balle coûtent 1,10 € au total. La batte coûte 1 € de plus que la balle. Combien coûte la balle ?","0,05 €","Réflexe : 0,10 €. Mais alors la batte coûterait 1,10 €, et le total ferait 1,20 €.\nAppelons x le prix de la balle. La batte coûte x + 1.\nx + (x + 1) = 1,10 → 2x = 0,10 → x = 0,05.\nBalle 0,05 € + batte 1,05 € = 1,10 €."],["Un bate y una pelota cuestan 1,10 € en total. El bate cuesta 1 € más que la pelota. ¿Cuánto cuesta la pelota?","0,05 €","Reflejo: 0,10 €. Pero entonces el bate costaría 1,10 € y el total sería 1,20 €.\nLlamemos x al precio de la pelota. El bate cuesta x + 1.\nx + (x + 1) = 1,10 → 2x = 0,10 → x = 0,05.\nPelota 0,05 € + bate 1,05 € = 1,10 €."]],
+["pie",["5 machines fabriquent 5 objets en 5 minutes. Combien de temps faut-il à 100 machines pour fabriquer 100 objets ?","5 minutes","Réflexe : 100 minutes. Faux.\n5 machines font 5 objets en 5 minutes : chaque machine fait 1 objet en 5 minutes.\n100 machines qui travaillent en même temps font chacune leur objet en 5 minutes."],["5 máquinas fabrican 5 piezas en 5 minutos. ¿Cuánto tardan 100 máquinas en fabricar 100 piezas?","5 minutos","Reflejo: 100 minutos. Error.\n5 máquinas hacen 5 piezas en 5 minutos: cada máquina hace 1 pieza en 5 minutos.\n100 máquinas trabajando a la vez hacen cada una su pieza en 5 minutos."]],
+["pie",["Des nénuphars doublent de surface chaque jour et couvrent tout le lac en 48 jours. Quand en couvraient-ils la moitié ?","Le 47e jour","Réflexe : 24 jours (la moitié de 48). Faux.\nLa surface double chaque jour. Si le lac est plein le 48e jour, il était à moitié couvert la veille."],["Unos nenúfares doblan su superficie cada día y cubren el lago en 48 días. ¿Cuándo cubrían la mitad?","El día 47","Reflejo: 24 días (la mitad de 48). Error.\nLa superficie se duplica cada día. Si el lago está lleno el día 48, el día antes estaba a la mitad."]],
+["pie",["Divise 30 par un demi, puis ajoute 10. Résultat ?","70","Réflexe : 30 ÷ 2 = 15, + 10 = 25. Faux.\nDiviser par un demi, c'est se demander « combien de demis dans 30 ? ».\nIl y a 60 demis dans 30 (30 ÷ 0,5 = 60).\n60 + 10 = 70."],["Divide 30 entre un medio y suma 10. ¿Resultado?","70","Reflejo: 30 ÷ 2 = 15, + 10 = 25. Error.\nDividir entre un medio es preguntarse «¿cuántos medios caben en 30?».\nEn 30 caben 60 medios (30 ÷ 0,5 = 60).\n60 + 10 = 70."]],
+["pie",["Combien de lettres A dans « MADRID BARCELONA SEVILLA » ?","4","Compte ville par ville.\nMADRID : 1 A.\nBARCELONA : B-A-R-C-E-L-O-N-A → 2 A.\nSEVILLA : 1 A.\nTotal : 1 + 2 + 1 = 4."],["¿Cuántas letras A hay en «MADRID BARCELONA SEVILLA»?","4","Cuenta ciudad por ciudad.\nMADRID: 1 A.\nBARCELONA: B-A-R-C-E-L-O-N-A → 2 A.\nSEVILLA: 1 A.\nTotal: 1 + 2 + 1 = 4."]],
+["pie",["Un médecin te donne 3 cachets à prendre un toutes les demi-heures. Combien de temps durent-ils ?","1 heure","Réflexe : 1 h 30 (3 × 30 min). Faux.\nTu prends le 1er tout de suite, le 2e à 30 min, le 3e à 60 min.\nIl n'y a que 2 intervalles entre 3 cachets : 1 heure."],["Un médico te da 3 pastillas, una cada media hora. ¿Cuánto te duran?","1 hora","Reflejo: 1 h 30 (3 × 30 min). Error.\nTomas la 1.ª enseguida, la 2.ª a los 30 min y la 3.ª a los 60 min.\nEntre 3 pastillas solo hay 2 intervalos: 1 hora."]],
+["pie",["Pendant une course, tu doubles le dernier. Tu es à quelle place ?","Impossible","Pour doubler quelqu'un, il faut être derrière lui.\nPersonne n'est derrière le dernier.\nTu ne peux donc pas le doubler."],["En una carrera adelantas al último. ¿En qué posición vas?","Imposible","Para adelantar a alguien hay que ir detrás de él.\nNadie va detrás del último.\nAsí que no puedes adelantarle."]],
+["pie",["Qu'est-ce qui est le plus lourd : un kilo de plumes ou un kilo de plomb ?","Pareil","Le cerveau entend « plomb » et pense « lourd ».\nMais les deux pèsent exactement un kilo.\nLes plumes prennent simplement beaucoup plus de place."],["¿Qué pesa más: un kilo de plumas o un kilo de plomo?","Lo mismo","El cerebro oye «plomo» y piensa «pesado».\nPero los dos pesan exactamente un kilo.\nLas plumas simplemente ocupan mucho más."]],
+["pie",["Un coq pond un œuf pile sur le sommet d'un toit. De quel côté tombe l'œuf ?","Aucun","On réfléchit au vent et à la pente du toit.\nMais un coq est un mâle : il ne pond pas d'œufs."],["Un gallo pone un huevo justo en lo alto de un tejado. ¿Hacia qué lado cae?","Hacia ninguno","Uno piensa en el viento y en la pendiente del tejado.\nPero un gallo es macho: no pone huevos."]],
+["pie",["Il y a 3 pommes sur la table. Tu en prends 2. Combien de pommes as-tu ?","2","Réflexe : 1 (3 − 2). Faux.\nLa question demande combien TU en as, pas combien il en reste sur la table.\nTu as pris 2 pommes, donc tu en as 2."],["Hay 3 manzanas en la mesa. Coges 2. ¿Cuántas manzanas tienes?","2","Reflejo: 1 (3 − 2). Error.\nLa pregunta es cuántas tienes TÚ, no cuántas quedan en la mesa.\nHas cogido 2, así que tienes 2."]],
+["pie",["Un train électrique roule vers le nord. Le vent souffle vers le sud. Dans quelle direction part la fumée ?","Aucune","On compare la vitesse du train et la force du vent.\nMais un train électrique ne fait pas de fumée."],["Un tren eléctrico va hacia el norte. El viento sopla hacia el sur. ¿Hacia dónde va el humo?","A ningún sitio","Uno compara la velocidad del tren y la fuerza del viento.\nPero un tren eléctrico no echa humo."]],
+["pie",["Un homme a-t-il le droit d'épouser la sœur de sa veuve ?","Non, il est mort","On pense au droit de la famille.\nMais si sa femme est « veuve », c'est que lui est mort.\nUn mort ne peut épouser personne."],["¿Puede un hombre casarse con la hermana de su viuda?","No, está muerto","Uno piensa en las leyes de familia.\nPero si su mujer es «viuda», es que él está muerto.\nUn muerto no se casa con nadie."]],
+["pie",["Avant qu'on découvre l'Everest, quelle était la plus haute montagne du monde ?","L'Everest","On cherche une autre montagne.\nMais l'Everest était déjà la plus haute, même avant qu'on le mesure.\nLa découverte ne change pas sa taille."],["Antes de descubrir el Everest, ¿cuál era la montaña más alta del mundo?","El Everest","Uno busca otra montaña.\nPero el Everest ya era la más alta antes de que lo midieran.\nDescubrirlo no cambia su altura."]],
+["pie",["Combien de temps a duré la guerre de Cent Ans ?","116 ans","Le nom fait croire à 100 ans tout rond.\nElle va de 1337 à 1453, entre la France et l'Angleterre.\n1453 − 1337 = 116 ans (avec de longues trêves)."],["¿Cuánto duró la guerra de los Cien Años?","116 años","El nombre hace pensar en 100 años justos.\nVa de 1337 a 1453, entre Francia e Inglaterra.\n1453 − 1337 = 116 años (con largas treguas)."]],
+["pie",["De quelle couleur était le cheval blanc d'Henri IV ?","Blanc","La réponse est dans la question.\nLe piège marche parce qu'on cherche une astuce là où il n'y en a pas."],["¿De qué color es el caballo blanco de Santiago?","Blanco","La respuesta está en la pregunta.\nLa trampa funciona porque buscamos un truco donde no lo hay."]],
+["pie",["Lis à voix haute : un bus part avec 10 passagers. 3 descendent, 5 montent. 2 descendent, 4 montent. 6 descendent. Combien d'arrêts le bus a-t-il faits ?","3 arrêts","Tout le monde compte les passagers (il en reste 8), mais la question porte sur les arrêts.\nArrêt 1 : 3 descendent, 5 montent.\nArrêt 2 : 2 descendent, 4 montent.\nArrêt 3 : 6 descendent."],["Léelo en voz alta: un autobús sale con 10 pasajeros. Bajan 3, suben 5. Bajan 2, suben 4. Bajan 6. ¿Cuántas paradas ha hecho?","3 paradas","Todos cuentan pasajeros (quedan 8), pero la pregunta es sobre las paradas.\nParada 1: bajan 3, suben 5.\nParada 2: bajan 2, suben 4.\nParada 3: bajan 6."]],
+["pie",["Écris le nombre : onze mille onze cent onze.","12 111","On a envie d'écrire 11 1111, mais ce n'est pas un nombre.\nOnze mille = 11 000.\nOnze cents = 1 100.\nOnze = 11.\n11 000 + 1 100 + 11 = 12 111."],["Escribe el número: once mil, once cientos, once.","12.111","Dan ganas de escribir 11.1111, pero eso no es un número.\nOnce mil = 11.000.\nOnce cientos = 1.100.\nOnce = 11.\n11.000 + 1.100 + 11 = 12.111."]],
+["pie",["Un père et son fils ont un accident. Le père meurt. À l'hôpital, le chirurgien dit : « Je ne peux pas opérer, c'est mon fils. » Comment est-ce possible ?","C'est sa mère","Beaucoup imaginent automatiquement un chirurgien homme.\nLe chirurgien est simplement la mère du garçon."],["Un padre y su hijo tienen un accidente. El padre muere. En el hospital, el cirujano dice: «No puedo operarle, es mi hijo». ¿Cómo es posible?","Es su madre","Mucha gente se imagina automáticamente a un hombre.\nLa cirujana es simplemente la madre del chico."]],
+["pie",["Combien de fois écrit-on le chiffre 9 quand on écrit tous les nombres de 1 à 100 ?","20 fois","Réflexe : 10 ou 11. Faux.\nEn chiffre des unités : 9, 19, 29, 39, 49, 59, 69, 79, 89, 99 → 10 fois.\nEn chiffre des dizaines : 90, 91, … 99 → 10 fois.\n99 compte deux fois. Total : 20."],["¿Cuántas veces se escribe la cifra 9 al escribir todos los números del 1 al 100?","20 veces","Reflejo: 10 u 11. Error.\nEn las unidades: 9, 19, 29, 39, 49, 59, 69, 79, 89, 99 → 10 veces.\nEn las decenas: 90, 91, … 99 → 10 veces.\nEl 99 cuenta dos veces. Total: 20."]],
+["pie",["Quel mot est toujours écrit incorrectement dans le dictionnaire ?","Incorrectement","On cherche une faute d'orthographe connue.\nMais le mot « incorrectement » est toujours écrit… « incorrectement ».\nC'est un jeu de mots."],["¿Qué palabra se escribe siempre incorrectamente en el diccionario?","Incorrectamente","Uno busca una falta de ortografía famosa.\nPero la palabra «incorrectamente» siempre se escribe… «incorrectamente».\nEs un juego de palabras."]],
+["pie",["A-t-on le droit de prendre une photo d'un homme avec une jambe de bois ?","Non, avec un appareil","On pense au droit à l'image.\nMais on ne prend pas une photo AVEC une jambe de bois.\nOn la prend avec un appareil photo (ou un téléphone)."],["¿Se puede hacer una foto a un hombre con una pata de palo?","No, con una cámara","Uno piensa en el derecho a la imagen.\nPero una foto no se hace CON una pata de palo.\nSe hace con una cámara (o con el móvil)."]],
+["pie",["Tu pilotes un avion Paris–Madrid avec 120 passagers. Il fait 18 °C à l'arrivée. Quel âge a le pilote ?","Ton âge","On cherche un calcul avec 120 et 18.\nMais la question commence par « Tu pilotes » : le pilote, c'est toi."],["Pilotas un avión París–Madrid con 120 pasajeros. Hace 18 °C al llegar. ¿Qué edad tiene el piloto?","Tu edad","Uno busca una cuenta con 120 y 18.\nPero la pregunta empieza con «Pilotas»: el piloto eres tú."]],
+
+/* ---------- CALCUL MENTAL ---------- */
+["cal",["De tête : 1000 + 40 + 1000 + 30 + 1000 + 20 + 1000 + 10 = ?","4100","Le piège est de dire 5000 en fin de calcul.\nPas à pas : 1000 → 1040 → 2040 → 2070 → 3070 → 3090 → 4090 → 4100.\nAutre méthode : quatre fois 1000 = 4000, et 40 + 30 + 20 + 10 = 100."],["De cabeza: 1000 + 40 + 1000 + 30 + 1000 + 20 + 1000 + 10 = ?","4100","La trampa es decir 5000 al final.\nPaso a paso: 1000 → 1040 → 2040 → 2070 → 3070 → 3090 → 4090 → 4100.\nOtra forma: cuatro veces 1000 = 4000, y 40 + 30 + 20 + 10 = 100."]],
+["cal",["15 % de 80 € ?","12 €","Coupe 15 % en 10 % + 5 %.\n10 % de 80 = 8.\n5 %, c'est la moitié de 10 % : 4.\n8 + 4 = 12 €."],["¿El 15 % de 80 €?","12 €","Divide el 15 % en 10 % + 5 %.\nEl 10 % de 80 = 8.\nEl 5 % es la mitad del 10 %: 4.\n8 + 4 = 12 €."]],
+["cal",["Une tournée de 7 cañas à 2,50 € pièce. Combien ?","17,50 €","Sépare les euros et les centimes.\n7 × 2 € = 14 €.\n7 × 0,50 € = 3,50 €.\n14 + 3,50 = 17,50 €."],["Una ronda de 7 cañas a 2,50 € cada una. ¿Cuánto?","17,50 €","Separa euros y céntimos.\n7 × 2 € = 14 €.\n7 × 0,50 € = 3,50 €.\n14 + 3,50 = 17,50 €."]],
+["cal",["Si 3 chats attrapent 3 souris en 3 minutes, combien de chats faut-il pour 100 souris en 100 minutes ?","3 chats","Réflexe : 100 chats. Faux.\nChaque chat attrape 1 souris toutes les 3 minutes.\nEn 100 minutes, un chat en attrape environ 33.\n3 chats × 33 ≈ 100 souris. Les 3 mêmes chats suffisent."],["Si 3 gatos cazan 3 ratones en 3 minutos, ¿cuántos gatos hacen falta para 100 ratones en 100 minutos?","3 gatos","Reflejo: 100 gatos. Error.\nCada gato caza 1 ratón cada 3 minutos.\nEn 100 minutos, un gato caza unos 33.\n3 gatos × 33 ≈ 100 ratones. Bastan los mismos 3."]],
+["cal",["Quel est le double de la moitié de 2 ?","2","On prend la moitié, puis on double : les deux opérations s'annulent.\nLa moitié de 2 = 1. Le double de 1 = 2."],["¿Cuál es el doble de la mitad de 2?","2","Primero la mitad y luego el doble: una operación anula la otra.\nLa mitad de 2 = 1. El doble de 1 = 2."]],
+["cal",["Combien font 11 × 11 ?","121","11 × 11 = 11 × 10 + 11 = 110 + 11 = 121.\nAstuce pour multiplier par 11 un nombre à deux chiffres : on écarte les deux chiffres et on met leur somme au milieu. 1_1 → 1(1+1)1 → 121."],["¿Cuánto es 11 × 11?","121","11 × 11 = 11 × 10 + 11 = 110 + 11 = 121.\nTruco para multiplicar por 11 un número de dos cifras: separa las cifras y pon su suma en medio. 1_1 → 1(1+1)1 → 121."]],
+["cal",["De tête : 25 × 16 = ?","400","Astuce : 16 = 4 × 4.\n25 × 4 = 100.\n100 × 4 = 400."],["De cabeza: 25 × 16 = ?","400","Truco: 16 = 4 × 4.\n25 × 4 = 100.\n100 × 4 = 400."]],
+["cal",["Si tu additionnes tous les points d'un dé à 6 faces, tu obtiens combien ?","21","1 + 2 + 3 + 4 + 5 + 6 = 21.\nAstuce : les faces opposées font toujours 7 (1-6, 2-5, 3-4), donc 3 × 7 = 21."],["Si sumas todos los puntos de un dado de 6 caras, ¿cuánto da?","21","1 + 2 + 3 + 4 + 5 + 6 = 21.\nTruco: las caras opuestas siempre suman 7 (1-6, 2-5, 3-4), así que 3 × 7 = 21."]],
+["cal",["Combien y a-t-il de minutes dans une journée ?","1 440","Une journée = 24 heures, une heure = 60 minutes.\n24 × 60 = 1 440.\nDe tête : 24 × 6 = 144, puis on ajoute un zéro."],["¿Cuántos minutos hay en un día?","1.440","Un día = 24 horas, una hora = 60 minutos.\n24 × 60 = 1.440.\nDe cabeza: 24 × 6 = 144 y se añade un cero."]],
+["cal",["Combien de secondes dans une heure ?","3 600","1 heure = 60 minutes, 1 minute = 60 secondes.\n60 × 60 = 3 600."],["¿Cuántos segundos hay en una hora?","3.600","1 hora = 60 minutos, 1 minuto = 60 segundos.\n60 × 60 = 3.600."]],
+["cal",["De tête : 99 + 99 + 99 = ?","297","Astuce : 99 = 100 − 1.\n3 × 100 = 300, et on enlève 3 × 1 = 3.\n300 − 3 = 297."],["De cabeza: 99 + 99 + 99 = ?","297","Truco: 99 = 100 − 1.\n3 × 100 = 300, y se quitan 3 × 1 = 3.\n300 − 3 = 297."]],
+["cal",["Un pull à 80 € est soldé −25 %, puis on te fait encore −25 % sur le prix soldé. Combien tu payes ?","45 €","Réflexe : −50 %, donc 40 €. Faux.\nPremière remise : 25 % de 80 = 20, donc 60 €.\nDeuxième remise sur 60 : 25 % de 60 = 15, donc 45 €.\nDeux fois −25 % font en réalité −43,75 %."],["Un jersey de 80 € tiene un −25 %, y luego otro −25 % sobre el precio rebajado. ¿Cuánto pagas?","45 €","Reflejo: −50 %, o sea 40 €. Error.\nPrimer descuento: 25 % de 80 = 20, quedan 60 €.\nSegundo descuento sobre 60: 25 % de 60 = 15, quedan 45 €.\nDos veces −25 % es en realidad −43,75 %."]],
+["cal",["De tête : 1 + 2 + 3 + … + 10 = ?","55","Astuce de Gauss : on fait des paires qui font 11.\n1+10, 2+9, 3+8, 4+7, 5+6 → 5 paires de 11.\n5 × 11 = 55."],["De cabeza: 1 + 2 + 3 + … + 10 = ?","55","Truco de Gauss: se hacen parejas que suman 11.\n1+10, 2+9, 3+8, 4+7, 5+6 → 5 parejas de 11.\n5 × 11 = 55."]],
+["cal",["Une paella pour 6 personnes demande 450 g de riz. Combien pour 10 personnes ?","750 g","On cherche d'abord la portion par personne : 450 ÷ 6 = 75 g.\nPour 10 personnes : 75 × 10 = 750 g."],["Una paella para 6 personas lleva 450 g de arroz. ¿Cuánto para 10?","750 g","Primero la ración por persona: 450 ÷ 6 = 75 g.\nPara 10 personas: 75 × 10 = 750 g."]],
+["cal",["Un train part de Paris à 9 h 30 et arrive à Madrid à 19 h 45. Combien de temps dure le trajet ?","10 h 15","De 9 h 30 à 19 h 30 : 10 heures.\nDe 19 h 30 à 19 h 45 : 15 minutes.\nTotal : 10 h 15. (Pas de décalage horaire entre Paris et Madrid.)"],["Un tren sale de París a las 9:30 y llega a Madrid a las 19:45. ¿Cuánto dura el viaje?","10 h 15 min","De 9:30 a 19:30: 10 horas.\nDe 19:30 a 19:45: 15 minutos.\nTotal: 10 h 15 min. (No hay diferencia horaria entre París y Madrid.)"]],
+["cal",["6 amis se serrent tous la main, une fois par paire. Combien de poignées de main en tout ?","15","Réflexe : 36 ou 30. Faux.\nChacun serre la main des 5 autres : 6 × 5 = 30.\nMais chaque poignée est comptée deux fois (A-B et B-A).\n30 ÷ 2 = 15."],["6 amigos se dan la mano todos entre sí, una vez por pareja. ¿Cuántos apretones de mano hay?","15","Reflejo: 36 o 30. Error.\nCada uno da la mano a los otros 5: 6 × 5 = 30.\nPero cada apretón se cuenta dos veces (A-B y B-A).\n30 ÷ 2 = 15."]],
+["cal",["De tête : 15 × 15 = ?","225","Astuce pour les nombres qui finissent par 5 : on prend le chiffre des dizaines (1) et on le multiplie par le suivant (2) : 1 × 2 = 2.\nPuis on écrit 25 derrière : 225.\nÇa marche aussi pour 25 × 25 : 2 × 3 = 6, puis 25 → 625."],["De cabeza: 15 × 15 = ?","225","Truco para números que acaban en 5: se toma la cifra de las decenas (1) y se multiplica por la siguiente (2): 1 × 2 = 2.\nLuego se escribe 25 detrás: 225.\nTambién funciona con 25 × 25: 2 × 3 = 6, y luego 25 → 625."]],
+["cal",["Un tiers de 90, plus un quart de 40 = ?","40","Un tiers de 90 = 90 ÷ 3 = 30.\nUn quart de 40 = 40 ÷ 4 = 10.\n30 + 10 = 40."],["Un tercio de 90 más un cuarto de 40 = ?","40","Un tercio de 90 = 90 ÷ 3 = 30.\nUn cuarto de 40 = 40 ÷ 4 = 10.\n30 + 10 = 40."]],
+["cal",["Combien font 3 + 3 × 3 − 3 ?","9","Réflexe : 15, en calculant de gauche à droite. Faux.\nLa multiplication passe avant l'addition et la soustraction.\n3 × 3 = 9, puis 3 + 9 − 3 = 9."],["¿Cuánto es 3 + 3 × 3 − 3?","9","Reflejo: 15, calculando de izquierda a derecha. Error.\nLa multiplicación va antes que la suma y la resta.\n3 × 3 = 9, luego 3 + 9 − 3 = 9."]],
+["cal",["Combien de pièces de 20 centimes faut-il pour faire 5 € ?","25","1 € = 5 pièces de 20 centimes.\n5 € = 5 × 5 = 25 pièces."],["¿Cuántas monedas de 20 céntimos hacen falta para 5 €?","25","1 € = 5 monedas de 20 céntimos.\n5 € = 5 × 5 = 25 monedas."]],
+
+/* ---------- CULTURE FRANCE · ESPAGNE ---------- */
+["cul",["Quelle est la capitale de l'Andalousie ?","Séville","Séville est la capitale de l'Andalousie et le siège du gouvernement régional (la Junta).\nGrenade, Malaga et Cordoue sont de grandes villes andalouses, mais pas la capitale.",["Grenade","Séville","Malaga","Cordoue"]],["¿Cuál es la capital de Andalucía?","Sevilla","Sevilla es la capital de Andalucía y sede de la Junta.\nGranada, Málaga y Córdoba son grandes ciudades andaluzas, pero no la capital.",["Granada","Sevilla","Málaga","Córdoba"]]],
+["cul",["Combien l'Espagne compte-t-elle de communautés autonomes ?","17","L'Espagne est divisée en 17 communautés autonomes (Andalousie, Catalogne, Madrid, Pays basque…).\nS'y ajoutent 2 villes autonomes en Afrique du Nord : Ceuta et Melilla.",["12","15","17","22"]],["¿Cuántas comunidades autónomas tiene España?","17","España se divide en 17 comunidades autónomas (Andalucía, Cataluña, Madrid, País Vasco…).\nAdemás hay 2 ciudades autónomas en el norte de África: Ceuta y Melilla.",["12","15","17","22"]]],
+["cul",["Combien de régions compte la France métropolitaine depuis 2016 ?","13","La réforme de 2016 a regroupé les 22 anciennes régions métropolitaines en 13.\nAvec les 5 régions d'outre-mer, la France compte 18 régions au total.",["13","18","22","27"]],["¿Cuántas regiones tiene la Francia metropolitana desde 2016?","13","La reforma de 2016 agrupó las 22 antiguas regiones metropolitanas en 13.\nCon las 5 regiones de ultramar, Francia tiene 18 regiones en total.",["13","18","22","27"]]],
+["cul",["Qui a peint « Guernica » ?","Picasso","Pablo Picasso l'a peint en 1937, après le bombardement de la ville basque de Guernica pendant la guerre civile.\nLe tableau est exposé au musée Reina Sofía, à Madrid.",["Dalí","Picasso","Miró","Goya"]],["¿Quién pintó el «Guernica»?","Picasso","Pablo Picasso lo pintó en 1937, tras el bombardeo de la villa vasca de Guernica durante la Guerra Civil.\nSe expone en el Museo Reina Sofía de Madrid.",["Dalí","Picasso","Miró","Goya"]]],
+["cul",["Quel est le plus haut sommet d'Espagne ?","Le Teide","Le Teide, un volcan de l'île de Tenerife (Canaries), culmine à 3 715 m.\nSur la péninsule, le plus haut est le Mulhacén (3 479 m), dans la Sierra Nevada.",["Le Mulhacén","L'Aneto","Le Teide","Le Veleta"]],["¿Cuál es la montaña más alta de España?","El Teide","El Teide, un volcán de la isla de Tenerife (Canarias), mide 3.715 m.\nEn la península, la más alta es el Mulhacén (3.479 m), en Sierra Nevada.",["El Mulhacén","El Aneto","El Teide","El Veleta"]]],
+["cul",["Quel est le plus haut sommet de France ?","Le mont Blanc","Le mont Blanc, dans les Alpes, mesure environ 4 805 m. Sa hauteur varie de quelques mètres selon la neige au sommet.\nC'est le plus haut sommet d'Europe occidentale.",["Le mont Blanc","Le Vignemale","La barre des Écrins","Le mont Ventoux"]],["¿Cuál es la montaña más alta de Francia?","El Mont Blanc","El Mont Blanc, en los Alpes, mide unos 4.805 m. Su altura varía unos metros según la nieve de la cima.\nEs la cumbre más alta de Europa occidental.",["El Mont Blanc","El Vignemale","La Barre des Écrins","El Mont Ventoux"]]],
+["cul",["Dans quelle ville se trouve la Sagrada Família ?","Barcelone","La basilique de la Sagrada Família est à Barcelone.\nConçue par Antoni Gaudí, elle est en construction depuis 1882 et n'est toujours pas terminée.",["Madrid","Valence","Barcelone","Bilbao"]],["¿En qué ciudad está la Sagrada Familia?","Barcelona","La basílica de la Sagrada Familia está en Barcelona.\nDiseñada por Antoni Gaudí, se construye desde 1882 y aún no está terminada.",["Madrid","Valencia","Barcelona","Bilbao"]]],
+["cul",["Comment s'appelle le stade du Real Madrid ?","Santiago Bernabéu","Le Real Madrid joue au Santiago Bernabéu, du nom d'un ancien président du club.\nLe Camp Nou est au FC Barcelone, le Metropolitano à l'Atlético, Mestalla au Valence CF.",["Camp Nou","Santiago Bernabéu","Metropolitano","Mestalla"]],["¿Cómo se llama el estadio del Real Madrid?","Santiago Bernabéu","El Real Madrid juega en el Santiago Bernabéu, nombre de un antiguo presidente del club.\nEl Camp Nou es del FC Barcelona, el Metropolitano del Atlético y Mestalla del Valencia CF.",["Camp Nou","Santiago Bernabéu","Metropolitano","Mestalla"]]],
+["cul",["En quelle année la France a-t-elle gagné sa première Coupe du monde de football ?","1998","La France gagne sa première Coupe du monde en 1998, à domicile : 3-0 contre le Brésil, avec un doublé de Zidane.\nElle gagne la deuxième en 2018, en Russie.",["1984","1998","2006","2018"]],["¿En qué año ganó Francia su primer Mundial de fútbol?","1998","Francia gana su primer Mundial en 1998, en casa: 3-0 a Brasil, con dos goles de Zidane.\nGana el segundo en 2018, en Rusia.",["1984","1998","2006","2018"]]],
+["cul",["En quelle année l'Espagne a-t-elle gagné la Coupe du monde de football ?","2010","L'Espagne gagne en 2010 en Afrique du Sud, 1-0 contre les Pays-Bas.\nLe but est marqué par Andrés Iniesta en prolongation. C'est sa seule Coupe du monde masculine.",["1982","2006","2010","2014"]],["¿En qué año ganó España el Mundial de fútbol?","2010","España gana en 2010 en Sudáfrica, 1-0 a Países Bajos.\nEl gol lo marca Andrés Iniesta en la prórroga. Es su único Mundial masculino.",["1982","2006","2010","2014"]]],
+["cul",["Quel fleuve traverse Séville ?","Le Guadalquivir","Le Guadalquivir traverse Cordoue et Séville avant de rejoindre l'Atlantique.\nSon nom vient de l'arabe al-wadi al-kabir, « le grand fleuve ».",["Le Tage","L'Èbre","Le Guadalquivir","Le Douro"]],["¿Qué río pasa por Sevilla?","El Guadalquivir","El Guadalquivir pasa por Córdoba y Sevilla antes de llegar al Atlántico.\nSu nombre viene del árabe al-wadi al-kabir, «el río grande».",["El Tajo","El Ebro","El Guadalquivir","El Duero"]]],
+["cul",["Quel est le plus long fleuve de France ?","La Loire","La Loire mesure environ 1 000 km, entièrement en France.\nElle passe notamment par Orléans, Tours et Nantes avant de rejoindre l'Atlantique.",["La Seine","Le Rhône","La Loire","La Garonne"]],["¿Cuál es el río más largo de Francia?","El Loira","El Loira mide unos 1.000 km, todos en Francia.\nPasa por Orleans, Tours y Nantes antes de llegar al Atlántico.",["El Sena","El Ródano","El Loira","El Garona"]]],
+["cul",["Quel est le plus long fleuve de la péninsule Ibérique ?","Le Tage","Le Tage mesure environ 1 000 km. Il naît en Espagne, passe à Tolède et se jette dans l'Atlantique à Lisbonne.\nL'Èbre est le plus long fleuve qui coule entièrement en Espagne.",["L'Èbre","Le Tage","Le Douro","Le Guadiana"]],["¿Cuál es el río más largo de la península ibérica?","El Tajo","El Tajo mide unos 1.000 km. Nace en España, pasa por Toledo y desemboca en Lisboa.\nEl Ebro es el río más largo que discurre entero por España.",["El Ebro","El Tajo","El Duero","El Guadiana"]]],
+["cul",["Qui a écrit « Don Quichotte » ?","Cervantes","Miguel de Cervantes a publié Don Quichotte en deux parties, en 1605 et 1615.\nOn le considère souvent comme le premier roman moderne. L'espagnol est d'ailleurs surnommé « la langue de Cervantes ».",["Lope de Vega","Cervantes","Quevedo","Calderón"]],["¿Quién escribió «Don Quijote de la Mancha»?","Cervantes","Miguel de Cervantes lo publicó en dos partes, en 1605 y 1615.\nSuele considerarse la primera novela moderna. Por eso el español es «la lengua de Cervantes».",["Lope de Vega","Cervantes","Quevedo","Calderón"]]],
+["cul",["Qui a écrit « Les Misérables » ?","Victor Hugo","Victor Hugo a publié Les Misérables en 1862, pendant son exil à Guernesey.\nOn y suit Jean Valjean, Cosette, Javert et Gavroche.",["Émile Zola","Victor Hugo","Alexandre Dumas","Balzac"]],["¿Quién escribió «Los miserables»?","Victor Hugo","Victor Hugo publicó Los miserables en 1862, durante su exilio en Guernsey.\nCuenta la historia de Jean Valjean, Cosette, Javert y Gavroche.",["Émile Zola","Victor Hugo","Alexandre Dumas","Balzac"]]],
+["cul",["Dans quelle ville a lieu la Tomatina, la grande bataille de tomates ?","Buñol","La Tomatina a lieu à Buñol, près de Valence, le dernier mercredi d'août.\nDes milliers de personnes s'y lancent des tonnes de tomates mûres pendant environ une heure.",["Pampelune","Buñol","Valence","Séville"]],["¿En qué pueblo se celebra la Tomatina?","Buñol","La Tomatina se celebra en Buñol, cerca de Valencia, el último miércoles de agosto.\nMiles de personas se lanzan toneladas de tomates durante una hora más o menos.",["Pamplona","Buñol","Valencia","Sevilla"]]],
+["cul",["Dans quelle ville ont lieu les fêtes de San Fermín et leurs courses de taureaux ?","Pampelune","Les Sanfermines ont lieu à Pampelune (Navarre), du 6 au 14 juillet.\nChaque matin, les coureurs courent devant les taureaux dans les rues : c'est l'encierro. Hemingway les a rendues célèbres.",["Pampelune","Séville","Ronda","Salamanque"]],["¿En qué ciudad se celebran los Sanfermines?","Pamplona","Los Sanfermines se celebran en Pamplona (Navarra), del 6 al 14 de julio.\nCada mañana los corredores corren delante de los toros: es el encierro. Hemingway los hizo famosos.",["Pamplona","Sevilla","Ronda","Salamanca"]]],
+["cul",["Qui est devenu roi d'Espagne en 2014, après l'abdication de Juan Carlos Ier ?","Felipe VI","Juan Carlos Ier a abdiqué en juin 2014 en faveur de son fils, Felipe VI.\nSon héritière est sa fille aînée, la princesse Leonor.",["Carlos III","Felipe VI","Alfonso XIV","Juan Carlos II"]],["¿Quién se convirtió en rey de España en 2014, tras la abdicación de Juan Carlos I?","Felipe VI","Juan Carlos I abdicó en junio de 2014 en favor de su hijo, Felipe VI.\nSu heredera es su hija mayor, la princesa Leonor.",["Carlos III","Felipe VI","Alfonso XIV","Juan Carlos II"]]],
+["cul",["Avant l'euro, quelle était la monnaie de l'Espagne ?","La peseta","L'Espagne utilisait la peseta jusqu'à l'arrivée des pièces et billets en euros en 2002 (1 € = 166,386 pesetas).\nL'escudo était la monnaie du Portugal et la lire celle de l'Italie.",["Le réal","L'escudo","La peseta","La lire"]],["Antes del euro, ¿cuál era la moneda de España?","La peseta","España usó la peseta hasta la llegada de las monedas y billetes de euro en 2002 (1 € = 166,386 pesetas).\nEl escudo era la moneda de Portugal y la lira la de Italia.",["El real","El escudo","La peseta","La lira"]]],
+["cul",["Combien de pays ont une frontière terrestre avec la France métropolitaine ?","8","Les 8 voisins : Belgique, Luxembourg, Allemagne, Suisse, Italie, Monaco, Andorre et Espagne.\nOn oublie souvent Monaco et Andorre.",["6","7","8","10"]],["¿Con cuántos países tiene frontera terrestre la Francia metropolitana?","8","Los 8 vecinos: Bélgica, Luxemburgo, Alemania, Suiza, Italia, Mónaco, Andorra y España.\nA menudo se olvidan Mónaco y Andorra.",["6","7","8","10"]]],
+["cul",["Au Pays basque espagnol, quelle langue est co-officielle avec l'espagnol ?","Le basque","Le basque (euskara) est co-officiel au Pays basque et dans une partie de la Navarre.\nC'est une langue isolée : on ne lui connaît aucun lien de parenté avec les autres langues d'Europe.",["Le galicien","Le basque","Le catalan","L'aranais"]],["En el País Vasco, ¿qué lengua es cooficial junto al castellano?","El euskera","El euskera es cooficial en el País Vasco y en parte de Navarra.\nEs una lengua aislada: no se le conoce parentesco con las demás lenguas de Europa.",["El gallego","El euskera","El catalán","El aranés"]]],
+["cul",["Qui a peint « Les Ménines » ?","Velázquez","Diego Velázquez a peint Les Ménines en 1656. On y voit l'infante Marguerite, et le peintre s'est représenté lui-même au travail.\nLe tableau est au musée du Prado, à Madrid.",["Goya","Velázquez","Le Greco","Murillo"]],["¿Quién pintó «Las Meninas»?","Velázquez","Diego Velázquez pintó Las Meninas en 1656. Aparece la infanta Margarita, y el pintor se retrató a sí mismo trabajando.\nEl cuadro está en el Museo del Prado, en Madrid.",["Goya","Velázquez","El Greco","Murillo"]]],
+["cul",["Dans quelle ville espagnole se trouve le musée Guggenheim ?","Bilbao","Le Guggenheim de Bilbao, couvert de titane, a été conçu par l'architecte Frank Gehry et a ouvert en 1997.\nIl a complètement changé l'image de la ville.",["Madrid","Bilbao","Valence","Malaga"]],["¿En qué ciudad española está el Museo Guggenheim?","Bilbao","El Guggenheim de Bilbao, cubierto de titanio, lo diseñó el arquitecto Frank Gehry y abrió en 1997.\nCambió por completo la imagen de la ciudad.",["Madrid","Bilbao","Valencia","Málaga"]]],
+["cul",["En quelle année la tour Eiffel a-t-elle été inaugurée ?","1889","Elle a été inaugurée en 1889 pour l'Exposition universelle, qui célébrait les 100 ans de la Révolution.\nElle devait être démontée au bout de 20 ans, mais elle a été sauvée grâce à son utilité pour la radio.",["1789","1889","1900","1925"]],["¿En qué año se inauguró la torre Eiffel?","1889","Se inauguró en 1889 para la Exposición Universal, que celebraba los 100 años de la Revolución.\nIba a desmontarse a los 20 años, pero se salvó por su utilidad para la radio.",["1789","1889","1900","1925"]]],
+["cul",["Quelle est la particularité de l'hymne national espagnol ?","Il n'a pas de paroles","La Marcha Real fait partie des rares hymnes nationaux sans paroles officielles.\nC'est pour ça que les joueurs espagnols ne chantent pas avant les matchs.",["Il n'a pas de paroles","Il est chanté en latin","Il dure plus de 10 minutes","Il change à chaque roi"]],["¿Qué tiene de especial el himno nacional de España?","No tiene letra","La Marcha Real es uno de los pocos himnos nacionales sin letra oficial.\nPor eso los jugadores españoles no cantan antes de los partidos.",["No tiene letra","Se canta en latín","Dura más de 10 minutos","Cambia con cada rey"]]],
+["cul",["Combien d'îles principales habitées compte l'archipel des Canaries ?","8","Tenerife, Grande Canarie, Lanzarote, Fuerteventura, La Palma, La Gomera, El Hierro et La Graciosa.\nOn en a longtemps compté 7 : La Graciosa est officiellement la 8e île depuis 2018.",["5","7","8","11"]],["¿Cuántas islas principales habitadas tienen las Canarias?","8","Tenerife, Gran Canaria, Lanzarote, Fuerteventura, La Palma, La Gomera, El Hierro y La Graciosa.\nDurante años se decía 7: La Graciosa es oficialmente la octava isla desde 2018.",["5","7","8","11"]]],
+["cul",["Quelle ville française est surnommée « la Ville rose » ?","Toulouse","Toulouse doit son surnom à la brique de ses bâtiments, qui prend une couleur rose-orangé au soleil.",["Toulouse","Lyon","Bordeaux","Montpellier"]],["¿Qué ciudad francesa se conoce como «la Ciudad Rosa»?","Toulouse","Toulouse debe su apodo al ladrillo de sus edificios, que se vuelve rosa anaranjado con el sol.",["Toulouse","Lyon","Burdeos","Montpellier"]]],
+["cul",["Comment s'appelle la soupe froide andalouse à base de tomate ?","Le gaspacho","Le gaspacho se fait avec tomate, concombre, poivron, ail, huile d'olive et vinaigre, mixés et servis froids.\nSon cousin plus épais, le salmorejo, vient de Cordoue.",["La paella","Le gaspacho","La fabada","Le pisto"]],["¿Cómo se llama la sopa fría andaluza de tomate?","El gazpacho","El gazpacho lleva tomate, pepino, pimiento, ajo, aceite de oliva y vinagre, triturados y servidos fríos.\nSu primo más espeso, el salmorejo, es de Córdoba.",["La paella","El gazpacho","La fabada","El pisto"]]],
+["cul",["De quelle région d'Espagne vient la paella ?","Valence","La paella vient de la région de Valence, où l'on cultive le riz autour de l'Albufera.\nLa vraie paella valenciana se fait avec poulet, lapin et haricots verts, pas avec des fruits de mer.",["Andalousie","Catalogne","Valence","Galice"]],["¿De qué región viene la paella?","Valencia","La paella viene de Valencia, donde se cultiva el arroz alrededor de la Albufera.\nLa auténtica paella valenciana lleva pollo, conejo y judías verdes, no marisco.",["Andalucía","Cataluña","Valencia","Galicia"]]],
+["cul",["Le roquefort est fabriqué avec du lait de…","Brebis","Le roquefort est un fromage à pâte persillée au lait cru de brebis.\nIl doit être affiné dans les caves naturelles de Roquefort-sur-Soulzon, dans l'Aveyron.",["Vache","Chèvre","Brebis","Bufflonne"]],["El queso roquefort se hace con leche de…","Oveja","El roquefort es un queso azul de leche cruda de oveja, igual que el manchego es de oveja.\nSe madura en las cuevas naturales de Roquefort-sur-Soulzon, en Aveyron.",["Vaca","Cabra","Oveja","Búfala"]]],
+["cul",["Où se termine traditionnellement le Tour de France ?","Sur les Champs-Élysées","Depuis 1975, la dernière étape arrive presque toujours sur les Champs-Élysées, à Paris.\nException : en 2024, l'arrivée a eu lieu à Nice à cause des Jeux olympiques de Paris.",["Sur les Champs-Élysées","Au Mont-Saint-Michel","À l'Alpe d'Huez","À Marseille"]],["¿Dónde termina tradicionalmente el Tour de Francia?","En los Campos Elíseos","Desde 1975, la última etapa llega casi siempre a los Campos Elíseos, en París.\nExcepción: en 2024 terminó en Niza por los Juegos Olímpicos de París.",["En los Campos Elíseos","En el Mont-Saint-Michel","En Alpe d'Huez","En Marsella"]]],
+["cul",["Qui a dirigé l'Espagne de 1939 à 1975 ?","Franco","Le général Francisco Franco a dirigé l'Espagne en dictateur, de la fin de la guerre civile (1939) jusqu'à sa mort en 1975.\nEnsuite vient la transition démocratique, avec la Constitution de 1978.",["Primo de Rivera","Franco","Suárez","Alphonse XIII"]],["¿Quién gobernó España de 1939 a 1975?","Franco","El general Francisco Franco gobernó España como dictador desde el final de la Guerra Civil (1939) hasta su muerte en 1975.\nDespués llega la Transición, con la Constitución de 1978.",["Primo de Rivera","Franco","Suárez","Alfonso XIII"]]],
+["cul",["En quelle année a eu lieu la prise de la Bastille ?","1789","La prise de la Bastille a eu lieu le 14 juillet 1789 : c'est le début symbolique de la Révolution française.\nC'est pour ça que le 14 Juillet est la fête nationale.",["1715","1789","1804","1848"]],["¿En qué año fue la toma de la Bastilla?","1789","La toma de la Bastilla fue el 14 de julio de 1789: el inicio simbólico de la Revolución francesa.\nPor eso el 14 de julio es la fiesta nacional de Francia.",["1715","1789","1804","1848"]]],
+["cul",["Dans quelle ville se trouve l'Alhambra ?","Grenade","L'Alhambra est un palais-forteresse construit par les sultans nasrides à Grenade, surtout aux XIIIe et XIVe siècles.\nGrenade a été le dernier royaume musulman de la péninsule, jusqu'en 1492.",["Cordoue","Séville","Grenade","Tolède"]],["¿En qué ciudad está la Alhambra?","Granada","La Alhambra es un palacio fortaleza construido por los sultanes nazaríes en Granada, sobre todo en los siglos XIII y XIV.\nGranada fue el último reino musulmán de la península, hasta 1492.",["Córdoba","Sevilla","Granada","Toledo"]]],
+["cul",["Quel détroit sépare l'Espagne du Maroc ?","Le détroit de Gibraltar","Le détroit de Gibraltar relie la Méditerranée à l'Atlantique.\nÀ son point le plus étroit, l'Europe et l'Afrique ne sont qu'à environ 14 km l'une de l'autre.",["Le Bosphore","Le détroit de Gibraltar","Le détroit de Messine","Le pas de Calais"]],["¿Qué estrecho separa España de Marruecos?","El estrecho de Gibraltar","El estrecho de Gibraltar une el Mediterráneo con el Atlántico.\nEn su punto más estrecho, Europa y África están a unos 14 km.",["El Bósforo","El estrecho de Gibraltar","El estrecho de Mesina","El paso de Calais"]]],
+["cul",["Quel animal est le symbole de la France ?","Le coq","Le coq gaulois vient d'un jeu de mots latin : gallus veut dire à la fois « coq » et « Gaulois ».\nOn le voit sur les maillots des équipes de France.",["Le coq","L'aigle","Le lion","L'ours"]],["¿Qué animal es el símbolo de Francia?","El gallo","El gallo galo viene de un juego de palabras latino: gallus significa a la vez «gallo» y «galo».\nAparece en las camisetas de las selecciones francesas.",["El gallo","El águila","El león","El oso"]]],
+["cul",["Quand il est midi à Paris, quelle heure est-il à Madrid ?","Midi","Paris et Madrid sont dans le même fuseau horaire : pas de décalage.\nGéographiquement, l'Espagne devrait être à l'heure de Londres, mais elle s'est alignée sur l'Europe centrale en 1940.\nAux Canaries, en revanche, il est 11 h.",["11 h","Midi","13 h","14 h"]],["Cuando son las 12:00 en París, ¿qué hora es en Madrid?","Las 12:00","París y Madrid están en el mismo huso horario: no hay diferencia.\nPor geografía, España debería tener la hora de Londres, pero se alineó con Europa central en 1940.\nEn Canarias, en cambio, son las 11:00.",["Las 11:00","Las 12:00","Las 13:00","Las 14:00"]]],
+["cul",["Quel cinéaste espagnol a réalisé « Tout sur ma mère » et « Volver » ?","Pedro Almodóvar","Pedro Almodóvar a gagné l'Oscar du meilleur film étranger avec Tout sur ma mère (1999).\nVolver (2006), avec Penélope Cruz, a été primé à Cannes.",["Luis Buñuel","Pedro Almodóvar","Alejandro Amenábar","Carlos Saura"]],["¿Qué director español hizo «Todo sobre mi madre» y «Volver»?","Pedro Almodóvar","Pedro Almodóvar ganó el Óscar a mejor película extranjera con Todo sobre mi madre (1999).\nVolver (2006), con Penélope Cruz, fue premiada en Cannes.",["Luis Buñuel","Pedro Almodóvar","Alejandro Amenábar","Carlos Saura"]]],
+["cul",["Quel chanteur français était surnommé « l'idole des jeunes » ?","Johnny Hallyday","Johnny Hallyday a gardé ce surnom après sa chanson « L'idole des jeunes » (1962).\nIl a vendu plus de 100 millions de disques et il est mort en 2017.",["Claude François","Johnny Hallyday","Eddy Mitchell","Michel Sardou"]],["¿Qué cantante francés era apodado «el ídolo de los jóvenes»?","Johnny Hallyday","Johnny Hallyday se quedó con ese apodo por su canción «L'idole des jeunes» (1962).\nVendió más de 100 millones de discos y murió en 2017.",["Claude François","Johnny Hallyday","Eddy Mitchell","Michel Sardou"]]],
+["cul",["Combien de fois Rafael Nadal a-t-il gagné Roland-Garros ?","14","Rafael Nadal a gagné Roland-Garros 14 fois entre 2005 et 2022, un record pour un même tournoi du Grand Chelem.\nOn le surnomme « le roi de la terre battue ».",["9","11","14","17"]],["¿Cuántas veces ganó Rafa Nadal Roland Garros?","14","Rafa Nadal ganó Roland Garros 14 veces entre 2005 y 2022, récord en un mismo torneo de Grand Slam.\nLo llaman «el rey de la tierra batida».",["9","11","14","17"]]],
+["cul",["Quelle est la deuxième ville la plus peuplée de France ?","Marseille","Marseille compte environ 870 000 habitants, derrière Paris (environ 2,1 millions).\nLyon est 3e pour la commune, mais son agglomération est plus grande que celle de Marseille.",["Lyon","Marseille","Toulouse","Nice"]],["¿Cuál es la segunda ciudad más poblada de Francia?","Marsella","Marsella tiene unos 870.000 habitantes, por detrás de París (unos 2,1 millones).\nLyon es 3.ª como municipio, pero su área metropolitana es mayor que la de Marsella.",["Lyon","Marsella","Toulouse","Niza"]]],
+["cul",["Quel petit pays se trouve dans les Pyrénées, entre la France et l'Espagne ?","Andorre","L'Andorre a deux chefs d'État, appelés coprinces : le président de la République française et l'évêque espagnol d'Urgell.\nSa langue officielle est le catalan.",["Monaco","Andorre","Liechtenstein","Saint-Marin"]],["¿Qué pequeño país está en los Pirineos, entre Francia y España?","Andorra","Andorra tiene dos jefes de Estado, los copríncipes: el presidente de la República Francesa y el obispo de Urgel.\nSu lengua oficial es el catalán.",["Mónaco","Andorra","Liechtenstein","San Marino"]]],
+["cul",["Quelle sélection a gagné le plus de championnats d'Europe de football (Euro) ?","L'Espagne","L'Espagne a gagné 4 Euros : 1964, 2008, 2012 et 2024. C'est le record.\nL'Allemagne en a 3, la France et l'Italie 2 chacune.",["L'Allemagne","L'Espagne","La France","L'Italie"]],["¿Qué selección ha ganado más Eurocopas?","España","España ha ganado 4 Eurocopas: 1964, 2008, 2012 y 2024. Es el récord.\nAlemania tiene 3, Francia e Italia 2 cada una.",["Alemania","España","Francia","Italia"]]],
+["cul",["En 1492, qui finance le voyage de Christophe Colomb ?","Les Rois catholiques","Isabelle de Castille et Ferdinand d'Aragon, les Rois catholiques, financent l'expédition.\nLa même année, ils prennent Grenade, dernier royaume musulman de la péninsule.",["Le roi de France","Les Rois catholiques","Le roi du Portugal","Le pape"]],["En 1492, ¿quién financió el viaje de Cristóbal Colón?","Los Reyes Católicos","Isabel de Castilla y Fernando de Aragón, los Reyes Católicos, financian la expedición.\nEse mismo año toman Granada, el último reino musulmán de la península.",["El rey de Francia","Los Reyes Católicos","El rey de Portugal","El papa"]]],
+["cul",["Combien la France compte-t-elle de départements ?","101","La France compte 101 départements : 96 en métropole et 5 en outre-mer.\nEn métropole, les numéros vont de 01 (Ain) à 95 (Val-d'Oise), et la Corse a 2A et 2B.",["95","96","101","110"]],["¿Cuántos departamentos tiene Francia?","101","Francia tiene 101 departamentos: 96 en la metrópoli y 5 en ultramar.\nEn la metrópoli van del 01 (Ain) al 95 (Val-d'Oise), y Córcega tiene el 2A y el 2B.",["95","96","101","110"]]],
+["cul",["Quelle ville espagnole marque la pointe sud de l'Europe continentale ?","Tarifa","Tarifa, près de Cadix, est le point le plus au sud de l'Europe continentale.\nPar beau temps on voit l'Afrique à l'œil nu, et c'est une capitale du kitesurf.",["Cadix","Tarifa","Almería","Malaga"]],["¿Qué ciudad española es el punto más al sur de la Europa continental?","Tarifa","Tarifa, cerca de Cádiz, es el punto más al sur de la Europa continental.\nCon buen tiempo se ve África a simple vista, y es una capital del kitesurf.",["Cádiz","Tarifa","Almería","Málaga"]]],
+["cul",["Combien d'étoiles y a-t-il sur le drapeau européen ?","12","Le drapeau européen a toujours 12 étoiles, quel que soit le nombre de pays membres (27 aujourd'hui).\nLe chiffre 12 symbolise la perfection et l'unité.",["12","15","27","28"]],["¿Cuántas estrellas tiene la bandera europea?","12","La bandera europea siempre tiene 12 estrellas, sea cual sea el número de países miembros (27 hoy).\nEl 12 simboliza la perfección y la unidad.",["12","15","27","28"]]],
+["cul",["Dans quelle ville Picasso est-il né ?","Malaga","Picasso est né à Malaga en 1881. Il a grandi en partie à Barcelone, puis a vécu surtout en France.\nIl y a un musée Picasso à Malaga, à Barcelone et à Paris.",["Barcelone","Malaga","Madrid","Séville"]],["¿En qué ciudad nació Picasso?","Málaga","Picasso nació en Málaga en 1881. Creció en parte en Barcelona y después vivió sobre todo en Francia.\nHay un museo Picasso en Málaga, en Barcelona y en París.",["Barcelona","Málaga","Madrid","Sevilla"]]],
+];
+
+const LEVEL=[3,2,1,3,2,2,1,2,1,1,2,3,3,2,3,3,3,1,2,2,3,1,1,2,2,1,1,1,1,3,2,1,1,1,3,1,2,1,1,2,3,1,2,1,2,1,1,3,2,3,3,2,2,1,1,1,1,1,2,1,3,1,2,3,2,3,1,1,1,2,2,1,3,1,1,3,2,1,1,2,3,2,2,2,3,3,2,3,1,1,3,2,1,3,1,1,1,1,2,3,2,3,2,1,2,2,2,1,3,2,3,3,1,3,3,1,1,2,3,1,2,1,1,2,1,1,3,1,3,2,2,3,2,3,3,1,2];
+const OPTS={"0":[["40","42","44","48"],["40","42","44","48"]],"1":[["H","S","N","D"],["H","S","N","D"]],"2":[["D","S","L","V"],["D","S","L","V"]],"3":[["11","12","13","16"],["11","12","13","16"]],"4":[["70","72","74","68"],["70","72","74","68"]],"5":[["15","17","19","21"],["15","17","19","21"]],"6":[["A","S","J","M"],["A","S","J","M"]],"7":[["162","243","324","729"],["162","243","324","729"]],"8":[["30","35","36","49"],["30","35","36","49"]],"9":[["48","64","60","128"],["48","64","60","128"]],"10":[["18","20","21","25"],["18","20","21","25"]],"11":[["100","125","81","216"],["100","125","81","216"]],"12":[["68","35","33","36"],["68","35","33","36"]],"13":[["Q","P","O","N"],["Q","P","O","N"]],"14":[["21","22","23","26"],["21","22","23","26"]],"15":[["49","64","65","66"],["49","64","65","66"]],"16":[["47","62","63","64"],["47","62","63","64"]],"17":[["0","1","2","3"],["0","1","2","3"]],"18":[["20","35","45","50"],["20","35","45","50"]],"19":[["7","9","10","6"],["7","9","10","6"]],"20":[["76","78","81","86"],["76","78","81","86"]],"21":[["14h45","15h00","15h15","15h30"],["14:45","15:00","15:15","15:30"]],"22":[["Nunu","Nana","Marie","Nina"],["Nunu","Nana","María","Nina"]],"23":[["En France","En Espagne","Dans leur pays d'origine","Nulle part"],["En Francia","En España","En su país de origen","En ninguno"]],"24":[["Premier","Deuxième","Troisième","Ça dépend"],["Primero","Segundo","Tercero","Depende"]],"25":[["1","2","Les 12","Aucun"],["1","2","Los 12","Ninguno"]],"26":[["8","9","17","0"],["8","9","17","0"]],"27":[["Un ballon","Un trou","Une dette","Une ombre"],["Un globo","Un agujero","Una deuda","Una sombra"]],"28":[["La bougie","La lampe à pétrole","Le barbecue","L'allumette"],["La vela","El quinqué","La barbacoa","La cerilla"]],"29":[["7 jours","8 jours","10 jours","5 jours"],["7 días","8 días","10 días","5 días"]],"30":[["5 fois","10 fois","Une seule fois","Une infinité"],["5 veces","10 veces","Solo una","Infinitas"]],"31":[["Un requin","Un peigne","Un bébé","Une fourchette"],["Un tiburón","Un peine","Un bebé","Un tenedor"]],"32":[["Des pas","Des miettes","Des souvenirs","Des dettes"],["Los pasos","Las migas","Los recuerdos","Las deudas"]],"33":[["Ton téléphone","Ton prénom","Ta voiture","Ton lit"],["Tu móvil","Tu nombre","Tu coche","Tu cama"]],"34":[["Lui-même","Son père","Son fils","Son neveu"],["Él mismo","Su padre","Su hijo","Su sobrino"]],"35":[["La température","Un ballon","L'âge","La marée"],["La temperatura","Un globo","La edad","La marea"]],"36":[["Un poisson s'est perdu","Ils sont 3","L'un a triché","Ils en ont mangé un"],["Se perdió un pez","Son 3","Uno hizo trampa","Se comieron uno"]],"37":[["Une éponge","Une serviette","Un parapluie","Le soleil"],["Una esponja","Una toalla","Un paraguas","El sol"]],"38":[["Un tableau","Une carte","Un rêve","Une maquette"],["Un cuadro","Un mapa","Un sueño","Una maqueta"]],"39":[["L'eau","La lumière","Un ballon","La fumée"],["El agua","La luz","Un globo","El humo"]],"40":[["Au hasard","Avec la chaleur","En regardant sous la porte","C'est impossible"],["Al azar","Con el calor","Mirando bajo la puerta","Es imposible"]],"41":[["Un filet","Une passoire","Une éponge","Un panier"],["Una red","Un colador","Una esponja","Una cesta"]],"42":[["Un secret","Le silence","Le vent","Une ombre"],["Un secreto","El silencio","El viento","Una sombra"]],"43":[["Une bouteille","Un serpent","Un arbre","Une chaussure"],["Una botella","Una serpiente","Un árbol","Un zapato"]],"44":[["Il a perdu au casino","Sa voiture est en panne","Il joue au Monopoly","Il rêve"],["Perdió en el casino","Se le averió el coche","Juega al Monopoly","Está soñando"]],"45":[["Le futur","Ton nez","L'horizon","Le vent"],["El futuro","Tu nariz","El horizonte","El viento"]],"46":[["1","2","7","Aucun"],["1","2","7","Ninguno"]],"47":[["0,05 €","0,10 €","0,15 €","1 €"],["0,05 €","0,10 €","0,15 €","1 €"]],"48":[["5 minutes","20 minutes","100 minutes","1 minute"],["5 minutos","20 minutos","100 minutos","1 minuto"]],"49":[["Le 24e jour","Le 47e jour","Le 46e jour","Le 12e jour"],["El día 24","El día 47","El día 46","El día 12"]],"50":[["25","35","70","40"],["25","35","70","40"]],"51":[["3","4","5","6"],["3","4","5","6"]],"52":[["1 heure","1 h 30","2 heures","30 minutes"],["1 hora","1 h 30","2 horas","30 minutos"]],"53":[["Premier","Avant-dernier","Dernier","Impossible"],["Primero","Penúltimo","Último","Imposible"]],"54":[["Les plumes","Le plomb","Pareil","Ça dépend du vent"],["Las plumas","El plomo","Lo mismo","Depende del viento"]],"55":[["Côté gauche","Côté droit","Il reste en haut","Aucun"],["Hacia la izquierda","Hacia la derecha","Se queda arriba","Hacia ninguno"]],"56":[["1","2","3","5"],["1","2","3","5"]],"57":[["Vers le nord","Vers le sud","Vers le haut","Aucune"],["Hacia el norte","Hacia el sur","Hacia arriba","A ningún sitio"]],"58":[["Oui","Non, c'est interdit","Seulement à l'étranger","Non, il est mort"],["Sí","No, está prohibido","Solo en el extranjero","No, está muerto"]],"59":[["Le K2","Le mont Blanc","L'Everest","Le Kilimandjaro"],["El K2","El Mont Blanc","El Everest","El Kilimanjaro"]],"60":[["100 ans","99 ans","116 ans","150 ans"],["100 años","99 años","116 años","150 años"]],"61":[["Blanc","Gris","Noir","Marron"],["Blanco","Gris","Negro","Marrón"]],"62":[["8 arrêts","3 arrêts","5 arrêts","6 arrêts"],["8 paradas","3 paradas","5 paradas","6 paradas"]],"63":[["11 111","12 111","111 111","11 1111"],["11.111","12.111","111.111","11.1111"]],"64":[["C'est son oncle","C'est sa mère","Le père a survécu","C'est son beau-père"],["Es su tío","Es su madre","El padre sobrevivió","Es su padrastro"]],"65":[["10 fois","11 fois","19 fois","20 fois"],["10 veces","11 veces","19 veces","20 veces"]],"66":[["Orthographe","Incorrectement","Dictionnaire","Faute"],["Ortografía","Incorrectamente","Diccionario","Falta"]],"67":[["Oui, sans problème","Seulement avec son accord","Non, avec un appareil","Non, c'est interdit"],["Sí, sin problema","Solo con su permiso","No, con una cámara","No, está prohibido"]],"68":[["30 ans","42 ans","Ton âge","On ne peut pas savoir"],["30 años","42 años","Tu edad","No se puede saber"]],"69":[["5000","4100","4010","4110"],["5000","4100","4010","4110"]],"70":[["8 €","12 €","15 €","10 €"],["8 €","12 €","15 €","10 €"]],"71":[["15,50 €","17,50 €","16,50 €","18 €"],["15,50 €","17,50 €","16,50 €","18 €"]],"72":[["3 chats","33 chats","100 chats","10 chats"],["3 gatos","33 gatos","100 gatos","10 gatos"]],"73":[["1","2","4","0,5"],["1","2","4","0,5"]],"74":[["111","121","122","112"],["111","121","122","112"]],"75":[["350","400","416","250"],["350","400","416","250"]],"76":[["18","20","21","36"],["18","20","21","36"]],"77":[["1 240","1 440","2 400","1 400"],["1.240","1.440","2.400","1.400"]],"78":[["360","3 600","6 000","1 800"],["360","3.600","6.000","1.800"]],"79":[["299","297","300","289"],["299","297","300","289"]],"80":[["40 €","45 €","50 €","35 €"],["40 €","45 €","50 €","35 €"]],"81":[["45","50","55","100"],["45","50","55","100"]],"82":[["700 g","750 g","800 g","900 g"],["700 g","750 g","800 g","900 g"]],"83":[["10 h 15","9 h 45","10 h 45","11 h 15"],["10 h 15 min","9 h 45 min","10 h 45 min","11 h 15 min"]],"84":[["12","15","30","36"],["12","15","30","36"]],"85":[["125","215","225","250"],["125","215","225","250"]],"86":[["30","40","45","50"],["30","40","45","50"]],"87":[["6","9","12","15"],["6","9","12","15"]],"88":[["20","25","50","10"],["20","25","50","10"]]};
+for(const k in OPTS){CARDS[k][1][3]=OPTS[k][0];CARDS[k][2][3]=OPTS[k][1]}
+
+
+
+const CATS=["seq","eni","pie","cal","cul"];
+const ICON={
+ seq:'<svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="14" width="4" height="7" rx="1"/><rect x="10" y="9" width="4" height="12" rx="1"/><rect x="17" y="3" width="4" height="18" rx="1"/></svg>',
+ eni:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9.3 9.3a2.8 2.8 0 1 1 3.9 2.6c-.8.3-1.2 1-1.2 1.8v.4"/><circle cx="12" cy="17.2" r=".8" fill="currentColor"/></svg>',
+ pie:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3.5 2.8 19.5h18.4z"/><path d="M12 10v4"/><circle cx="12" cy="16.8" r=".8" fill="currentColor"/></svg>',
+ cal:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M7 4v6M4 7h6M14.5 7h6M15 15l5 5M20 15l-5 5M4 17.5h6"/></svg>',
+ cul:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18"/></svg>'
+};
+const IC_BACK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>';
+const IC_MIX='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h3.5c2 0 3.2 1 4.3 2.7l2.4 4.6c1.1 1.7 2.3 2.7 4.3 2.7H21M3 17h3.5c1.4 0 2.4-.5 3.3-1.4M14.2 8.4c.9-.9 1.9-1.4 3.3-1.4H21M18.5 4.5 21 7l-2.5 2.5M18.5 14.5 21 17l-2.5 2.5"/></svg>';
+const IC_MENU='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>';
+const PCOL=["#e0483f","#2d6be0","#13958a","#e07a17","#7656e8","#d63c8a","#3a9440","#a8741a","#0f8fbf","#8a5a3c","#5566d6","#c2432f"];
+const PRESETS=[["flash",2,5],["classic",3,6],["party",3,10],["marathon",5,10]];
+const TIMERS=[20,30,45,60,0];
+const DIFFS={easy:[1],mid:[1,2],hard:[2,3]};
+
+const GAGES={
+ fr:["Paie la prochaine tournée de cañas.","Commande la prochaine tournée en chantant, en espagnol.","Garde le titre de « Plus Nul de la Bande » jusqu'à demain midi : tout le monde t'appelle comme ça.","Fais 20 secondes de flamenco, claquements de mains compris.","Laisse le groupe choisir ta photo de profil pour 24 h.","Débarrasse la table et fais la vaisselle ce soir.","Prépare le petit-déjeuner de tout le monde demain matin.","Raconte ton moment le plus gênant, sans rien cacher.","Imite un commentateur de foot espagnol pendant 30 secondes : « ¡Gooooool! »","Envoie un vocal à un ami absent pour lui expliquer pourquoi tu es le plus nul."],
+ es:["Paga la próxima ronda de cañas.","Pide la próxima ronda cantando, en francés.","Llevas el título de «el más tonto del grupo» hasta mañana a mediodía: todos te llaman así.","Baila 20 segundos de flamenco, con palmas incluidas.","El grupo elige tu foto de perfil durante 24 h.","Recoge la mesa y friega los platos esta noche.","Prepara el desayuno de todos mañana.","Cuenta tu momento más vergonzoso, sin ocultar nada.","Imita a un comentarista de fútbol durante 30 segundos: «¡Gooooool!»","Manda un audio a un amigo que no está explicando por qué eres el más tonto."]
+};
+
+const T={
+ fr:{t1:"Le Plus Nul",t2:"de la Bande",eyebrow:"Soirée jeux · Édition France–Espagne",tagline:"Logique, pièges et culture. Tout le monde joue, un seul finit dernier.",
+  players:"Les joueurs",playersHint:"De 2 à 12 joueurs. Un seul téléphone suffit.",example:"Ce sont des noms d'exemple : ajoute les vôtres.",name:"Prénom",add:"Ajouter",remove:"Retirer",
+  themes:"Les thèmes",themesHint:"Touche un thème pour l'activer ou le retirer, ou mélange tout.",mix:"Tout mélanger",mixS:n=>`Tous les thèmes · ${n} questions inédites`,unseen:(n,t)=>`${n} inédites sur ${t}`,
+  cat:{seq:"Suites logiques",eni:"Énigmes",pie:"Pièges",cal:"Calcul mental",cul:"Culture France · Espagne"},
+  catS:{seq:"Suite logique",eni:"Énigme",pie:"Piège",cal:"Calcul mental",cul:"Culture"},
+  diffT:"La difficulté",diffs:{easy:["Facile","Que des questions accessibles, idéal pour s'échauffer"],mid:["Moyen","Un mélange de facile et de questions qui font réfléchir"],hard:["Difficile","Les questions qui font le plus débattre"]},lv:["","Facile","Moyen","Difficile"],length:"La durée",presets:{flash:"Éclair",classic:"Classique",party:"Grande soirée",marathon:"Marathon"},
+  rounds:"Manches",per:"Cartes par manche",timer:"Chrono par carte",off:"Sans",cards:"cartes",total:(n,m)=>[`${n} cartes`,`environ ${m} min`],
+  start:"Lancer la partie",startNew:"Nouvelle partie",min2:"Ajoute au moins 2 joueurs.",minCat:"Choisis au moins un thème.",
+  resumeT:"Partie en cours",resumeS:(r,R,c,C)=>`Manche ${r} sur ${R} · carte ${c} sur ${C}`,resume:"Reprendre la partie",abandon:"Abandonner la partie",sure:"Touche encore pour confirmer",
+  resetQ:"Remettre toutes les questions à zéro",resetDone:"C'est fait : toutes les questions sont de nouveau inédites.",
+  recycled:n=>`Il ne restait plus assez de questions inédites : ${n} carte${n>1?"s":""} déjà vue${n>1?"s":""} reviendr${n>1?"ont":"a"}.`,
+  back:"Retour",menu:"Menu",round:"Manche",card:"Carte",tie:"Mort subite",tieSub:"Seuls les ex aequo jouent",
+  answer:"Réponse",expl:"Explication",who:"Qui avait bon ?",nobody:"Personne",all:"Tous",
+  validate:n=>n?`Valider · +1 pour ${n} joueur${n>1?"s":""}`:"Valider · aucun point",
+  reveal:"Révéler la réponse",skip:"Passer cette carte",tapPause:"Touche le chrono pour faire pause",paused:"En pause. Touche pour reprendre.",timeUp:"Temps écoulé !",think:"Tout le monde réfléchit…",
+  endRound:n=>`Fin de la manche ${n}`,standings:"Classement",finalRank:"Classement final",last:"lanterne rouge",
+  tieBtn:"Égalité en bas : mort subite !",toVerdict:"Désigner le plus nul",next:n=>`Lancer la manche ${n}`,
+  verdict:"Le verdict",isLoser:"Le plus nul de la bande est…",drum:"Révéler le nom",pts:n=>`${n} point${n>1?"s":""}. Le groupe a parlé.`,
+  gage:"Le gage",otherGage:"Tirer un autre gage",rematch:"Revanche avec les mêmes joueurs",home:"Retour à l'accueil",
+  mResume:"Reprendre",mResumeS:"Retourner à la carte en cours",mBack:"Revenir en arrière",mBackS:"Annule la dernière action (révélation, points, manche…)",
+  mHome:"Accueil",mHomeS:"La partie reste sauvegardée, tu pourras la reprendre",mBoard:"Voir le classement",mQuit:"Abandonner la partie",mQuitS:"Les scores seront effacés",
+  close:"Fermer",language:"Langue",pts2:"pts"},
+ es:{t1:"El Más Tonto",t2:"del Grupo",eyebrow:"Noche de juegos · Edición Francia–España",tagline:"Lógica, trampas y cultura. Juegan todos, solo uno acaba último.",
+  players:"Jugadores",playersHint:"De 2 a 12 jugadores. Basta con un móvil.",example:"Son nombres de ejemplo: añade los vuestros.",name:"Nombre",add:"Añadir",remove:"Quitar",
+  themes:"Temas",themesHint:"Toca un tema para activarlo o quitarlo, o mézclalo todo.",mix:"Mezclarlo todo",mixS:n=>`Todos los temas · ${n} preguntas sin salir`,unseen:(n,t)=>`${n} sin salir de ${t}`,
+  cat:{seq:"Series lógicas",eni:"Acertijos",pie:"Trampas",cal:"Cálculo mental",cul:"Cultura Francia · España"},
+  catS:{seq:"Serie lógica",eni:"Acertijo",pie:"Trampa",cal:"Cálculo mental",cul:"Cultura"},
+  diffT:"La dificultad",diffs:{easy:["Fácil","Solo preguntas asequibles, ideal para calentar"],mid:["Media","Una mezcla de fáciles y preguntas para pensar"],hard:["Difícil","Las preguntas que más debate generan"]},lv:["","Fácil","Media","Difícil"],length:"La duración",presets:{flash:"Relámpago",classic:"Clásica",party:"Gran noche",marathon:"Maratón"},
+  rounds:"Rondas",per:"Cartas por ronda",timer:"Tiempo por carta",off:"Sin",cards:"cartas",total:(n,m)=>[`${n} cartas`,`unos ${m} min`],
+  start:"Empezar la partida",startNew:"Nueva partida",min2:"Añade al menos 2 jugadores.",minCat:"Elige al menos un tema.",
+  resumeT:"Partida en curso",resumeS:(r,R,c,C)=>`Ronda ${r} de ${R} · carta ${c} de ${C}`,resume:"Seguir la partida",abandon:"Abandonar la partida",sure:"Toca otra vez para confirmar",
+  resetQ:"Poner todas las preguntas a cero",resetDone:"Hecho: todas las preguntas vuelven a ser nuevas.",
+  recycled:n=>`No quedaban bastantes preguntas nuevas: volverán ${n} carta${n>1?"s":""} ya vista${n>1?"s":""}.`,
+  back:"Atrás",menu:"Menú",round:"Ronda",card:"Carta",tie:"Muerte súbita",tieSub:"Solo juegan los empatados",
+  answer:"Respuesta",expl:"Explicación",who:"¿Quién acertó?",nobody:"Nadie",all:"Todos",
+  validate:n=>n?`Validar · +1 para ${n} jugador${n>1?"es":""}`:"Validar · ningún punto",
+  reveal:"Ver la respuesta",skip:"Saltar esta carta",tapPause:"Toca el reloj para pausar",paused:"En pausa. Toca para seguir.",timeUp:"¡Se acabó el tiempo!",think:"Todos piensan…",
+  endRound:n=>`Fin de la ronda ${n}`,standings:"Clasificación",finalRank:"Clasificación final",last:"farolillo rojo",
+  tieBtn:"Empate abajo: ¡muerte súbita!",toVerdict:"Señalar al más tonto",next:n=>`Empezar la ronda ${n}`,
+  verdict:"El veredicto",isLoser:"El más tonto del grupo es…",drum:"Revelar el nombre",pts:n=>`${n} punto${n!==1?"s":""}. El grupo ha hablado.`,
+  gage:"La prenda",otherGage:"Sacar otra prenda",rematch:"Revancha con los mismos",home:"Volver al inicio",
+  mResume:"Seguir",mResumeS:"Volver a la carta actual",mBack:"Deshacer",mBackS:"Anula la última acción (respuesta, puntos, ronda…)",
+  mHome:"Inicio",mHomeS:"La partida se guarda y podrás seguirla",mBoard:"Ver la clasificación",mQuit:"Abandonar la partida",mQuitS:"Se borrarán los puntos",
+  close:"Cerrar",language:"Idioma",pts2:"pts"}
+};
+
+Object.assign(T.fr,{
+ onlineHintS:"Envoie le lien de cette page à tes amis : pas besoin de compte, ils l'ouvrent dans leur navigateur.",copyLink:"Copier le lien d'invitation",copied:"Lien copié ! Colle-le dans WhatsApp.",linkLbl:"Lien d'invitation (le code est déjà dedans)",netErr:"Connexion impossible pour l'instant. Vérifie ta connexion internet, le jeu réessaie tout seul.",
+ qcmT:"Les propositions",qcms:{some:["Parfois","4 propositions sur environ une question sur deux, toujours en culture"],all:["Toujours","4 propositions à chaque question"],none:["Jamais","Il faut trouver la réponse sans aide"]},
+ orWrite:"Ou écris ta réponse ici",ready:"Je suis prêt pour la suite",readyOn:"Prêt · en attente des autres",readyCount:(n,t)=>`${n} sur ${t} sont prêts`,force:"Passer sans attendre",
+ nextAuto:"La question suivante arrive quand tout le monde a validé.",recap:"Toutes les questions",recapS:"Réponses, explications et réponses de chacun",recapEmpty:"Aucune question jouée pour l'instant.",
+ got:"Ont trouvé",nobodyGot:"Personne n'a trouvé",showExpl:"Voir l'explication",
+ modeT:"Comment vous jouez ?",modes:{local:["Sur un seul téléphone","On se passe le téléphone, quelqu'un lit à voix haute"],online:["En ligne, chacun son portable","Chacun répond sur son téléphone, en direct"]},
+ onlineHint:"Chacun doit être connecté à son compte Claude et avoir été invité sur cette page (bouton Partager, en haut).",
+ tabHost:"Créer une partie",tabJoin:"Rejoindre une partie",yourName:"Ton prénom",code:"Code de la partie",joinBtn:"Rejoindre",createBtn:"Créer la partie",
+ roomOpen:c=>`Ta salle ${c} est ouverte`,backRoom:"Retourner à la salle",closeRoom:"Fermer la salle",
+ lobbyT:"Salle d'attente",lobbyCode:"Donne ce code à tes amis",lobbyHow:"Ils ouvrent cette page sur leur téléphone, choisissent « En ligne », puis « Rejoindre une partie ».",
+ connected:"Joueurs connectés",startOnline:"Lancer la partie",needPlayers:"Il faut au moins 2 joueurs connectés.",editSettings:"Modifier les réglages",
+ waitHost:"En attente de l'organisateur…",waitHostS:c=>`Tu es dans la salle ${c}. La partie s'affichera ici dès que l'organisateur sera là.`,joinedWait:"Tu es dans la partie. Attends que l'organisateur lance.",
+ yourAnswer:"Ta réponse",send:"Envoyer",sent:"Réponse envoyée. Tu peux encore la changer.",pickHint:"Touche la bonne réponse au-dessus.",
+ answered:(n,t)=>`${n} sur ${t} ont répondu`,noAnswer:"pas de réponse",hostValidates:"L'organisateur vérifie les réponses…",hostCheck:"Les réponses sont corrigées automatiquement. Touche un joueur pour corriger.",
+ waitNext:"L'organisateur lance la suite…",leave:"Quitter la partie",leaveS:"Tu pourras revenir avec le même code",you:"toi",away:"absent",hostTag:"organise",
+ roomOff:"Le jeu en ligne ne marche pas ici. Ouvre la page dans Claude, connecté à ton compte, après avoir été invité dessus.",roomFail:"Impossible de rejoindre ce code. Vérifie-le et réessaie.",
+ codeErr:"Le code fait 4 lettres.",nameErr:"Écris ton prénom.",auto:"La réponse s'affiche quand tout le monde a répondu ou à la fin du chrono.",full:"La salle est pleine (12 joueurs)."
+});
+Object.assign(T.es,{
+ onlineHintS:"Envía el enlace de esta página a tus amigos: no necesitan cuenta, lo abren en su navegador.",copyLink:"Copiar el enlace de invitación",copied:"¡Enlace copiado! Pégalo en WhatsApp.",linkLbl:"Enlace de invitación (ya lleva el código)",netErr:"No hay conexión por ahora. Revisa tu internet, el juego lo vuelve a intentar solo.",
+ qcmT:"Las opciones",qcms:{some:["A veces","4 opciones en más o menos una de cada dos preguntas, siempre en cultura"],all:["Siempre","4 opciones en cada pregunta"],none:["Nunca","Hay que encontrar la respuesta sin ayuda"]},
+ orWrite:"O escribe tu respuesta aquí",ready:"Estoy listo para seguir",readyOn:"Listo · esperando a los demás",readyCount:(n,t)=>`${n} de ${t} están listos`,force:"Seguir sin esperar",
+ nextAuto:"La siguiente pregunta llega cuando todos han validado.",recap:"Todas las preguntas",recapS:"Respuestas, explicaciones y lo que respondió cada uno",recapEmpty:"Todavía no se ha jugado ninguna pregunta.",
+ got:"Acertaron",nobodyGot:"Nadie acertó",showExpl:"Ver la explicación",
+ modeT:"¿Cómo jugáis?",modes:{local:["En un solo móvil","Os pasáis el móvil y alguien lee en voz alta"],online:["En línea, cada uno en su móvil","Cada uno responde en su teléfono, en directo"]},
+ onlineHint:"Cada uno debe haber iniciado sesión en su cuenta de Claude y haber sido invitado a esta página (botón Compartir, arriba).",
+ tabHost:"Crear una partida",tabJoin:"Unirse a una partida",yourName:"Tu nombre",code:"Código de la partida",joinBtn:"Unirse",createBtn:"Crear la partida",
+ roomOpen:c=>`Tu sala ${c} está abierta`,backRoom:"Volver a la sala",closeRoom:"Cerrar la sala",
+ lobbyT:"Sala de espera",lobbyCode:"Da este código a tus amigos",lobbyHow:"Abren esta página en su móvil, eligen «En línea» y luego «Unirse a una partida».",
+ connected:"Jugadores conectados",startOnline:"Empezar la partida",needPlayers:"Hacen falta al menos 2 jugadores conectados.",editSettings:"Cambiar los ajustes",
+ waitHost:"Esperando al organizador…",waitHostS:c=>`Estás en la sala ${c}. La partida aparecerá aquí en cuanto llegue el organizador.`,joinedWait:"Ya estás dentro. Espera a que el organizador empiece.",
+ yourAnswer:"Tu respuesta",send:"Enviar",sent:"Respuesta enviada. Aún puedes cambiarla.",pickHint:"Toca la respuesta correcta arriba.",
+ answered:(n,t)=>`Han respondido ${n} de ${t}`,noAnswer:"sin respuesta",hostValidates:"El organizador revisa las respuestas…",hostCheck:"Las respuestas se corrigen solas. Toca a un jugador para corregir.",
+ waitNext:"El organizador sigue con la partida…",leave:"Salir de la partida",leaveS:"Podrás volver con el mismo código",you:"tú",away:"ausente",hostTag:"organiza",
+ roomOff:"El juego en línea no funciona aquí. Abre la página en Claude, con tu cuenta iniciada, después de haber sido invitado.",roomFail:"No se puede entrar con este código. Revísalo e inténtalo de nuevo.",
+ codeErr:"El código tiene 4 letras.",nameErr:"Escribe tu nombre.",auto:"La respuesta aparece cuando todos han respondido o al acabar el tiempo.",full:"La sala está llena (12 jugadores)."
+});
+
+/* ---------- state ---------- */
+const KS="pnb3-state",KH="pnb3-hist",KU="pnb3-used",KP="pnb3-player";
+function fresh(){return{v:3,lang:"fr",phase:"home",resumePhase:"q",mode:"local",otab:"host",myName:"",joinCode:"",
+ players:["Pablo","Lucía","Marco","Inès"].map((n,c)=>({k:"x"+c,n,s:0,c})),example:true,
+ cats:{seq:true,eni:true,pie:true,cal:true,cul:true},diff:"mid",rounds:3,per:6,timer:30,
+ inGame:false,deck:[],i:0,round:1,inRound:0,correct:[],tied:null,gage:0,revealed:false,drumAt:0,notice:"",board:false,
+ deadline:0,pausedLeft:null,answers:null,online:null,localPlayers:null,qcm:"some",seed:0,log:[],recap:false}}
+function rd(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}}
+function wr(k,v){try{v==null?localStorage.removeItem(k):localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+const hot=window.claude?.hot?.data;
+let S=hot?.S||rd(KS); if(!S||S.v!==3)S=fresh();
+{const f=fresh();for(const k in f)if(S[k]===undefined)S[k]=f[k];S.players.forEach((p,i)=>{if(!p.k)p.k="x"+i})}
+let H=hot?.H||rd(KH)||[];
+let USED=hot?.U||rd(KU)||[];
+let USEDSET=new Set(USED);
+let P=hot?.P!==undefined?hot.P:rd(KP); // joined-as-player info {code,name}
+window.claude?.hot?.snapshot?.(()=>({S,H,U:USED,P}));
+function save(){wr(KS,S);wr(KH,H);wr(KU,USED);wr(KP,P)}
+function markUsed(id){if(id!=null&&!USEDSET.has(id)){USEDSET.add(id);USED.push(id)}}
+
+const L=()=>T[S.lang];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
+const idsOf=c=>CARDS.map((x,k)=>x[0]===c&&(DIFFS[S.diff]||DIFFS.mid).includes(LEVEL[k])?k:-1).filter(k=>k>=0);
+const av=p=>`<span class="av" style="--pc:${PCOL[p.c%PCOL.length]}">${esc((String(p.n).trim()[0]||"?").toUpperCase())}</span>`;
+const activeCats=()=>CATS.filter(c=>S.cats[c]);
+const ROLE=()=>S.online?"host":(P?"player":null);
+const ONLINE=()=>ROLE()!==null;
+const CTRL=()=>ROLE()!=="player";
+
+function buildDeck(n,countFirst){
+ const cats=activeCats();const pools={};
+ cats.forEach(c=>{const ids=idsOf(c);pools[c]=[...shuffle(ids.filter(k=>!USEDSET.has(k))).map(k=>[k,0]),...shuffle(ids.filter(k=>USEDSET.has(k))).map(k=>[k,1])]});
+ const out=[];let recycled=0,guard=0;const inDeck=new Set(S.deck);
+ while(out.length<n&&guard++<500){
+  let added=false;
+  for(const c of shuffle(cats)){if(out.length>=n)break;const p=pools[c];
+   while(p.length){const [k,u]=p.shift();if(inDeck.has(k)&&p.length)continue;out.push(k);inDeck.add(k);if(u&&out.length<=countFirst)recycled++;added=true;break}}
+  if(!added)cats.forEach(c=>pools[c]=shuffle(idsOf(c)).map(k=>[k,1]));
+ }
+ return{deck:out,recycled};
+}
+function ensureDeck(){if(S.i>=S.deck.length){S.deck=S.deck.concat(buildDeck(10,0).deck)}}
+function armTimer(){S.deadline=Date.now()+S.timer*1000;S.pausedLeft=null;timeUpFired=false}
+const curKey=()=>`${S.round}.${S.inRound}.${S.i}.${S.tied?S.tied.join("-"):""}`;
+
+/* ---------- grading (online) ---------- */
+function norm(s){return String(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[«»"'’`.,;:!?¡¿()\-–—€%°]/g," ").replace(/\b(le|la|les|l|un|une|des|de|du|d|el|los|las|una|unos|unas|del|al|en|a|au|aux|sur|con|avec|y|et|il|elle|es|est|son|sa|ses|su|ton|tu|ta)\b/g," ").replace(/\s+/g," ").trim()}
+const digits=s=>String(s).replace(/[^0-9]/g,"");
+function grade(v,id){
+ if(!v||id==null)return false;
+ const fr=CARDS[id][1],es=CARDS[id][2];
+ if(String(v)[0]==="#")return !!fr[3]&&v==="#"+fr[3].indexOf(fr[1]);
+ const nv=norm(v),dv=digits(v);
+ return [fr[1],es[1]].some(e=>{const ne=norm(e),de=digits(e);if(de)return dv===de;if(!nv)return false;return nv===ne||(nv.length>=4&&ne.includes(nv))||(ne.length>=4&&nv.includes(ne))});
+}
+function showAns(v,id){
+ if(v==null||v==="")return null;
+ if(String(v)[0]==="#"){const o=face(id)[3];const i=+String(v).slice(1);return o&&o[i]!=null?`${"ABCD"[i]} · ${o[i]}`:"?"}
+ return String(v);
+}
+
+function showMC(id){const m=S.qcm||"some";if(m==="all")return true;if(m==="none")return false;return CARDS[id][0]==="cul"||((id*7+(S.seed||0))%2===0)}
+/* ---------- live room ---------- */
+let STANDALONE=false;
+const MYBY=(()=>{let v=rd("pnb3-by");if(!v){v="b"+Math.random().toString(36).slice(2,10)+Date.now().toString(36);wr("pnb3-by",v)}return v})();
+function loadPeerJS(){return new Promise((res,rej)=>{if(window.Peer)return res();const s=document.createElement("script");s.src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js";s.onload=()=>res();s.onerror=()=>rej();document.head.appendChild(s)})}
+/* Same calls as the platform room (presence, onPeers, leave), carried peer-to-peer: the organiser's phone relays everyone's presence. */
+async function peerRoom(code,role){
+ try{await loadPeerJS()}catch(e){throw{code:"upstream_error"}}
+ const hostId="pnb-game-"+String(code).toLowerCase();
+ let peer=null,me=role==="host"?hostId:null,mine={},handlers=[],conns={},others={},hostConn=null,closed=false,retryT=null,last=[];
+ const deliver=arr=>{last=arr;const peers=arr.map(x=>({peer:x.peer,by:x.by,isMe:x.peer===me,sameTab:x.peer===me,kind:"viewer",guest:false,presence:x.presence||{},updatedAt:Date.now()}));handlers.forEach(h=>h({peers,joined:[],left:[],updated:[]}))};
+ const selfEntry=()=>({peer:me||"me",by:MYBY,presence:mine});
+ const hostList=()=>[selfEntry(),...Object.entries(others).map(([p,o])=>({peer:p,by:o.by,presence:o.pr}))];
+ const hostBroadcast=()=>{const l=hostList();deliver(l);for(const c of Object.values(conns)){try{if(c.open)c.send({t:"peers",list:l})}catch(e){}}};
+ const retry=(fn,ms)=>{clearTimeout(retryT);if(!closed)retryT=setTimeout(fn,ms)};
+ function startHost(){
+  peer=new Peer(hostId);
+  peer.on("open",()=>{netDown(false);hostBroadcast()});
+  peer.on("connection",c=>{c.on("data",d=>{if(d&&d.t==="p"&&d.pr&&typeof d.pr==="object"){others[c.peer]={by:String(d.by||c.peer).slice(0,40),pr:d.pr};conns[c.peer]=c;hostBroadcast()}});
+   const gone=()=>{delete others[c.peer];delete conns[c.peer];hostBroadcast()};c.on("close",gone);c.on("error",gone)});
+  peer.on("error",e=>{if(e.type==="unavailable-id"){try{peer.destroy()}catch(x){}retry(startHost,3000)}else if(e.type==="network"||e.type==="server-error"||e.type==="socket-error"||e.type==="socket-closed")netDown(true)});
+  peer.on("disconnected",()=>{if(!closed)setTimeout(()=>{try{peer.reconnect()}catch(e){}},1500)});
+ }
+ function connectHost(){
+  if(closed||!peer||!peer.open)return;
+  try{hostConn&&hostConn.close()}catch(e){}
+  hostConn=peer.connect(hostId,{reliable:true});
+  hostConn.on("open",()=>{netDown(false);hostConn.send({t:"p",by:MYBY,pr:mine})});
+  hostConn.on("data",d=>{if(d&&d.t==="peers"&&Array.isArray(d.list))deliver(d.list)});
+  hostConn.on("close",()=>{deliver([selfEntry()]);retry(connectHost,3000)});
+ }
+ function startPlayer(){
+  peer=new Peer();
+  peer.on("open",id=>{me=id;netDown(false);connectHost()});
+  peer.on("error",e=>{if(e.type==="peer-unavailable"){deliver([selfEntry()]);retry(connectHost,3000)}else if(e.type==="network"||e.type==="server-error"||e.type==="socket-error"||e.type==="socket-closed")netDown(true)});
+  peer.on("disconnected",()=>{if(!closed)setTimeout(()=>{try{peer.reconnect()}catch(e){}},1500)});
+ }
+ role==="host"?startHost():startPlayer();
+ return{name:hostId,
+  presence:async patch=>{for(const k in patch){if(patch[k]===null)delete mine[k];else mine[k]=patch[k]}mine=JSON.parse(JSON.stringify(mine));
+   if(role==="host")hostBroadcast();else{if(hostConn&&hostConn.open){try{hostConn.send({t:"p",by:MYBY,pr:mine})}catch(e){}}deliver((last.length?last:[selfEntry()]).map(x=>x.peer===me?{...x,presence:mine}:x))}},
+  onPeers:h=>{handlers.push(h);return()=>{}},
+  leave:async()=>{closed=true;clearTimeout(retryT);try{peer&&peer.destroy()}catch(e){}}};
+}
+let NETDOWN=false;
+function netDown(v){if(NETDOWN!==v){NETDOWN=v;const n=document.getElementById("netdown");if(n)n.hidden=!v}}
+const CAP={room:null,user:null};
+let myRdy=null,advT=null,PLOG=rd("pnb3-plog")||{code:null,items:[]};
+let NR=null,PEERS=[],myKey=null,hostSt=null,myAns=null,joinErr="",joining=false,lastPKey="",timeUpFired=false,autoT=null;
+const roomName=c=>"pnb-"+String(c).toLowerCase();
+const keyOf=p=>p.by||p.peer;
+const presentKeys=()=>new Set(PEERS.filter(p=>p.presence&&p.presence.n).map(keyOf));
+async function initCaps(){
+ const use=window.claude?.use?.bind(window.claude);
+ if(use){try{CAP.user=await use("user")}catch(e){} try{CAP.room=await use("room")}catch(e){}}
+ else{STANDALONE=true;CAP.room={join:(name,role,code)=>peerRoom(code,role)}}
+ applyHash();
+ if(S.online)await openRoom(S.online.code,"host");
+ else if(P)await openRoom(P.code,"player");
+ render();
+}
+async function openRoom(code,role){
+ joinErr="";
+ if(!CAP.room){joinErr=L().roomOff;return false}
+ joining=true;
+ try{if(NR){try{await NR.leave()}catch(e){}NR=null}NR=await CAP.room.join(roomName(code),role,code)}
+ catch(e){joining=false;NR=null;joinErr=e&&e.code==="not_permitted"?L().roomOff:L().roomFail;return false}
+ joining=false;
+ NR.onPeers(onPeers,()=>{});
+ const name=role==="host"?S.myName:P.name;
+ const pr={role,n:String(name).slice(0,16),ans:myAns};
+ if(role==="host")pr.st=buildSt();
+ NR.presence(pr).catch(()=>{});
+ return true;
+}
+async function leaveRoom(){const r=NR;NR=null;PEERS=[];hostSt=null;myAns=null;if(r){try{await r.leave()}catch(e){}}}
+function applyHash(){const m=/^#([A-Za-z]{4})$/.exec(location.hash||"");if(m&&!S.online&&!P){S.mode="online";S.otab="join";S.joinCode=m[1].toUpperCase();if(S.phase!=="home"&&!S.inGame)S.phase="home"}}
+function inviteLink(code){return location.href.split("#")[0]+"#"+code}
+function onPeers(ch){
+ PEERS=ch.peers.filter(p=>p.kind==="viewer");
+ const me=PEERS.find(p=>p.sameTab);if(me)myKey=keyOf(me);
+ if(ROLE()==="host")hostPeers();
+ else if(ROLE()==="player"){const h=PEERS.find(p=>p.presence&&p.presence.role==="host"&&p.presence.st);hostSt=h?h.presence.st:null;playerRefresh()}
+}
+function hostPeers(){
+ let changed=false;
+ for(const p of PEERS){const pr=p.presence||{};if((pr.role!=="player"&&pr.role!=="host")||!pr.n)continue;
+  const k=keyOf(p),n=String(pr.n).slice(0,16);let e=S.players.find(x=>x.k===k);
+  if(!e){if(S.players.length>=12)continue;const used=new Set(S.players.map(x=>x.c));let c=0;while(used.has(c))c++;S.players.push({k,n,c,s:0});changed=true}
+  else if(e.n!==n){e.n=n;changed=true}}
+ if(changed&&(S.phase==="lobby"||S.phase==="summary"||S.phase==="final"))render();
+ else{if(changed){save();publishSt()}refreshLive()}
+ autoReveal();checkAdvance();
+}
+function answersNow(key){const m={};for(const p of PEERS){const a=p.presence&&p.presence.ans;if(a&&a.k===key&&a.v!=null&&a.v!=="")m[keyOf(p)]=String(a.v).slice(0,40)}return m}
+function eligible(V){const pk=presentKeys();return (V.tied||V.players.map((_,i)=>i)).filter(i=>V.players[i]&&pk.has(V.players[i].k))}
+function autoReveal(){
+ if(ROLE()!=="host"||S.phase!=="q")return;
+ const el=eligible(S);if(!el.length)return;const ans=answersNow(curKey());
+ if(el.every(i=>ans[S.players[i].k]!=null)){const k=curKey();clearTimeout(autoT);autoT=setTimeout(()=>{if(S.phase==="q"&&curKey()===k)doReveal()},900)}
+}
+function buildSt(){return{mc:S.deck[S.i]!=null?showMC(S.deck[S.i]):false,ph:S.phase==="home"?"wait":S.phase,cid:S.deck[S.i]??null,key:curKey(),round:S.round,rounds:S.rounds,per:S.per,inRound:S.inRound,timer:S.timer,dl:S.deadline,pz:S.pausedLeft,
+ tied:S.tied,pl:S.players.map(p=>[p.k,p.n,p.c,p.s]),cor:S.correct,ans:S.phase==="a"?S.answers:null,gage:S.gage,rev:S.revealed,drumAt:S.drumAt,code:S.online&&S.online.code,hk:myKey}}
+function publishSt(){if(ROLE()==="host"&&NR)NR.presence({st:buildSt()}).catch(()=>{})}
+function stToView(st){return{mc:!!st.mc,phase:st.ph,cid:st.cid,key:st.key,round:st.round,rounds:st.rounds,per:st.per,inRound:st.inRound,timer:st.timer,deadline:st.dl,pausedLeft:st.pz,tied:st.tied,
+ players:(st.pl||[]).map(([k,n,c,s])=>({k,n:String(n),c:+c||0,s:+s||0})),correct:st.cor||[],answers:st.ans,gage:st.gage||0,revealed:!!st.rev,drumAt:st.drumAt||0,code:st.code,hk:st.hk}}
+function playerRefresh(){
+ const st=hostSt;
+ if(st&&st.ph==="a"&&st.cid!=null)plogPut(st);
+ const k=!st?"none":st.ph==="q"?JSON.stringify([st.ph,st.key,st.dl,st.pz]):st.ph==="lobby"?"lobby":JSON.stringify([st.ph,st.key,st.pl,st.cor,st.ans,st.gage,st.rev,st.drumAt,st.round,st.inRound,st.tied]);
+ if(k!==lastPKey){lastPKey=k;render()}else{V=st?stToView(st):null;refreshLive()}
+}
+const keyNow=()=>ROLE()==="host"?curKey():V.key;
+function readyKeys(key){const s=new Set();for(const p of PEERS){if(p.presence&&p.presence.rdy===key)s.add(keyOf(p))}return s}
+function checkAdvance(){if(ROLE()!=="host"||S.phase!=="a")return;const key=curKey(),r=readyKeys(key),pk=presentKeys();const pl=S.players.filter(p=>pk.has(p.k));
+ if(pl.length&&pl.every(p=>r.has(p.k))){clearTimeout(advT);advT=setTimeout(()=>{if(S.phase==="a"&&curKey()===key)score()},700)}}
+function plogPut(st){if(!P)return;if(PLOG.code!==P.code)PLOG={code:P.code,items:[]};const pl=st.pl||[];
+ const e={key:st.key,id:st.cid,ans:st.ans||{},cor:(st.cor||[]).map(i=>pl[i]&&pl[i][0]).filter(Boolean)};
+ const j=PLOG.items.findIndex(x=>x.key===st.key);if(j>=0)PLOG.items[j]=e;else PLOG.items.push(e);wr("pnb3-plog",PLOG)}
+function sendAns(v){
+ myAns={k:V.key??curKey(),v:String(v).slice(0,40)};
+ if(NR)NR.presence({ans:myAns}).catch(()=>{});
+ const h=document.getElementById("anshint");if(h)h.textContent=L().sent;
+ const ai=document.getElementById("ansin");if(ai&&myAns.v[0]==="#")ai.value="";
+ document.querySelectorAll("[data-act=pick]").forEach(b=>b.classList.toggle("sel","#"+b.dataset.v===myAns.v));
+ if(ROLE()==="host")autoReveal();
+}
+
+/* ---------- history ---------- */
+function push(){H.push(JSON.stringify(S));if(H.length>80)H.shift()}
+function undo(){
+ if(ROLE()==="host")setTimeout(hostPeers,0);
+ if(H.length){const lang=S.lang,online=S.online,myName=S.myName;S=JSON.parse(H.pop());S.lang=lang;S.online=online;S.myName=myName;S.board=false;if(S.phase==="q")armTimer();closeMenu();render()}
+ else goHome();
+}
+function goHome(){if(S.phase!=="home")S.resumePhase=S.phase;S.phase="home";closeMenu();render()}
+
+/* ---------- render ---------- */
+const app=document.getElementById("app"),sheet=document.getElementById("sheet");
+let V=S,tick=null,lastKey="",armed=null,armT=null,flash="";
+function stopTimer(){clearInterval(tick);tick=null}
+function arm(k){armed=k;clearTimeout(armT);armT=setTimeout(()=>{armed=null;render()},3500)}
+function render(){
+ stopTimer();save();document.documentElement.lang=S.lang;
+ const role=ROLE();
+ if(role==="player"){V=hostSt?stToView(hostSt):null;
+  if(!V||V.phase==="wait"||V.phase==="home")playerWait();else({lobby,q:question,a:question,summary,final})[V.phase]?.()}
+ else{V=S;({home,lobby,q:question,a:question,summary,final})[S.phase]()}
+ const key=(role||"l")+"|"+(V?V.phase+"|"+(V.key||V.i)+"|"+V.round+"|"+V.revealed:"w");
+ if(key!==lastKey){window.scrollTo(0,0);lastKey=key}
+ renderMenu();
+ if(role==="host")publishSt();
+}
+function langToggle(){return `<div class="lang" role="group" aria-label="Langue / Idioma">${["fr","es"].map(l=>`<button data-act="lang" data-v="${l}" aria-pressed="${S.lang===l}">${l.toUpperCase()}</button>`).join("")}</div>`}
+function gameTop(){
+ const l=L();
+ const nd=`<p class="notice" id="netdown" ${NETDOWN?"":"hidden"}>${l.netErr}</p>`;let l1,segs="";
+ if(V.phase==="final")l1=l.verdict;
+ else if(V.phase==="lobby")l1=l.lobbyT;
+ else if(V.phase==="summary")l1=`${l.round} ${V.round}/${V.rounds}`;
+ else if(V.tied)l1=l.tie;
+ else{l1=`${l.round} ${V.round}/${V.rounds}`;
+  segs=`<div class="segs" role="img" aria-label="${l.card} ${V.inRound+1}/${V.per}">${Array.from({length:V.per},(_,k)=>`<i class="${k<V.inRound?"d":k===V.inRound?"n":""}"></i>`).join("")}</div>`}
+ const left=ROLE()==="player"?`<span class="pill code" aria-label="${l.code}">${esc(P.code)}</span>`:`<button class="pill" data-act="back" aria-label="${l.back}">${IC_BACK}<span class="t">${l.back}</span></button>`;
+ return `<div class="top">${left}<div class="prog"><div class="l1">${l1}</div>${segs}</div>
+ <button class="pill" data-act="menu" aria-label="${l.menu}">${IC_MENU}<span class="t">${l.menu}</span></button></div>${ONLINE()?nd:""}`;
+}
+function sectionN(){return ++secN}
+let secN=0;
+function settingsHTML(l){
+ const tot=S.rounds*S.per;const mins=Math.max(5,Math.round(tot*((S.timer||40)+35)/60));const [t1,t2]=l.total(tot,mins);
+ const presetOn=k=>PRESETS.find(p=>p[0]===k&&p[1]===S.rounds&&p[2]===S.per);
+ return `<section class="sec"><h2><span class="n">${sectionN()}</span>${l.themes}</h2><p class="hint">${l.themesHint}</p>
+  <div class="tiles"><button class="tile wide mix" style="--c:var(--ink)" data-act="mix" aria-pressed="${activeCats().length===CATS.length}"><span class="ic">${IC_MIX}</span><span style="min-width:0"><b>${l.mix}</b><small>${l.mixS(CATS.reduce((a,c)=>a+idsOf(c).filter(k=>!USEDSET.has(k)).length,0))}</small></span></button>${CATS.map(c=>{const ids=idsOf(c);const un=ids.filter(k=>!USEDSET.has(k)).length;
+   return `<button class="tile ${c==="cul"?"wide":""}" style="--c:var(--${c})" data-act="cat" data-v="${c}" aria-pressed="${!!S.cats[c]}"><span class="ic">${ICON[c]}</span><span style="min-width:0"><b>${l.cat[c]}</b><small>${l.unseen(un,ids.length)}</small></span></button>`}).join("")}</div>
+  ${USED.length?`<button class="link ${armed==="reset"?"warn":""}" data-act="reset">${armed==="reset"?l.sure:l.resetQ}</button>`:""}
+  ${flash?`<p class="hint">${flash}</p>`:""}
+ </section>
+ <section class="sec"><h2><span class="n">${sectionN()}</span>${l.diffT}</h2>
+  <div class="diffs">${Object.keys(DIFFS).map((k,i)=>`<button class="diff" data-act="diff" data-v="${k}" aria-pressed="${S.diff===k}"><span class="lvl">${[1,2,3].map(n=>`<i class="${n<=i+1?"on":""}"></i>`).join("")}</span><span style="min-width:0"><b>${l.diffs[k][0]}</b><small>${l.diffs[k][1]}</small></span></button>`).join("")}</div>
+ </section>
+ <section class="sec"><h2><span class="n">${sectionN()}</span>${l.qcmT}</h2>
+  <div class="diffs">${["some","all","none"].map(k=>`<button class="diff" data-act="qcm" data-v="${k}" aria-pressed="${(S.qcm||"some")===k}"><span style="min-width:0"><b>${l.qcms[k][0]}</b><small>${l.qcms[k][1]}</small></span></button>`).join("")}</div>
+ </section>
+ <section class="sec"><h2><span class="n">${sectionN()}</span>${l.length}</h2>
+  <div class="presets">${PRESETS.map(([k,r,p])=>`<button class="preset" data-act="preset" data-v="${k}" aria-pressed="${!!presetOn(k)}"><b>${l.presets[k]}</b><small>${r*p} ${l.cards}</small></button>`).join("")}</div>
+  <div class="stepper"><span class="lb">${l.rounds}</span><span class="ctl"><button class="sb" data-act="step" data-v="rounds:-1" aria-label="−">−</button><span class="val">${S.rounds}</span><button class="sb" data-act="step" data-v="rounds:1" aria-label="+">+</button></span></div>
+  <div class="stepper"><span class="lb">${l.per}</span><span class="ctl"><button class="sb" data-act="step" data-v="per:-1" aria-label="−">−</button><span class="val">${S.per}</span><button class="sb" data-act="step" data-v="per:1" aria-label="+">+</button></span></div>
+  <div class="stepper" style="flex-wrap:wrap"><span class="lb">${l.timer}</span><span class="chips">${TIMERS.map(t=>`<button class="chip" data-act="timer" data-v="${t}" aria-pressed="${S.timer===t}">${t?t+" s":l.off}</button>`).join("")}</span></div>
+  <div class="sum"><b>${t1}</b><span style="color:var(--muted)">${t2}</span></div>
+ </section>`;
+}
+function home(){
+ const l=L();secN=0;const online=S.mode==="online";
+ const canLocal=S.players.length>=2&&activeCats().length>0;
+ let body="";
+ if(!online){
+  body=`${S.inGame?`<section class="resume"><h3>${l.resumeT}</h3><p>${S.tied?l.tie:l.resumeS(S.round,S.rounds,Math.min(S.inRound+1,S.per),S.per)}</p>
+   <div class="actions"><button class="btn primary" data-act="resume">${l.resume}</button>
+   <button class="btn ghost" data-act="abandon">${armed==="abandon"?l.sure:l.abandon}</button></div></section>`:""}
+  <section class="sec"><h2><span class="n">${sectionN()}</span>${l.players}</h2>
+   <p class="hint">${S.example?l.example:l.playersHint}</p>
+   <form class="add" id="addf"><input id="pname" placeholder="${l.name}" maxlength="16" autocomplete="off" aria-label="${l.name}"><button class="btn primary" style="width:auto;min-height:50px;padding:0 18px;font-size:16px">${l.add}</button></form>
+   <div class="plist">${S.players.map((p,k)=>`<span class="pl">${av(p)}<span class="nm">${esc(p.n)}</span><button class="x" data-act="del" data-v="${k}" aria-label="${l.remove} ${esc(p.n)}">✕</button></span>`).join("")}</div>
+  </section>${settingsHTML(l)}
+  <div class="sticky actions"><button class="btn primary" data-act="start" ${canLocal?"":"disabled"}>${S.inGame?l.startNew:l.start}</button></div>
+  ${!canLocal?`<p class="err">${S.players.length<2?l.min2:l.minCat}</p>`:""}`;
+ }else if(S.online){
+  body=`<section class="resume"><h3>${l.roomOpen(esc(S.online.code))}</h3><p>${l.lobbyHow}</p>
+   <div class="actions"><button class="btn primary" data-act="backroom">${l.backRoom}</button>
+   <button class="btn ghost" data-act="closeroom">${armed==="closeroom"?l.sure:l.closeRoom}</button></div></section>${settingsHTML(l)}`;
+ }else{
+  const host=S.otab!=="join";
+  body=`<section class="sec"><h2><span class="n">${sectionN()}</span>${host?l.tabHost:l.tabJoin}</h2>
+   <div class="tabs" role="group"><button data-act="otab" data-v="host" aria-pressed="${host}">${l.tabHost}</button><button data-act="otab" data-v="join" aria-pressed="${!host}">${l.tabJoin}</button></div>
+   <div class="field"><label for="myname">${l.yourName}</label><input id="myname" maxlength="16" autocomplete="off" value="${esc(S.myName)}"></div>
+   ${host?"":`<div class="field"><label for="jcode">${l.code}</label><input id="jcode" class="codein" maxlength="4" autocomplete="off" autocapitalize="characters" value="${esc(S.joinCode)}" placeholder="ABCD"></div>
+   <button class="btn primary" data-act="join" ${joining?"disabled":""}>${l.joinBtn}</button>`}
+   ${joinErr?`<p class="errp">${esc(joinErr)}</p>`:""}
+   <p class="hint">${STANDALONE?l.onlineHintS:l.onlineHint}</p>
+  </section>
+  ${host?settingsHTML(l)+`<div class="sticky actions"><button class="btn primary" data-act="create" ${activeCats().length&&!joining?"":"disabled"}>${l.createBtn}</button></div>`:""}`;
+ }
+ app.innerHTML=`
+ <div class="top" style="grid-template-columns:1fr auto"><span></span>${langToggle()}</div>
+ <header class="hero"><div class="eyebrow">${l.eyebrow}</div><h1>${l.t1}<em>${l.t2}</em></h1><p>${l.tagline}</p></header>
+ ${S.online?"":`<section class="sec"><h2>${l.modeT}</h2><div class="diffs">${["local","online"].map(m=>`<button class="diff" data-act="mode" data-v="${m}" aria-pressed="${S.mode===m}"><span class="mi-ic">${m==="local"?IC_PHONE:IC_PHONES}</span><span style="min-width:0"><b>${l.modes[m][0]}</b><small>${l.modes[m][1]}</small></span></button>`).join("")}</div></section>`}
+ ${body}`;
+ const f=document.getElementById("addf");
+ if(f)f.onsubmit=e=>{e.preventDefault();const n=document.getElementById("pname").value.trim();if(!n)return;
+  if(S.example){S.players=[];S.example=false}
+  if(S.players.length<12){const usedC=new Set(S.players.map(p=>p.c));let c=0;while(usedC.has(c))c++;S.players.push({k:"x"+Date.now().toString(36)+c,n,s:0,c})}
+  render();document.getElementById("pname").focus()};
+ const mn=document.getElementById("myname");if(mn)mn.oninput=()=>{S.myName=mn.value;save()};
+ const jc=document.getElementById("jcode");if(jc)jc.oninput=()=>{jc.value=jc.value.toUpperCase().replace(/[^A-Z]/g,"");S.joinCode=jc.value;save()};
+}
+const IC_PHONE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg>';
+const IC_PHONES='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2.5" y="5" width="8" height="15" rx="2"/><rect x="13.5" y="5" width="8" height="15" rx="2"/><path d="M6 17h1M17 17h1M11 3.5c.6-.6 1.4-.6 2 0"/></svg>';
+
+function lobbyHTML(){
+ const l=L(),pk=presentKeys(),hk=ROLE()==="host"?myKey:V.hk;
+ if(!V.players.length)return `<p class="hint2">${l.waitHost}</p>`;
+ return V.players.map(p=>{const here=pk.has(p.k);return `<div class="lrow ${here?"":"away"}">${av(p)}<span class="nm">${esc(p.n)}</span>${p.k===myKey?`<span class="tg">${l.you}</span>`:""}${p.k===hk?`<span class="tg gold">${l.hostTag}</span>`:""}${here?"":`<span class="tg">${l.away}</span>`}</div>`}).join("");
+}
+function presentCount(){const pk=presentKeys();return V.players.filter(p=>pk.has(p.k)).length}
+function lobby(){
+ const l=L(),host=ROLE()==="host",code=host?S.online.code:P.code;
+ app.innerHTML=gameTop()+`<article class="card" style="text-align:center;align-items:center">
+  <span class="lbl">${l.lobbyCode}</span><div class="codebig">${esc(code)}</div><p class="hint" style="margin:0">${l.lobbyHow}</p>
+  ${STANDALONE&&host?`<div class="invite"><span class="lbl">${l.linkLbl}</span><input id="invlink" readonly value="${esc(inviteLink(code))}"><button class="btn primary" data-act="copylink" id="copybtn">${l.copyLink}</button></div>`:""}</article>
+  <section class="panel"><div class="ph"><h3>${l.connected}</h3></div><div class="lobby" id="lobbylist">${lobbyHTML()}</div></section>
+  ${host?`<div class="actions"><button class="btn primary" id="startbtn" data-act="startonline" ${presentCount()<2?"disabled":""}>${l.startOnline}</button><button class="btn quiet" data-act="gohome2">${l.editSettings}</button></div>
+  ${presentCount()<2?`<p class="err" id="needp">${l.needPlayers}</p>`:""}`:`<p class="notice">${l.joinedWait}</p>`}`;
+}
+function playerWait(){
+ const l=L();
+ app.innerHTML=`<div class="top"><span class="pill code">${esc(P.code)}</span><div class="prog"><div class="l1">${l.lobbyT}</div></div><button class="pill" data-act="menu" aria-label="${l.menu}">${IC_MENU}<span class="t">${l.menu}</span></button></div>
+ <article class="card" style="text-align:center;align-items:center"><div class="spin" aria-hidden="true"></div><p class="q">${l.waitHost}</p><p class="hint" style="margin:0">${l.waitHostS(esc(P.code))}</p></article>
+ <div class="actions"><button class="btn ghost" data-act="leave">${l.leave}</button></div>`;
+}
+
+function catOf(id){return CARDS[id][0]}
+function face(id){return CARDS[id][S.lang==="es"?2:1]}
+const cidOf=v=>v.cid!==undefined?v.cid:S.deck[S.i];
+function remaining(){if(V.pausedLeft!=null)return V.pausedLeft;return Math.max(0,Math.ceil((V.deadline-Date.now())/1000))}
+function liveHTML(){
+ const l=L(),key=ROLE()==="host"?curKey():V.key,ans=answersNow(key),el=eligible(V);
+ const n=el.filter(i=>ans[V.players[i].k]!=null).length;
+ return `<p class="hint2">${l.answered(n,el.length)}</p><div class="dots">${el.map(i=>{const p=V.players[i];return `<span class="dot ${ans[p.k]!=null?"ok":""}">${av(p)}${esc(p.n)}</span>`}).join("")}</div>`;
+}
+function question(){
+ const l=L(),id=cidOf(V),c=catOf(id),[q,a,w,allOpts]=face(id),shown=V.phase==="a",online=ONLINE(),ctrl=CTRL();
+ const opts=(V===S?showMC(id):!!V.mc)?allOpts:null;
+ const active=V.tied||V.players.map((_,k)=>k);
+ const myKeyNow=ROLE()==="host"?curKey():V.key;
+ const mine=myAns&&myAns.k===myKeyNow?myAns.v:"";
+ const canAnswer=online&&!shown&&(!V.tied||V.tied.some(i=>V.players[i]&&V.players[i].k===myKey));
+ const optHTML=opts?`<div class="opts">${opts.map((o,k)=>canAnswer?`<button class="opt pick ${mine==="#"+k?"sel":""}" data-act="pick" data-v="${k}"><span class="k">${"ABCD"[k]}</span><span>${esc(o)}</span></button>`
+  :`<div class="opt ${shown?(o===a?"right":"dim"):""}"><span class="k">${"ABCD"[k]}</span><span>${esc(o)}</span></div>`).join("")}</div>`:"";
+ const C=2*Math.PI*28;
+ const ansMap=V.answers||{};
+ const whoChip=k=>{const p=V.players[k];const on=V.correct.includes(k);const sa=online?showAns(ansMap[p.k],id):null;
+  const inner=`${av(p)}<span class="nm">${esc(p.n)}${online?`<small>${sa?esc(sa):`<i>${l.noAnswer}</i>`}</small>`:""}</span><span class="ck"></span>`;
+  return ctrl?`<button class="pc" data-act="chip" data-v="${k}" aria-pressed="${on}">${inner}</button>`:`<div class="pc ro" aria-pressed="${on}">${inner}</div>`};
+ app.innerHTML=gameTop()+`
+ ${S.notice&&!shown&&ctrl?`<p class="notice">${esc(S.notice)}</p>`:""}
+ ${V.tied?`<p class="notice">${l.tieSub} : ${V.tied.map(k=>esc(V.players[k]?.n||"?")).join(", ")}</p>`:""}
+ <article class="card" id="card" style="--c:var(--${c})">
+  <div class="cardhd"><span class="badge">${ICON[c]}${l.catS[c]}</span><span class="lvl dk" title="${l.lv[LEVEL[id]]}">${[1,2,3].map(n=>`<i class="${n<=LEVEL[id]?"on":""}"></i>`).join("")}<span class="lt">${l.lv[LEVEL[id]]}</span></span></div>
+  <p class="q">${esc(q)}</p>
+  ${optHTML}
+  ${shown?`<div class="ans"><span class="lbl">${l.answer}</span><div class="a">${esc(a)}</div>${w?`<div class="expl"><span class="lbl">${l.expl}</span>${esc(w)}</div>`:""}</div>`
+  :V.timer?`<div class="timer" id="tm"><button class="ring" ${ctrl?`data-act="pause"`:"disabled"} aria-label="${l.tapPause}"><svg viewBox="0 0 66 66"><circle class="tr" cx="33" cy="33" r="28" fill="none" stroke-width="6"/><circle class="pr" id="pr" cx="33" cy="33" r="28" fill="none" stroke-width="6" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-remaining()/V.timer)}"/></svg><span id="secs">${remaining()}</span></button><p id="tmsg">${V.pausedLeft!=null?l.paused:online?l.auto:l.tapPause}</p></div>`
+  :`<div class="timer"><p>${online?l.auto:l.think}</p></div>`}
+ </article>
+ ${canAnswer?`<section class="panel"><div class="ph"><h3>${l.yourAnswer}</h3></div>
+   ${opts?`<p class="hint2">${l.pickHint}</p>`:""}
+   <form class="add" id="ansf"><input id="ansin" maxlength="40" autocomplete="off" placeholder="${opts?esc(l.orWrite):""}" value="${esc(mine&&mine[0]!=="#"?mine:"")}" aria-label="${l.yourAnswer}"><button class="btn primary" style="width:auto;min-height:50px;padding:0 18px;font-size:16px">${l.send}</button></form>
+   <p class="hint2" id="anshint">${mine?l.sent:""}</p>
+  </section>`:""}
+ ${online&&!shown?`<section class="panel" id="live">${liveHTML()}</section>`:""}
+ ${shown?`<section class="panel"><div class="ph"><h3>${l.who}</h3>${ctrl?`<div class="quick"><button data-act="none">${l.nobody}</button><button data-act="all">${l.all}</button></div>`:""}</div>
+   ${online&&ctrl?`<p class="hint2">${l.hostCheck}</p>`:""}
+   <div class="who">${active.filter(k=>V.players[k]).map(whoChip).join("")}</div></section>
+  ${online?readyHTML():`<div class="actions"><button class="btn primary" data-act="validate" id="vbtn">${l.validate(V.correct.length)}</button></div>`}`
+ :ctrl?`<div class="actions"><button class="btn primary" data-act="reveal">${l.reveal}</button><button class="btn quiet" data-act="skip">${l.skip}</button></div>`:""}`;
+ const af=document.getElementById("ansf");
+ if(af)af.onsubmit=e=>{e.preventDefault();const v=document.getElementById("ansin").value.trim();if(v)sendAns(v)};
+ if(!shown&&V.timer)startTick(C);
+}
+function readyLiveHTML(){const l=L(),key=keyNow(),r=readyKeys(key),pk=presentKeys(),pl=V.players.filter(p=>pk.has(p.k));const n=pl.filter(p=>r.has(p.k)).length;
+ return `<p class="hint2">${l.readyCount(n,pl.length)}</p><div class="dots">${pl.map(p=>`<span class="dot ${r.has(p.k)?"ok":""}">${av(p)}${esc(p.n)}</span>`).join("")}</div>`}
+function readyHTML(){const l=L(),on=myRdy===keyNow();
+ return `<section class="panel readyp"><p class="hint2">${l.nextAuto}</p><div id="readylive">${readyLiveHTML()}</div>
+ <div class="actions"><button class="btn primary ${on?"on":""}" data-act="ready" id="rdybtn">${on?l.readyOn:l.ready}</button>${ROLE()==="host"?`<button class="btn quiet" data-act="validate">${l.force}</button>`:""}</div></section>`}
+function recapEntries(){return ROLE()==="player"?(P&&PLOG.code===P.code?PLOG.items:[]):(S.log||[])}
+function recapHTML(){const l=L(),E=recapEntries();if(!E.length)return `<p class="hint2">${l.recapEmpty}</p>`;
+ const names={};((V&&V.players)||S.players).forEach(p=>names[p.k]=p);
+ return `<div class="recap">${E.map((e,n)=>{const [q,a,w]=face(e.id);const c=catOf(e.id);const cor=new Set(e.cor||[]);
+  const hasAns=ONLINE()&&e.ans;
+  const lines=hasAns?Object.values(names).map(p=>{const sa=showAns(e.ans[p.k],e.id);const ok=cor.has(p.k);return `<span class="${ok?"okk":"ko"}">${ok?"✓":"✗"} ${esc(p.n)} · ${sa?esc(sa):l.noAnswer}</span>`}).join("")
+   :(cor.size?`<span class="okk">✓ ${l.got} : ${[...cor].map(k=>esc(names[k]?names[k].n:"?")).join(", ")}</span>`:`<span class="ko">${l.nobodyGot}</span>`);
+  return `<div class="rc" style="--c:var(--${c})"><div class="rch"><i></i>${n+1} · ${l.catS[c]}</div><p class="rq">${esc(q)}</p><p class="ra">${esc(a)}</p><div class="rl">${lines}</div>${w?`<details><summary>${l.showExpl}</summary><div class="expl">${esc(w)}</div></details>`:""}</div>`}).join("")}</div>`}
+function startTick(C){
+ stopTimer();
+ const upd=()=>{const s=document.getElementById("secs"),pr=document.getElementById("pr"),tm=document.getElementById("tm");if(!s){stopTimer();return}
+  const left=remaining();s.textContent=left;pr.style.strokeDashoffset=C*(1-left/V.timer);
+  if(left<=Math.min(8,Math.ceil(V.timer/4)))tm.classList.add("low");
+  if(left<=0){stopTimer();tm.classList.add("up");document.getElementById("tmsg").textContent=L().timeUp;const cd=document.getElementById("card");if(cd&&!cd.classList.contains("shake"))cd.classList.add("shake");
+   if(ROLE()==="host"&&!timeUpFired){timeUpFired=true;const k=curKey();setTimeout(()=>{if(S.phase==="q"&&curKey()===k)doReveal()},1500)}}};
+ upd();tick=setInterval(upd,250);
+}
+function refreshLive(){
+ if(!V)return;
+ const el=document.getElementById("live");if(el)el.innerHTML=liveHTML();
+ const lb=document.getElementById("lobbylist");if(lb)lb.innerHTML=lobbyHTML();
+ const rl=document.getElementById("readylive");if(rl)rl.innerHTML=readyLiveHTML();
+ const sb=document.getElementById("startbtn");if(sb){const ok=presentCount()>=2;sb.disabled=!ok;const np=document.getElementById("needp");if(np)np.hidden=ok}
+}
+
+function lastOnes(v=V){const m=Math.min(...v.players.map(p=>p.s));return v.players.map((p,k)=>p.s===m?k:-1).filter(k=>k>=0)}
+function boardHTML(mark){
+ const mx=Math.max(1,...V.players.map(p=>p.s));
+ const r=V.players.map((p,k)=>({...p,k:k,key:p.k})).sort((a,b)=>b.s-a.s);
+ return `<div class="board">${r.map((p,i)=>{const last=mark.includes(p.k);return `<div class="row ${last?"last":i===0&&p.s>0?"top1":""}"><span class="rk">${i+1}</span>${av(p)}<div style="min-width:0"><div class="nm">${esc(p.n)}${ONLINE()&&p.key===myKey?` <span class="tg">${L().you}</span>`:""}${last?`<span class="tag">${L().last}</span>`:""}</div><div class="bar"><i style="width:${p.s/mx*100}%"></i></div></div><span class="sc">${p.s}</span></div>`}).join("")}</div>`;
+}
+function summary(){
+ const l=L(),lasts=lastOnes(),end=V.round>=V.rounds,ctrl=CTRL();
+ app.innerHTML=gameTop()+`<h2 class="h2"><small>${l.endRound(V.round)}</small>${end?l.finalRank:l.standings}</h2>
+ ${boardHTML(lasts)}
+ ${ctrl?`<div class="actions">${end?(lasts.length>1?`<button class="btn primary" data-act="tie">${l.tieBtn}</button>`:`<button class="btn primary" data-act="verdict">${l.toVerdict}</button>`)
+  :`<button class="btn primary" data-act="nextround">${l.next(V.round+1)}</button>`}</div>`:`<p class="notice">${l.waitNext}</p>`}`;
+}
+function loser(){if(V.tied&&V.tied.length===1)return V.tied[0];const m=Math.min(...V.players.map(p=>p.s));return V.players.findIndex(p=>p.s===m)}
+function final(){
+ const l=L(),G=GAGES[S.lang],k=loser(),p=V.players[k]||{n:"?",s:0,c:0},ctrl=CTRL();
+ const since=Date.now()-V.drumAt;
+ if(!V.revealed||since<2250){
+  const d=V.revealed?3-Math.floor(since/750):"?";
+  app.innerHTML=gameTop()+`<article class="card verdict"><span class="lbl">${l.isLoser}</span><div class="big ${V.revealed?"pop":""}" id="big" style="color:var(--ink)">${d}</div></article>
+  ${!V.revealed?(ctrl?`<div class="actions"><button class="btn primary" data-act="drum">${l.drum}</button></div>`:`<p class="notice">${l.waitNext}</p>`):""}`;
+  if(V.revealed){stopTimer();tick=setTimeout(()=>render(),Math.min(760,2260-since))}
+  return;
+ }
+ app.innerHTML=gameTop()+`<article class="card verdict" style="--c:var(--bad)"><span class="lbl">${l.isLoser}</span>
+  <div class="big pop">${esc(p.n)}</div><p class="hint" style="margin:0">${l.pts(p.s)}</p>
+  <div class="gage"><span class="lbl">${l.gage}</span>${esc(G[V.gage%G.length])}</div></article>
+ ${boardHTML([k])}
+ ${ctrl?`<div class="actions"><button class="btn ghost" data-act="othergage">${l.otherGage}</button><button class="btn primary" data-act="rematch">${l.rematch}</button><button class="btn ghost" data-act="recap">${l.recap}</button><button class="btn quiet" data-act="gohome">${l.home}</button></div>`:`<div class="actions"><button class="btn ghost" data-act="recap">${l.recap}</button><button class="btn ghost" data-act="leave">${l.leave}</button></div>`}`;
+}
+
+/* ---------- menu ---------- */
+let menuOpen=false;
+function closeMenu(){menuOpen=false;S.board=false;S.recap=false}
+function renderMenu(){
+ if(!menuOpen){sheet.innerHTML="";return}
+ const l=L(),role=ROLE(),inGame=V&&V.players&&V.phase!=="lobby"&&V.phase!=="home";
+ sheet.innerHTML=`<div class="sheet" data-act="closemenu"><div class="box" role="dialog" aria-modal="true" aria-label="${l.menu}">
+  <div class="hd"><h3>${S.recap?l.recap:S.board?l.standings:l.menu}</h3>${langToggle()}</div>
+  ${S.recap?recapHTML():S.board?boardHTML(lastOnes()):`
+  <button class="mi" data-act="closemenu2"><span>${l.mResume}</span><small>${l.mResumeS}</small></button>
+  ${role!=="player"?`<button class="mi" data-act="back"><span>${l.mBack}</span><small>${l.mBackS}</small></button>`:""}
+  ${inGame?`<button class="mi" data-act="board"><span>${l.mBoard}</span></button><button class="mi" data-act="recap"><span>${l.recap}</span><small>${l.recapS}</small></button>`:""}
+  ${role!=="player"?`<button class="mi" data-act="gohome2"><span>${l.mHome}</span><small>${l.mHomeS}</small></button>`:""}
+  ${role==="player"?`<button class="mi danger" data-act="leave"><span>${l.leave}</span><small>${l.leaveS}</small></button>`
+   :role==="host"?`<button class="mi danger" data-act="closeroom"><span>${armed==="closeroom"?l.sure:l.closeRoom}</span></button>`
+   :`<button class="mi danger" data-act="quit"><span>${armed==="quit"?l.sure:l.mQuit}</span><small>${l.mQuitS}</small></button>`}`}
+  <button class="btn ghost" data-act="closemenu2">${l.close}</button></div></div>`;
+}
+
+/* ---------- actions ---------- */
+function startGame(){
+ H=[];S.players.forEach(p=>p.s=0);S.deck=[];
+ const need=S.rounds*S.per;const {deck,recycled}=buildDeck(need+12,need);
+ Object.assign(S,{deck,i:0,round:1,inRound:0,correct:[],tied:null,revealed:false,drumAt:0,answers:null,inGame:true,phase:"q",notice:recycled?L().recycled(recycled):""});
+ S.gage=Math.random()*GAGES.fr.length|0;S.seed=Math.random()*1000|0;S.log=[];myRdy=null;armTimer();render();
+}
+function doReveal(){
+ push();markUsed(S.deck[S.i]);S.phase="a";S.notice="";
+ if(S.online){const ans=answersNow(curKey());S.answers={};S.players.forEach(p=>{if(ans[p.k]!=null)S.answers[p.k]=ans[p.k]});
+  const el=S.tied||S.players.map((_,i)=>i);S.correct=el.filter(i=>grade(S.answers[S.players[i].k],S.deck[S.i]))}
+ else{S.correct=[];S.answers=null}
+ render();
+}
+async function createRoom(){
+ const l=L();const n=(S.myName||"").trim();
+ if(!n){joinErr=l.nameErr;render();return}
+ const A="ABCDEFGHJKLMNPQRSTUVWXYZ";const code=Array.from({length:4},()=>A[Math.random()*A.length|0]).join("");
+ if(!S.localPlayers)S.localPlayers={players:S.players,example:S.example};
+ Object.assign(S,{online:{code},players:[],example:false,inGame:false,phase:"lobby",tied:null,correct:[],answers:null});H=[];
+ const ok=await openRoom(code,"host");
+ if(!ok){S.online=null;S.phase="home";restoreLocal()}
+ render();
+}
+function restoreLocal(){if(S.localPlayers){S.players=S.localPlayers.players;S.example=S.localPlayers.example;S.localPlayers=null}}
+async function joinRoom(){
+ const l=L();const n=(S.myName||"").trim(),c=(S.joinCode||"").trim().toUpperCase();
+ if(!n){joinErr=l.nameErr;render();return}
+ if(!/^[A-Z]{4}$/.test(c)){joinErr=l.codeErr;render();return}
+ P={code:c,name:n};myAns=null;lastPKey="";
+ const ok=await openRoom(c,"player");
+ if(!ok){P=null}
+ render();
+}
+document.addEventListener("click",e=>{
+ const b=e.target.closest("[data-act]");if(!b||b.disabled)return;
+ const act=b.dataset.act,v=b.dataset.v;
+ if(act==="closemenu"&&e.target!==b)return;
+ const ctl=CTRL();
+ switch(act){
+  case"lang":S.lang=v;lastPKey="";render();break;
+  case"mode":S.mode=v;joinErr="";render();break;
+  case"otab":S.otab=v;joinErr="";render();break;
+  case"create":createRoom();break;
+  case"join":joinRoom();break;
+  case"leave":leaveRoom().then(()=>{P=null;closeMenu();render()});break;
+  case"backroom":S.phase=S.inGame?(S.resumePhase==="home"?"q":S.resumePhase):"lobby";if(S.phase==="q")armTimer();render();break;
+  case"closeroom":if(armed==="closeroom"){armed=null;closeMenu();leaveRoom().then(()=>{S.online=null;S.inGame=false;S.phase="home";H=[];restoreLocal();render()})}else{arm("closeroom");render()}break;
+  case"startonline":if(presentCount()>=2){const pk=presentKeys();startGame()}break;
+  case"pick":if(V&&V.phase==="q")sendAns("#"+v);break;
+  case"del":S.players.splice(+v,1);S.example=false;render();break;
+  case"cat":S.cats[v]=!S.cats[v];render();break;
+  case"mix":CATS.forEach(c=>S.cats[c]=true);render();break;
+  case"preset":{const p=PRESETS.find(x=>x[0]===v);S.rounds=p[1];S.per=p[2];render();break}
+  case"step":{const [k,d]=v.split(":");const lim=k==="rounds"?[1,8]:[3,15];S[k]=Math.min(lim[1],Math.max(lim[0],S[k]+ +d));render();break}
+  case"diff":S.diff=v;render();break;
+  case"timer":S.timer=+v;render();break;
+  case"start":startGame();break;
+  case"resume":S.phase=S.resumePhase||"q";if(S.phase==="q")armTimer();render();break;
+  case"abandon":if(armed==="abandon"){armed=null;S.inGame=false;H=[];S.players.forEach(p=>p.s=0);render()}else{arm("abandon");render()}break;
+  case"reset":if(armed==="reset"){armed=null;USED=[];USEDSET=new Set();flash=L().resetDone;render();setTimeout(()=>{flash=""},4000)}else{arm("reset");render()}break;
+  case"back":if(ctl)undo();break;
+  case"menu":menuOpen=true;renderMenu();break;
+  case"closemenu":case"closemenu2":closeMenu();renderMenu();break;
+  case"board":S.board=true;renderMenu();break;
+  case"recap":menuOpen=true;S.recap=true;renderMenu();break;
+  case"qcm":S.qcm=v;render();break;
+  case"copylink":{const inp=document.getElementById("invlink");const ok=()=>{b.textContent=L().copied};
+   try{navigator.clipboard.writeText(inp.value).then(ok,()=>{inp.select();ok()})}catch(err){inp.select();ok()}break}
+  case"ready":{const key=keyNow();myRdy=myRdy===key?null:key;if(NR)NR.presence({rdy:myRdy}).catch(()=>{});const b2=document.getElementById("rdybtn");if(b2){b2.textContent=myRdy?L().readyOn:L().ready;b2.classList.toggle("on",!!myRdy)}refreshLive();checkAdvance();break}
+  case"gohome2":goHome();break;
+  case"quit":if(armed==="quit"){armed=null;closeMenu();S.inGame=false;H=[];S.players.forEach(p=>p.s=0);S.phase="home";render()}else{arm("quit");renderMenu()}break;
+  case"pause":{if(!ctl||S.phase!=="q")break;if(S.pausedLeft==null)S.pausedLeft=remaining();else{S.deadline=Date.now()+S.pausedLeft*1000;S.pausedLeft=null}save();publishSt();const m=document.getElementById("tmsg");if(m)m.textContent=S.pausedLeft!=null?L().paused:(S.online?L().auto:L().tapPause);break}
+  case"reveal":if(ctl)doReveal();break;
+  case"skip":if(ctl){push();markUsed(S.deck[S.i]);S.i++;ensureDeck();S.notice="";armTimer();render()}break;
+  case"chip":{if(!ctl)break;const k=+v,i=S.correct.indexOf(k);i<0?S.correct.push(k):S.correct.splice(i,1);b.setAttribute("aria-pressed",i<0);{const vb=document.getElementById("vbtn");if(vb)vb.textContent=L().validate(S.correct.length)}save();publishSt();break}
+  case"none":if(ctl){S.correct=[];render()}break;
+  case"all":if(ctl){S.correct=(S.tied||S.players.map((_,k)=>k)).slice();render()}break;
+  case"validate":if(ctl)score();break;
+  case"nextround":if(ctl){push();S.round++;S.inRound=0;S.phase="q";armTimer();render()}break;
+  case"tie":if(ctl){push();S.tied=lastOnes(S);S.phase="q";armTimer();render()}break;
+  case"verdict":if(ctl){push();S.phase="final";S.revealed=false;render()}break;
+  case"drum":if(ctl){push();S.revealed=true;S.drumAt=Date.now();render()}break;
+  case"othergage":if(ctl){S.gage++;render()}break;
+  case"rematch":if(ctl)startGame();break;
+  case"gohome":S.inGame=false;H=[];S.phase=S.online?"lobby":"home";render();break;
+ }
+});
+function score(){
+ push();S.correct.forEach(k=>S.players[k].s++);
+ {const lid=S.deck[S.i];S.log=(S.log||[]).concat([{id:lid,ans:S.answers,cor:S.correct.map(i=>S.players[i]&&S.players[i].k).filter(Boolean)}])}
+ S.i++;ensureDeck();S.answers=null;
+ if(S.tied){const rem=S.tied.filter(k=>!S.correct.includes(k));if(rem.length>=1&&rem.length<S.tied.length)S.tied=rem;S.correct=[];
+  if(S.tied.length===1){S.phase="final";S.revealed=false}else{S.phase="q";armTimer()}return render()}
+ S.correct=[];S.inRound++;if(S.inRound>=S.per)S.phase="summary";else{S.phase="q";armTimer()}render();
+}
+
+if(S.phase==="q"&&!S.deadline)armTimer();
+render();
+initCaps();
+
+</script>
+
+</body>
+</html>
