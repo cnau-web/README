@@ -244,6 +244,16 @@ button:disabled{opacity:.45;cursor:not-allowed}
 [hidden]{display:none!important}
 .invite{display:flex;flex-direction:column;gap:8px;width:100%;margin-top:6px;text-align:left}
 .invite input{width:100%;font:inherit;font-size:14px;padding:10px 12px;border-radius:12px;border:2px solid var(--line);background:#fff;color:var(--ink)}
+.buzzbox{align-items:center;text-align:center}
+.buzz{width:min(62vw,240px);aspect-ratio:1;border-radius:50%;margin:6px auto 4px;display:grid;place-items:center;color:#fff;font-family:var(--display);font-weight:900;font-size:clamp(34px,10vw,52px);letter-spacing:.04em;
+ background:radial-gradient(circle at 35% 28%,#ff8a7f,var(--bad) 55%,#a3262b);box-shadow:0 10px 0 #7d1d22,0 22px 40px rgba(0,0,0,.45);animation:pulse 1.4s ease-in-out infinite}
+.buzz:active{transform:translateY(7px);box-shadow:0 3px 0 #7d1d22,0 10px 20px rgba(0,0,0,.4)}
+@keyframes pulse{50%{box-shadow:0 10px 0 #7d1d22,0 0 0 14px rgba(229,72,77,.18),0 22px 40px rgba(0,0,0,.45)}}
+.buzzed{margin:0;font-family:var(--display);font-weight:900;font-size:26px;display:flex;align-items:center;justify-content:center;gap:10px;color:var(--gold);text-wrap:balance}
+.tries{display:flex;flex-direction:column;gap:4px;width:100%;text-align:left;font-size:14px;padding-top:8px;border-top:1px solid rgba(255,255,255,.12)}
+.tries .okk{color:#7be0b5}.tries .ko{color:#ffb3ad}
+.notice.bad{background:rgba(229,72,77,.15);color:#ffb3ad}
+.pen{color:#ffb3ad;font-weight:700}
 .readyp .btn.on{background:var(--ok);color:#fff;box-shadow:0 4px 0 #13734c}
 .recap{display:flex;flex-direction:column;gap:10px}
 .rc{background:rgba(255,255,255,.06);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:6px}
@@ -615,6 +625,9 @@ const T={
 };
 
 Object.assign(T.fr,{
+ playT:"Le mode de jeu",plays:{classic:["Classique","Tout le monde répond à chaque question"],buzzer:["Buzzer","Le plus rapide appuie et répond seul. Bonne réponse +1, mauvaise réponse −1"]},
+ buzz:"BUZZ",buzzHint:"Le premier qui appuie répond seul. Mauvaise réponse : −1 point.",yourTurn:"À toi ! Réponds vite",buzzed:n=>`${n} a buzzé !`,buzzedS:"Seul ce joueur peut répondre. S'il se trompe, le buzzer se rouvre.",bzAuto:"La réponse s'affiche dès que quelqu'un trouve, ou à la fin du chrono.",
+ lockedMe:"Raté ! Tu ne peux plus buzzer sur cette question.",spectate:"Tu regardes : seuls les ex aequo peuvent buzzer.",ansLeft:s=>`${s} s pour répondre`,tries:"Tentatives",noTry:"pas de réponse",penalty:"−1",
  onlineHintS:"Envoie le lien de cette page à tes amis : pas besoin de compte, ils l'ouvrent dans leur navigateur.",copyLink:"Copier le lien d'invitation",copied:"Lien copié ! Colle-le dans WhatsApp.",linkLbl:"Lien d'invitation (le code est déjà dedans)",netErr:"Connexion impossible pour l'instant. Vérifie ta connexion internet, le jeu réessaie tout seul.",
  qcmT:"Les propositions",qcms:{some:["Parfois","4 propositions sur environ une question sur deux, toujours en culture"],all:["Toujours","4 propositions à chaque question"],none:["Jamais","Il faut trouver la réponse sans aide"]},
  orWrite:"Ou écris ta réponse ici",ready:"Je suis prêt pour la suite",readyOn:"Prêt · en attente des autres",readyCount:(n,t)=>`${n} sur ${t} sont prêts`,force:"Passer sans attendre",
@@ -634,6 +647,9 @@ Object.assign(T.fr,{
  codeErr:"Le code fait 4 lettres.",nameErr:"Écris ton prénom.",auto:"La réponse s'affiche quand tout le monde a répondu ou à la fin du chrono.",full:"La salle est pleine (12 joueurs)."
 });
 Object.assign(T.es,{
+ playT:"El modo de juego",plays:{classic:["Clásico","Todos responden a cada pregunta"],buzzer:["Pulsador","El más rápido pulsa y responde solo. Acierto +1, fallo −1"]},
+ buzz:"¡YA!",buzzHint:"El primero que pulsa responde solo. Respuesta mala: −1 punto.",yourTurn:"¡Te toca! Responde rápido",buzzed:n=>`¡${n} ha pulsado!`,buzzedS:"Solo este jugador puede responder. Si falla, el pulsador se vuelve a abrir.",bzAuto:"La respuesta aparece en cuanto alguien acierta o al acabar el tiempo.",
+ lockedMe:"¡Fallaste! Ya no puedes pulsar en esta pregunta.",spectate:"Estás mirando: solo los empatados pueden pulsar.",ansLeft:s=>`${s} s para responder`,tries:"Intentos",noTry:"sin respuesta",penalty:"−1",
  onlineHintS:"Envía el enlace de esta página a tus amigos: no necesitan cuenta, lo abren en su navegador.",copyLink:"Copiar el enlace de invitación",copied:"¡Enlace copiado! Pégalo en WhatsApp.",linkLbl:"Enlace de invitación (ya lleva el código)",netErr:"No hay conexión por ahora. Revisa tu internet, el juego lo vuelve a intentar solo.",
  qcmT:"Las opciones",qcms:{some:["A veces","4 opciones en más o menos una de cada dos preguntas, siempre en cultura"],all:["Siempre","4 opciones en cada pregunta"],none:["Nunca","Hay que encontrar la respuesta sin ayuda"]},
  orWrite:"O escribe tu respuesta aquí",ready:"Estoy listo para seguir",readyOn:"Listo · esperando a los demás",readyCount:(n,t)=>`${n} de ${t} están listos`,force:"Seguir sin esperar",
@@ -659,7 +675,7 @@ function fresh(){return{v:3,lang:"fr",phase:"home",resumePhase:"q",mode:"local",
  players:["Pablo","Lucía","Marco","Inès"].map((n,c)=>({k:"x"+c,n,s:0,c})),example:true,
  cats:{seq:true,eni:true,pie:true,cal:true,cul:true},diff:"mid",rounds:3,per:6,timer:30,
  inGame:false,deck:[],i:0,round:1,inRound:0,correct:[],tied:null,gage:0,revealed:false,drumAt:0,notice:"",board:false,
- deadline:0,pausedLeft:null,answers:null,online:null,localPlayers:null,qcm:"some",seed:0,log:[],recap:false}}
+ deadline:0,pausedLeft:null,answers:null,online:null,localPlayers:null,qcm:"some",seed:0,log:[],recap:false,play:"classic",bz:null,pen:[]}}
 function rd(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}}
 function wr(k,v){try{v==null?localStorage.removeItem(k):localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
 const hot=window.claude?.hot?.data;
@@ -696,7 +712,7 @@ function buildDeck(n,countFirst){
  return{deck:out,recycled};
 }
 function ensureDeck(){if(S.i>=S.deck.length){S.deck=S.deck.concat(buildDeck(10,0).deck)}}
-function armTimer(){S.deadline=Date.now()+S.timer*1000;S.pausedLeft=null;timeUpFired=false}
+function armTimer(){S.deadline=Date.now()+S.timer*1000;S.pausedLeft=null;timeUpFired=false;S.bz=S.play==="buzzer"?freshBz():null;S.pen=[]}
 const curKey=()=>`${S.round}.${S.inRound}.${S.i}.${S.tied?S.tied.join("-"):""}`;
 
 /* ---------- grading (online) ---------- */
@@ -715,6 +731,24 @@ function showAns(v,id){
  return String(v);
 }
 
+const BUZ=()=>ONLINE()&&!!V&&V.play==="buzzer";
+function freshBz(){return{n:1,who:null,until:0,locked:[],tries:[],win:null}}
+function buzzCheck(){
+ if(ROLE()!=="host"||S.phase!=="q"||S.play!=="buzzer"||!S.bz)return;
+ const key=curKey(),bz=S.bz;
+ if(bz.who==null){let best=null;
+  for(const p of PEERS){const b=p.presence&&p.presence.buzz;if(!b||b.k!==key||b.n!==bz.n)continue;const i=S.players.findIndex(x=>x.k===keyOf(p));
+   if(i<0||bz.locked.includes(i)||(S.tied&&!S.tied.includes(i)))continue;if(!best||(+b.t||0)<best.t)best={i,t:+b.t||0}}
+  if(best){bz.who=best.i;bz.until=Date.now()+12000;save();render()}}
+ else{const pk=S.players[bz.who]&&S.players[bz.who].k;const p=PEERS.find(x=>keyOf(x)===pk);const a=p&&p.presence&&p.presence.ans;
+  if(a&&a.k===key&&a.b===bz.n&&a.v)resolveBuzz(String(a.v).slice(0,40))}
+}
+function resolveBuzz(v){const bz=S.bz,i=bz.who;if(i==null)return;const ok=v!=null&&grade(v,S.deck[S.i]);bz.tries.push([i,v,ok?1:0]);
+ if(ok){bz.win=i;bz.who=null;doReveal();return}
+ bz.locked.push(i);bz.who=null;bz.n++;bz.until=0;
+ const pk=presentKeys(),el=(S.tied||S.players.map((_,j)=>j)).filter(j=>S.players[j]&&pk.has(S.players[j].k));
+ if(el.every(j=>bz.locked.includes(j))||(S.timer&&remaining()<=0)){doReveal();return}
+ save();render()}
 function showMC(id){const m=S.qcm||"some";if(m==="all")return true;if(m==="none")return false;return CARDS[id][0]==="cul"||((id*7+(S.seed||0))%2===0)}
 /* ---------- live room ---------- */
 let STANDALONE=false;
@@ -807,24 +841,24 @@ function hostPeers(){
   else if(e.n!==n){e.n=n;changed=true}}
  if(changed&&(S.phase==="lobby"||S.phase==="summary"||S.phase==="final"))render();
  else{if(changed){save();publishSt()}refreshLive()}
- autoReveal();checkAdvance();
+ autoReveal();checkAdvance();buzzCheck();
 }
 function answersNow(key){const m={};for(const p of PEERS){const a=p.presence&&p.presence.ans;if(a&&a.k===key&&a.v!=null&&a.v!=="")m[keyOf(p)]=String(a.v).slice(0,40)}return m}
 function eligible(V){const pk=presentKeys();return (V.tied||V.players.map((_,i)=>i)).filter(i=>V.players[i]&&pk.has(V.players[i].k))}
 function autoReveal(){
- if(ROLE()!=="host"||S.phase!=="q")return;
+ if(ROLE()!=="host"||S.phase!=="q"||S.play==="buzzer")return;
  const el=eligible(S);if(!el.length)return;const ans=answersNow(curKey());
  if(el.every(i=>ans[S.players[i].k]!=null)){const k=curKey();clearTimeout(autoT);autoT=setTimeout(()=>{if(S.phase==="q"&&curKey()===k)doReveal()},900)}
 }
-function buildSt(){return{mc:S.deck[S.i]!=null?showMC(S.deck[S.i]):false,ph:S.phase==="home"?"wait":S.phase,cid:S.deck[S.i]??null,key:curKey(),round:S.round,rounds:S.rounds,per:S.per,inRound:S.inRound,timer:S.timer,dl:S.deadline,pz:S.pausedLeft,
+function buildSt(){return{play:S.play,bz:S.bz&&S.play==="buzzer"?{w:S.bz.who,u:S.bz.until,l:S.bz.locked,n:S.bz.n,tr:S.bz.tries.slice(-6)}:null,pen:S.phase==="a"?S.pen:null,mc:S.deck[S.i]!=null?showMC(S.deck[S.i]):false,ph:S.phase==="home"?"wait":S.phase,cid:S.deck[S.i]??null,key:curKey(),round:S.round,rounds:S.rounds,per:S.per,inRound:S.inRound,timer:S.timer,dl:S.deadline,pz:S.pausedLeft,
  tied:S.tied,pl:S.players.map(p=>[p.k,p.n,p.c,p.s]),cor:S.correct,ans:S.phase==="a"?S.answers:null,gage:S.gage,rev:S.revealed,drumAt:S.drumAt,code:S.online&&S.online.code,hk:myKey}}
 function publishSt(){if(ROLE()==="host"&&NR)NR.presence({st:buildSt()}).catch(()=>{})}
-function stToView(st){return{mc:!!st.mc,phase:st.ph,cid:st.cid,key:st.key,round:st.round,rounds:st.rounds,per:st.per,inRound:st.inRound,timer:st.timer,deadline:st.dl,pausedLeft:st.pz,tied:st.tied,
+function stToView(st){return{play:st.play,bz:st.bz?{who:st.bz.w,until:st.bz.u||0,locked:st.bz.l||[],n:st.bz.n,tries:st.bz.tr||[]}:null,pen:st.pen||[],mc:!!st.mc,phase:st.ph,cid:st.cid,key:st.key,round:st.round,rounds:st.rounds,per:st.per,inRound:st.inRound,timer:st.timer,deadline:st.dl,pausedLeft:st.pz,tied:st.tied,
  players:(st.pl||[]).map(([k,n,c,s])=>({k,n:String(n),c:+c||0,s:+s||0})),correct:st.cor||[],answers:st.ans,gage:st.gage||0,revealed:!!st.rev,drumAt:st.drumAt||0,code:st.code,hk:st.hk}}
 function playerRefresh(){
  const st=hostSt;
  if(st&&st.ph==="a"&&st.cid!=null)plogPut(st);
- const k=!st?"none":st.ph==="q"?JSON.stringify([st.ph,st.key,st.dl,st.pz]):st.ph==="lobby"?"lobby":JSON.stringify([st.ph,st.key,st.pl,st.cor,st.ans,st.gage,st.rev,st.drumAt,st.round,st.inRound,st.tied]);
+ const k=!st?"none":st.ph==="q"?JSON.stringify([st.ph,st.key,st.dl,st.pz,st.bz&&[st.bz.w,st.bz.n,(st.bz.l||[]).length,(st.bz.tr||[]).length]]):st.ph==="lobby"?"lobby":JSON.stringify([st.ph,st.key,st.pl,st.cor,st.ans,st.gage,st.rev,st.drumAt,st.round,st.inRound,st.tied]);
  if(k!==lastPKey){lastPKey=k;render()}else{V=st?stToView(st):null;refreshLive()}
 }
 const keyNow=()=>ROLE()==="host"?curKey():V.key;
@@ -835,12 +869,12 @@ function plogPut(st){if(!P)return;if(PLOG.code!==P.code)PLOG={code:P.code,items:
  const e={key:st.key,id:st.cid,ans:st.ans||{},cor:(st.cor||[]).map(i=>pl[i]&&pl[i][0]).filter(Boolean)};
  const j=PLOG.items.findIndex(x=>x.key===st.key);if(j>=0)PLOG.items[j]=e;else PLOG.items.push(e);wr("pnb3-plog",PLOG)}
 function sendAns(v){
- myAns={k:V.key??curKey(),v:String(v).slice(0,40)};
+ myAns={k:V.key??curKey(),v:String(v).slice(0,40)};if(BUZ()&&V.bz)myAns.b=V.bz.n;
  if(NR)NR.presence({ans:myAns}).catch(()=>{});
  const h=document.getElementById("anshint");if(h)h.textContent=L().sent;
  const ai=document.getElementById("ansin");if(ai&&myAns.v[0]==="#")ai.value="";
  document.querySelectorAll("[data-act=pick]").forEach(b=>b.classList.toggle("sel","#"+b.dataset.v===myAns.v));
- if(ROLE()==="host")autoReveal();
+ if(ROLE()==="host"){autoReveal();setTimeout(buzzCheck,120)}
 }
 
 /* ---------- history ---------- */
@@ -855,7 +889,8 @@ function goHome(){if(S.phase!=="home")S.resumePhase=S.phase;S.phase="home";close
 /* ---------- render ---------- */
 const app=document.getElementById("app"),sheet=document.getElementById("sheet");
 let V=S,tick=null,lastKey="",armed=null,armT=null,flash="";
-function stopTimer(){clearInterval(tick);tick=null}
+let bzInt=null;
+function stopTimer(){clearInterval(tick);tick=null;clearInterval(bzInt);bzInt=null}
 function arm(k){armed=k;clearTimeout(armT);armT=setTimeout(()=>{armed=null;render()},3500)}
 function render(){
  stopTimer();save();document.documentElement.lang=S.lang;
@@ -896,6 +931,9 @@ function settingsHTML(l){
  <section class="sec"><h2><span class="n">${sectionN()}</span>${l.diffT}</h2>
   <div class="diffs">${Object.keys(DIFFS).map((k,i)=>`<button class="diff" data-act="diff" data-v="${k}" aria-pressed="${S.diff===k}"><span class="lvl">${[1,2,3].map(n=>`<i class="${n<=i+1?"on":""}"></i>`).join("")}</span><span style="min-width:0"><b>${l.diffs[k][0]}</b><small>${l.diffs[k][1]}</small></span></button>`).join("")}</div>
  </section>
+ ${S.mode==="online"?`<section class="sec"><h2><span class="n">${sectionN()}</span>${l.playT}</h2>
+  <div class="diffs">${["classic","buzzer"].map(k=>`<button class="diff" data-act="play" data-v="${k}" aria-pressed="${(S.play||"classic")===k}"><span style="min-width:0"><b>${l.plays[k][0]}</b><small>${l.plays[k][1]}</small></span></button>`).join("")}</div>
+ </section>`:""}
  <section class="sec"><h2><span class="n">${sectionN()}</span>${l.qcmT}</h2>
   <div class="diffs">${["some","all","none"].map(k=>`<button class="diff" data-act="qcm" data-v="${k}" aria-pressed="${(S.qcm||"some")===k}"><span style="min-width:0"><b>${l.qcms[k][0]}</b><small>${l.qcms[k][1]}</small></span></button>`).join("")}</div>
  </section>
@@ -991,13 +1029,15 @@ function question(){
  const active=V.tied||V.players.map((_,k)=>k);
  const myKeyNow=ROLE()==="host"?curKey():V.key;
  const mine=myAns&&myAns.k===myKeyNow?myAns.v:"";
- const canAnswer=online&&!shown&&(!V.tied||V.tied.some(i=>V.players[i]&&V.players[i].k===myKey));
+ const myIdx=V.players.findIndex(p=>p.k===myKey),buz=BUZ()&&!!V.bz,bzMine=buz&&V.bz.who===myIdx&&myIdx>=0;
+ const canAnswer=online&&!shown&&(buz?bzMine:(!V.tied||V.tied.some(i=>V.players[i]&&V.players[i].k===myKey)));
  const optHTML=opts?`<div class="opts">${opts.map((o,k)=>canAnswer?`<button class="opt pick ${mine==="#"+k?"sel":""}" data-act="pick" data-v="${k}"><span class="k">${"ABCD"[k]}</span><span>${esc(o)}</span></button>`
   :`<div class="opt ${shown?(o===a?"right":"dim"):""}"><span class="k">${"ABCD"[k]}</span><span>${esc(o)}</span></div>`).join("")}</div>`:"";
  const C=2*Math.PI*28;
  const ansMap=V.answers||{};
  const whoChip=k=>{const p=V.players[k];const on=V.correct.includes(k);const sa=online?showAns(ansMap[p.k],id):null;
-  const inner=`${av(p)}<span class="nm">${esc(p.n)}${online?`<small>${sa?esc(sa):`<i>${l.noAnswer}</i>`}</small>`:""}</span><span class="ck"></span>`;
+  const pn=(V.pen||[]).includes(k)?` <b class="pen">${l.penalty}</b>`:"";
+  const inner=`${av(p)}<span class="nm">${esc(p.n)}${pn}${online?`<small>${sa?esc(sa):`<i>${l.noAnswer}</i>`}</small>`:""}</span><span class="ck"></span>`;
   return ctrl?`<button class="pc" data-act="chip" data-v="${k}" aria-pressed="${on}">${inner}</button>`:`<div class="pc ro" aria-pressed="${on}">${inner}</div>`};
  app.innerHTML=gameTop()+`
  ${S.notice&&!shown&&ctrl?`<p class="notice">${esc(S.notice)}</p>`:""}
@@ -1007,7 +1047,7 @@ function question(){
   <p class="q">${esc(q)}</p>
   ${optHTML}
   ${shown?`<div class="ans"><span class="lbl">${l.answer}</span><div class="a">${esc(a)}</div>${w?`<div class="expl"><span class="lbl">${l.expl}</span>${esc(w)}</div>`:""}</div>`
-  :V.timer?`<div class="timer" id="tm"><button class="ring" ${ctrl?`data-act="pause"`:"disabled"} aria-label="${l.tapPause}"><svg viewBox="0 0 66 66"><circle class="tr" cx="33" cy="33" r="28" fill="none" stroke-width="6"/><circle class="pr" id="pr" cx="33" cy="33" r="28" fill="none" stroke-width="6" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-remaining()/V.timer)}"/></svg><span id="secs">${remaining()}</span></button><p id="tmsg">${V.pausedLeft!=null?l.paused:online?l.auto:l.tapPause}</p></div>`
+  :V.timer?`<div class="timer" id="tm"><button class="ring" ${ctrl?`data-act="pause"`:"disabled"} aria-label="${l.tapPause}"><svg viewBox="0 0 66 66"><circle class="tr" cx="33" cy="33" r="28" fill="none" stroke-width="6"/><circle class="pr" id="pr" cx="33" cy="33" r="28" fill="none" stroke-width="6" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-remaining()/V.timer)}"/></svg><span id="secs">${remaining()}</span></button><p id="tmsg">${V.pausedLeft!=null?l.paused:online?(buz?l.bzAuto:l.auto):l.tapPause}</p></div>`
   :`<div class="timer"><p>${online?l.auto:l.think}</p></div>`}
  </article>
  ${canAnswer?`<section class="panel"><div class="ph"><h3>${l.yourAnswer}</h3></div>
@@ -1015,7 +1055,7 @@ function question(){
    <form class="add" id="ansf"><input id="ansin" maxlength="40" autocomplete="off" placeholder="${opts?esc(l.orWrite):""}" value="${esc(mine&&mine[0]!=="#"?mine:"")}" aria-label="${l.yourAnswer}"><button class="btn primary" style="width:auto;min-height:50px;padding:0 18px;font-size:16px">${l.send}</button></form>
    <p class="hint2" id="anshint">${mine?l.sent:""}</p>
   </section>`:""}
- ${online&&!shown?`<section class="panel" id="live">${liveHTML()}</section>`:""}
+ ${online&&!shown?(buz?buzzHTML(myIdx):`<section class="panel" id="live">${liveHTML()}</section>`):""}
  ${shown?`<section class="panel"><div class="ph"><h3>${l.who}</h3>${ctrl?`<div class="quick"><button data-act="none">${l.nobody}</button><button data-act="all">${l.all}</button></div>`:""}</div>
    ${online&&ctrl?`<p class="hint2">${l.hostCheck}</p>`:""}
    <div class="who">${active.filter(k=>V.players[k]).map(whoChip).join("")}</div></section>
@@ -1024,7 +1064,19 @@ function question(){
  const af=document.getElementById("ansf");
  if(af)af.onsubmit=e=>{e.preventDefault();const v=document.getElementById("ansin").value.trim();if(v)sendAns(v)};
  if(!shown&&V.timer)startTick(C);
+ if(!shown&&buz){bzInt=setInterval(()=>{const e=document.getElementById("bzleft"),b=V.bz;if(e&&b&&b.who!=null)e.textContent=L().ansLeft(Math.max(0,Math.ceil((b.until-Date.now())/1000)));
+  if(ROLE()==="host"&&S.bz&&S.bz.who!=null&&Date.now()>S.bz.until+300)resolveBuzz(null)},300)}
 }
+function buzzHTML(myIdx){
+ const l=L(),bz=V.bz,inGame=myIdx>=0&&(!V.tied||V.tied.includes(myIdx)),locked=bz.locked.includes(myIdx);
+ let main;
+ if(bz.who==null)main=!inGame?`<p class="notice">${l.spectate}</p>`:locked?`<p class="notice bad">${l.lockedMe}</p>`
+  :`<button class="buzz" data-act="buzz" id="buzzbtn">${l.buzz}</button><p class="hint2">${l.buzzHint}</p>`;
+ else if(bz.who===myIdx)main=`<p class="buzzed">${l.yourTurn}</p><p class="hint2" id="bzleft">${l.ansLeft(Math.max(0,Math.ceil((bz.until-Date.now())/1000)))}</p>`;
+ else{const p=V.players[bz.who]||{n:"?",c:0};main=`<div class="buzzed">${av(p)}<span>${l.buzzed(esc(p.n))}</span></div><p class="hint2">${l.buzzedS}</p><p class="hint2" id="bzleft">${l.ansLeft(Math.max(0,Math.ceil((bz.until-Date.now())/1000)))}</p>`}
+ const id=cidOf(V);
+ const tr=bz.tries.length?`<div class="tries"><span class="lbl">${l.tries}</span>${bz.tries.map(([i,v,ok])=>{const p=V.players[i]||{n:"?"};const sa=showAns(v,id);return `<span class="${ok?"okk":"ko"}">${ok?"✓":"✗"} ${esc(p.n)} · ${sa?esc(sa):l.noTry}</span>`}).join("")}</div>`:"";
+ return `<section class="panel buzzbox">${main}${tr}</section>`}
 function readyLiveHTML(){const l=L(),key=keyNow(),r=readyKeys(key),pk=presentKeys(),pl=V.players.filter(p=>pk.has(p.k));const n=pl.filter(p=>r.has(p.k)).length;
  return `<p class="hint2">${l.readyCount(n,pl.length)}</p><div class="dots">${pl.map(p=>`<span class="dot ${r.has(p.k)?"ok":""}">${av(p)}${esc(p.n)}</span>`).join("")}</div>`}
 function readyHTML(){const l=L(),on=myRdy===keyNow();
@@ -1035,7 +1087,7 @@ function recapHTML(){const l=L(),E=recapEntries();if(!E.length)return `<p class=
  const names={};((V&&V.players)||S.players).forEach(p=>names[p.k]=p);
  return `<div class="recap">${E.map((e,n)=>{const [q,a,w]=face(e.id);const c=catOf(e.id);const cor=new Set(e.cor||[]);
   const hasAns=ONLINE()&&e.ans;
-  const lines=hasAns?Object.values(names).map(p=>{const sa=showAns(e.ans[p.k],e.id);const ok=cor.has(p.k);return `<span class="${ok?"okk":"ko"}">${ok?"✓":"✗"} ${esc(p.n)} · ${sa?esc(sa):l.noAnswer}</span>`}).join("")
+  const pen=new Set(e.pen||[]);const lines=hasAns?Object.values(names).map(p=>{const sa=showAns(e.ans[p.k],e.id);const ok=cor.has(p.k);return `<span class="${ok?"okk":"ko"}">${ok?"✓":"✗"} ${esc(p.n)} · ${sa?esc(sa):l.noAnswer}${pen.has(p.k)?" (−1)":""}</span>`}).join("")
    :(cor.size?`<span class="okk">✓ ${l.got} : ${[...cor].map(k=>esc(names[k]?names[k].n:"?")).join(", ")}</span>`:`<span class="ko">${l.nobodyGot}</span>`);
   return `<div class="rc" style="--c:var(--${c})"><div class="rch"><i></i>${n+1} · ${l.catS[c]}</div><p class="rq">${esc(q)}</p><p class="ra">${esc(a)}</p><div class="rl">${lines}</div>${w?`<details><summary>${l.showExpl}</summary><div class="expl">${esc(w)}</div></details>`:""}</div>`}).join("")}</div>`}
 function startTick(C){
@@ -1044,7 +1096,7 @@ function startTick(C){
   const left=remaining();s.textContent=left;pr.style.strokeDashoffset=C*(1-left/V.timer);
   if(left<=Math.min(8,Math.ceil(V.timer/4)))tm.classList.add("low");
   if(left<=0){stopTimer();tm.classList.add("up");document.getElementById("tmsg").textContent=L().timeUp;const cd=document.getElementById("card");if(cd&&!cd.classList.contains("shake"))cd.classList.add("shake");
-   if(ROLE()==="host"&&!timeUpFired){timeUpFired=true;const k=curKey();setTimeout(()=>{if(S.phase==="q"&&curKey()===k)doReveal()},1500)}}};
+   if(ROLE()==="host"&&!timeUpFired&&!(S.play==="buzzer"&&S.bz&&S.bz.who!=null)){timeUpFired=true;const k=curKey();setTimeout(()=>{if(S.phase==="q"&&curKey()===k)doReveal()},1500)}}};
  upd();tick=setInterval(upd,250);
 }
 function refreshLive(){
@@ -1114,7 +1166,8 @@ function startGame(){
 }
 function doReveal(){
  push();markUsed(S.deck[S.i]);S.phase="a";S.notice="";
- if(S.online){const ans=answersNow(curKey());S.answers={};S.players.forEach(p=>{if(ans[p.k]!=null)S.answers[p.k]=ans[p.k]});
+ if(S.online&&S.play==="buzzer"){const bz=S.bz||freshBz();S.answers={};bz.tries.forEach(([i,v])=>{if(S.players[i])S.answers[S.players[i].k]=v==null?"":v});S.correct=bz.win!=null?[bz.win]:[];S.pen=(bz.locked||[]).slice()}
+ else if(S.online){const ans=answersNow(curKey());S.answers={};S.players.forEach(p=>{if(ans[p.k]!=null)S.answers[p.k]=ans[p.k]});
   const el=S.tied||S.players.map((_,i)=>i);S.correct=el.filter(i=>grade(S.answers[S.players[i].k],S.deck[S.i]))}
  else{S.correct=[];S.answers=null}
  render();
@@ -1172,6 +1225,8 @@ document.addEventListener("click",e=>{
   case"board":S.board=true;renderMenu();break;
   case"recap":menuOpen=true;S.recap=true;renderMenu();break;
   case"qcm":S.qcm=v;render();break;
+  case"play":S.play=v;render();break;
+  case"buzz":{if(!V||V.phase!=="q"||!V.bz||V.bz.who!=null)break;b.disabled=true;b.textContent="…";if(NR)NR.presence({buzz:{k:keyNow(),n:V.bz.n,t:Date.now()}}).catch(()=>{});if(ROLE()==="host")setTimeout(buzzCheck,150);break}
   case"copylink":{const inp=document.getElementById("invlink");const ok=()=>{b.textContent=L().copied};
    try{navigator.clipboard.writeText(inp.value).then(ok,()=>{inp.select();ok()})}catch(err){inp.select();ok()}break}
   case"ready":{const key=keyNow();myRdy=myRdy===key?null:key;if(NR)NR.presence({rdy:myRdy}).catch(()=>{});const b2=document.getElementById("rdybtn");if(b2){b2.textContent=myRdy?L().readyOn:L().ready;b2.classList.toggle("on",!!myRdy)}refreshLive();checkAdvance();break}
@@ -1195,7 +1250,8 @@ document.addEventListener("click",e=>{
 });
 function score(){
  push();S.correct.forEach(k=>S.players[k].s++);
- {const lid=S.deck[S.i];S.log=(S.log||[]).concat([{id:lid,ans:S.answers,cor:S.correct.map(i=>S.players[i]&&S.players[i].k).filter(Boolean)}])}
+ if(S.online&&S.play==="buzzer")(S.pen||[]).forEach(i=>{if(S.players[i])S.players[i].s--});
+ {const lid=S.deck[S.i];S.log=(S.log||[]).concat([{id:lid,pen:(S.pen||[]).map(i=>S.players[i]&&S.players[i].k).filter(Boolean),ans:S.answers,cor:S.correct.map(i=>S.players[i]&&S.players[i].k).filter(Boolean)}])}
  S.i++;ensureDeck();S.answers=null;
  if(S.tied){const rem=S.tied.filter(k=>!S.correct.includes(k));if(rem.length>=1&&rem.length<S.tied.length)S.tied=rem;S.correct=[];
   if(S.tied.length===1){S.phase="final";S.revealed=false}else{S.phase="q";armTimer()}return render()}
