@@ -711,15 +711,18 @@ const ROLE=()=>S.online?"host":(P?"player":null);
 const ONLINE=()=>ROLE()!==null;
 const CTRL=()=>ROLE()!=="player";
 
+/* Random theme for every card (never the same theme twice in a row when several are chosen); inside a theme, unseen questions come first. */
 function buildDeck(n,countFirst){
- const cats=activeCats();const pools={};
- cats.forEach(c=>{const ids=idsOf(c);pools[c]=[...shuffle(ids.filter(k=>!USEDSET.has(k))).map(k=>[k,0]),...shuffle(ids.filter(k=>USEDSET.has(k))).map(k=>[k,1])]});
- const out=[];let recycled=0,guard=0;const inDeck=new Set(S.deck);
- while(out.length<n&&guard++<500){
-  let added=false;
-  for(const c of shuffle(cats)){if(out.length>=n)break;const p=pools[c];
-   while(p.length){const [k,u]=p.shift();if(inDeck.has(k)&&p.length)continue;out.push(k);inDeck.add(k);if(u&&out.length<=countFirst)recycled++;added=true;break}}
-  if(!added)cats.forEach(c=>pools[c]=shuffle(idsOf(c)).map(k=>[k,1]));
+ const cats=activeCats();const pools={};const inDeck=new Set(S.deck);
+ cats.forEach(c=>{const ids=idsOf(c).filter(k=>!inDeck.has(k));pools[c]=[...shuffle(ids.filter(k=>!USEDSET.has(k))).map(k=>[k,0]),...shuffle(ids.filter(k=>USEDSET.has(k))).map(k=>[k,1])]});
+ const out=[];let recycled=0,guard=0,last=S.deck.length?CARDS[S.deck[S.deck.length-1]][0]:null;
+ while(out.length<n&&guard++<3000){
+  let avail=cats.filter(c=>pools[c].length);
+  if(!avail.length){cats.forEach(c=>pools[c]=shuffle(idsOf(c).filter(k=>!out.includes(k))).map(k=>[k,1]));avail=cats.filter(c=>pools[c].length);
+   if(!avail.length){cats.forEach(c=>pools[c]=shuffle(idsOf(c)).map(k=>[k,1]));avail=cats.filter(c=>pools[c].length);if(!avail.length)break}}
+  const choice=avail.length>1?avail.filter(c=>c!==last):avail;
+  const c=choice[Math.random()*choice.length|0];const [k,u]=pools[c].shift();
+  out.push(k);last=c;if(u&&out.length<=countFirst)recycled++;
  }
  return{deck:out,recycled};
 }
