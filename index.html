@@ -14,7 +14,7 @@
   --night:#0d1430; --night2:#172150; --paper:#fffaf1; --cream:#f5eedf; --ink:#171b38;
   --gold:#f4b73c; --gold-dk:#b9821a; --soft:#aab3dc; --muted:#666b8c; --line:#e6ddc9;
   --ok:#1f9d6a; --ok-bg:#e3f5ec; --bad:#e5484d;
-  --seq:#13958a; --eni:#7656e8; --pie:#de4a3f; --cal:#e07a17; --cul:#2d6be0;
+  --seq:#13958a; --rap:#d63c8a; --str:#e5484d; --stg:#1f9d6a; --stb:#2d6be0; --sty:#e0a100; --stv:#8b5cf6; --eni:#7656e8; --pie:#de4a3f; --cal:#e07a17; --cul:#2d6be0;
   --display:"Fraunces",Georgia,"Times New Roman",serif;
   --body:"Outfit",system-ui,-apple-system,"Segoe UI",sans-serif;
   color-scheme:dark;
@@ -264,6 +264,11 @@ html{touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:10
 button,a,input,label,.opt,.pc,.tile,.diff,.preset,.chip{touch-action:manipulation}
 button,.opt,.pc,.buzz{-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
 input,textarea{font-size:16px!important}
+.stroop{display:block;font-size:1.7em;font-weight:900;letter-spacing:.08em;margin-top:8px;font-family:var(--display)}
+.dual .stroop{font-size:1.2em}
+.seqblk{display:block;margin-top:10px;font-family:var(--body);font-weight:700;font-size:1.05em;letter-spacing:.12em;word-spacing:.2em;line-height:1.6;background:var(--cream);border-radius:12px;padding:8px 12px}
+.dual .seqblk,.rq .seqblk{display:inline;background:none;padding:0;margin:0}
+.rq .stroop{display:inline;font-size:1em;margin:0}
 .readyp .btn.on{background:var(--ok);color:#fff;box-shadow:0 4px 0 #13734c}
 .recap{display:flex;flex-direction:column;gap:10px}
 .rc{background:rgba(255,255,255,.06);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:6px}
@@ -562,17 +567,75 @@ for(const x of EXTRA){CARDS.push([x.cat,[x.fr.q,x.fr.a,x.fr.w,x.fr.opts],[x.es.q
   x11:20,x5:20,pct:26,drinks:24,change:22,film:20,hmin:20,sq1x:7,sum3:20,split:20,weeks:16,secs:12,dblHalf:20};
  for(const k in plan){let got=0,tries=0;while(got<plan[k]&&tries++<plan[k]*8){if(G[k]())got++}}
 })();
+/* ---------- "Réflexes" theme: quick questions for the fastest players (deterministic) ---------- */
+(function(){
+ let s=777013;
+ const rnd=()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
+ const ri=(a,b)=>a+Math.floor(rnd()*(b-a+1)),pick=a=>a[ri(0,a.length-1)];
+ const mix=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+ const N=(n,l)=>{let x=String(n);if(x.length>3)x=x.replace(/\B(?=(\d{3})+(?!\d))/g,l==="fr"?" ":".");return x};
+ const TM=(m,l)=>{m=((m%1440)+1440)%1440;const h=Math.floor(m/60),mm=String(m%60).padStart(2,"0");return l==="fr"?`${h}h${mm}`:`${h}:${mm}`};
+ const seen=new Set();
+ /* opts: array of [fr,es] pairs, index 0 is the answer */
+ function add(lv,qfr,qes,opts,wfr,wes){const key=qfr+"|"+opts.map(o=>o[0]).join(",");if(seen.has(key))return false;
+  const fr0=opts.map(o=>o[0]),es0=opts.map(o=>o[1]);if(new Set(fr0).size!==4||new Set(es0).size!==4)return false;
+  seen.add(key);const o=mix(opts.map((x,i)=>[x,i]));const ai=o.findIndex(x=>x[1]===0);
+  CARDS.push(["rap",[qfr,opts[0][0],wfr,o.map(x=>x[0][0])],[qes,opts[0][1],wes,o.map(x=>x[0][1])]]);LEVEL.push(lv);return ai>=0}
+ const numOpts=(ans,errs,f=N)=>{const v=[ans];for(const e of errs)if(v.length<4&&Number.isInteger(e)&&e>=0&&!v.includes(e))v.push(e);let k=1;while(v.length<4){for(const e of [ans+k,ans-k])if(v.length<4&&e>=0&&!v.includes(e))v.push(e);k++}return v.map(x=>[f(x,"fr"),f(x,"es")])};
+ const COL=[["r","Rouge","Rojo"],["g","Vert","Verde"],["b","Bleu","Azul"],["y","Jaune","Amarillo"],["v","Violet","Morado"]];
+ const DAYS=[["lundi","lunes"],["mardi","martes"],["mercredi","miércoles"],["jeudi","jueves"],["vendredi","viernes"],["samedi","sábado"],["dimanche","domingo"]];
+ const G={
+  stroop(){const w=pick(COL),c=pick(COL.filter(x=>x!==w)),others=mix(COL.filter(x=>x!==w&&x!==c)).slice(0,2);
+   return add(rnd()<.5?1:2,`De quelle couleur est écrit ce mot ? ⟦${c[0]}:${w[1].toUpperCase()}⟧`,`¿De qué color está escrita esta palabra? ⟦${c[0]}:${w[2].toUpperCase()}⟧`,
+    [[c[1],c[2]],[w[1],w[2]],...others.map(x=>[x[1],x[2]])],
+    `Le mot dit « ${w[1].toUpperCase()} », mais il est écrit en ${c[1].toLowerCase()}.\nLe cerveau lit le mot plus vite qu'il ne voit la couleur : c'est l'effet Stroop.`,
+    `La palabra dice «${w[2].toUpperCase()}», pero está escrita en ${c[2].toLowerCase()}.\nEl cerebro lee la palabra antes de ver el color: es el efecto Stroop.`)},
+  letters(){const pair=pick([["B",["D","P","R"]],["M",["N","W"]],["E",["F","L"]],["O",["Q","C","D"]],["P",["R","B","F"]],["U",["V","Y"]]]),T=pair[0],len=ri(9,13),n=ri(3,Math.min(7,len-3));
+   const arr=mix([...Array(n).fill(T),...Array.from({length:len-n},()=>pick(pair[1]))]),q=arr.join(" ");
+   return add(len>11?2:1,`Combien de fois vois-tu la lettre ${T} ? ⟦s:${q}⟧`,`¿Cuántas veces ves la letra ${T}? ⟦s:${q}⟧`,numOpts(n,[n+1,n-1,n+2]),
+    `Il y a ${n} « ${T} ».\nLes lettres qui lui ressemblent (${pair[1].join(", ")}) sont là pour piéger l'œil.`,`Hay ${n} «${T}».\nLas letras parecidas (${pair[1].join(", ")}) están para engañar a la vista.`)},
+  stars(){const sym=pick([["★","☆"],["●","○"],["▲","△"],["■","□"]]),len=ri(8,12),n=ri(3,len-3),q=mix([...Array(n).fill(sym[0]),...Array(len-n).fill(sym[1])]).join(" ");
+   return add(len>10?2:1,`Combien de ${sym[0]} pleins vois-tu ? ⟦s:${q}⟧`,`¿Cuántos ${sym[0]} rellenos ves? ⟦s:${q}⟧`,numOpts(n,[n+1,n-1,len-n]),
+    `Il y a ${n} ${sym[0]} pleins et ${len-n} ${sym[1]} vides.`,`Hay ${n} ${sym[0]} rellenos y ${len-n} ${sym[1]} vacíos.`)},
+  add2(){const a=ri(6,19),b=ri(5,9);
+   return add(1,`Vite ! ${a} + ${b} = ?`,`¡Rápido! ${a} + ${b} = ?`,numOpts(a+b,[a+b+1,a+b-1,a+b+10]),`${a} + ${b} = ${a+b}.`,`${a} + ${b} = ${a+b}.`)},
+  mul(){const a=ri(3,9),b=ri(3,9);
+   return add(a*b>40?2:1,`Vite ! ${a} × ${b} = ?`,`¡Rápido! ${a} × ${b} = ?`,numOpts(a*b,[a*b+a,a*b-b,a+b]),`${a} × ${b} = ${a*b}.`,`${a} × ${b} = ${a*b}.`)},
+  biggest(){const d=mix([1,2,3,4,5,6,7,8,9]).slice(0,4);const perms=new Set();while(perms.size<4){perms.add(+mix(d).join(""))}const arr=[...perms],big=rnd()<.5;
+   const ans=big?Math.max(...arr):Math.min(...arr);
+   return add(2,big?"Quel est le plus grand nombre ?":"Quel est le plus petit nombre ?",big?"¿Cuál es el número más grande?":"¿Cuál es el número más pequeño?",
+    [ans,...arr.filter(x=>x!==ans)].map(x=>[N(x,"fr"),N(x,"es")]),
+    `On compare de gauche à droite : d'abord les milliers, puis les centaines.\nLe plus ${big?"grand":"petit"} est ${N(ans,"fr")}.`,
+    `Se compara de izquierda a derecha: primero los millares, luego las centenas.\nEl más ${big?"grande":"pequeño"} es ${N(ans,"es")}.`)},
+  even(){const e=ri(6,49)*2,odd=mix(Array.from({length:45},(_,i)=>i*2+11)).slice(0,3);
+   return add(1,"Lequel est un nombre pair ?","¿Cuál es un número par?",[e,...odd].map(x=>[String(x),String(x)]),
+    `Un nombre pair se termine par 0, 2, 4, 6 ou 8 : ${e}.`,`Un número par termina en 0, 2, 4, 6 u 8: ${e}.`)},
+  days(){const d=ri(0,6),k=ri(2,5),after=rnd()<.6,t=(d+(after?k:-k)+70)%7,o=[t,(t+1)%7,(t+6)%7,(d+(after?-k:k)+70)%7];if(new Set(o).size<4)o[3]=(t+2)%7;
+   return add(after?1:2,`Quel jour sera-t-on ${k} jours ${after?"après":"avant"} un ${DAYS[d][0]} ?`,`¿Qué día es ${k} días ${after?"después de":"antes de"} un ${DAYS[d][1]}?`,
+    o.map(i=>[DAYS[i][0][0].toUpperCase()+DAYS[i][0].slice(1),DAYS[i][1][0].toUpperCase()+DAYS[i][1].slice(1)]),
+    `On compte ${k} jours ${after?"en avant":"en arrière"} à partir du ${DAYS[d][0]} : on arrive au ${DAYS[t][0]}.`,
+    `Se cuentan ${k} días ${after?"hacia delante":"hacia atrás"} desde el ${DAYS[d][1]}: se llega al ${DAYS[t][1]}.`)},
+  clock(){const st=ri(7,22)*60+pick([35,40,45,50,55]),m=pick([10,15,20,25,30,35]),ans=st+m;
+   return add(1,`Il est ${TM(st,"fr")}. Quelle heure sera-t-il dans ${m} minutes ?`,`Son las ${TM(st,"es")}. ¿Qué hora será dentro de ${m} minutos?`,
+    [ans,ans+10,ans-10,ans+60].map(x=>[TM(x,"fr"),TM(x,"es")]),
+    `${TM(st,"fr")} + ${m} min : on passe l'heure pile, et on arrive à ${TM(ans,"fr")}.`,`${TM(st,"es")} + ${m} min: se pasa la hora en punto y se llega a las ${TM(ans,"es")}.`)}
+ };
+ const plan={stroop:20,letters:40,stars:30,add2:35,mul:30,biggest:25,even:20,days:28,clock:25};
+ for(const k in plan){let got=0,tries=0;while(got<plan[k]&&tries++<plan[k]*12){if(G[k]())got++}}
+})();
 
 
 
 
-const CATS=["seq","eni","pie","cal","cul"];
+
+const CATS=["seq","eni","pie","cal","rap","cul"];
 const ICON={
  seq:'<svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="14" width="4" height="7" rx="1"/><rect x="10" y="9" width="4" height="12" rx="1"/><rect x="17" y="3" width="4" height="18" rx="1"/></svg>',
  eni:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9.3 9.3a2.8 2.8 0 1 1 3.9 2.6c-.8.3-1.2 1-1.2 1.8v.4"/><circle cx="12" cy="17.2" r=".8" fill="currentColor"/></svg>',
  pie:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3.5 2.8 19.5h18.4z"/><path d="M12 10v4"/><circle cx="12" cy="16.8" r=".8" fill="currentColor"/></svg>',
  cal:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M7 4v6M4 7h6M14.5 7h6M15 15l5 5M20 15l-5 5M4 17.5h6"/></svg>',
- cul:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18"/></svg>'
+ cul:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18"/></svg>',
+ rap:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 2 4.5 13.5h6L9.5 22l9-11.5h-6z"/></svg>'
 };
 const IC_BACK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>';
 const IC_MIX='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h3.5c2 0 3.2 1 4.3 2.7l2.4 4.6c1.1 1.7 2.3 2.7 4.3 2.7H21M3 17h3.5c1.4 0 2.4-.5 3.3-1.4M14.2 8.4c.9-.9 1.9-1.4 3.3-1.4H21M18.5 4.5 21 7l-2.5 2.5M18.5 14.5 21 17l-2.5 2.5"/></svg>';
@@ -591,8 +654,8 @@ const T={
  fr:{t1:"Le Plus Nul",t2:"de la Bande",eyebrow:"Soirée jeux · Édition France–Espagne",tagline:"Logique, pièges et culture. Tout le monde joue, un seul finit dernier.",
   players:"Les joueurs",playersHint:"De 2 à 12 joueurs. Un seul téléphone suffit.",example:"Ce sont des noms d'exemple : ajoute les vôtres.",name:"Prénom",add:"Ajouter",remove:"Retirer",
   themes:"Les thèmes",themesHint:"Touche un thème pour l'activer ou le retirer, ou mélange tout.",mix:"Tout mélanger",mixS:n=>`Tous les thèmes · ${n} questions inédites`,unseen:(n,t)=>`${n} inédites sur ${t}`,
-  cat:{seq:"Suites logiques",eni:"Énigmes",pie:"Pièges",cal:"Calcul mental",cul:"Culture France · Espagne"},
-  catS:{seq:"Suite logique",eni:"Énigme",pie:"Piège",cal:"Calcul mental",cul:"Culture"},
+  cat:{seq:"Suites logiques",eni:"Énigmes",pie:"Pièges",cal:"Calcul mental",rap:"Réflexes · pour les plus rapides",cul:"Culture France · Espagne"},
+  catS:{seq:"Suite logique",eni:"Énigme",pie:"Piège",cal:"Calcul mental",rap:"Réflexe",cul:"Culture"},
   diffT:"La difficulté",diffs:{easy:["Facile","Que des questions accessibles, idéal pour s'échauffer"],mid:["Moyen","Un mélange de facile et de questions qui font réfléchir"],hard:["Difficile","Les questions qui font le plus débattre"]},lv:["","Facile","Moyen","Difficile"],length:"La durée",presets:{flash:"Éclair",classic:"Classique",party:"Grande soirée",marathon:"Marathon"},
   rounds:"Manches",per:"Cartes par manche",timer:"Chrono par carte",off:"Sans",cards:"cartes",total:(n,m)=>[`${n} cartes`,`environ ${m} min`],
   start:"Lancer la partie",startNew:"Nouvelle partie",min2:"Ajoute au moins 2 joueurs.",minCat:"Choisis au moins un thème.",
@@ -613,8 +676,8 @@ const T={
  es:{t1:"El Más Tonto",t2:"del Grupo",eyebrow:"Noche de juegos · Edición Francia–España",tagline:"Lógica, trampas y cultura. Juegan todos, solo uno acaba último.",
   players:"Jugadores",playersHint:"De 2 a 12 jugadores. Basta con un móvil.",example:"Son nombres de ejemplo: añade los vuestros.",name:"Nombre",add:"Añadir",remove:"Quitar",
   themes:"Temas",themesHint:"Toca un tema para activarlo o quitarlo, o mézclalo todo.",mix:"Mezclarlo todo",mixS:n=>`Todos los temas · ${n} preguntas sin salir`,unseen:(n,t)=>`${n} sin salir de ${t}`,
-  cat:{seq:"Series lógicas",eni:"Acertijos",pie:"Trampas",cal:"Cálculo mental",cul:"Cultura Francia · España"},
-  catS:{seq:"Serie lógica",eni:"Acertijo",pie:"Trampa",cal:"Cálculo mental",cul:"Cultura"},
+  cat:{seq:"Series lógicas",eni:"Acertijos",pie:"Trampas",cal:"Cálculo mental",rap:"Reflejos · para los más rápidos",cul:"Cultura Francia · España"},
+  catS:{seq:"Serie lógica",eni:"Acertijo",pie:"Trampa",cal:"Cálculo mental",rap:"Reflejo",cul:"Cultura"},
   diffT:"La dificultad",diffs:{easy:["Fácil","Solo preguntas asequibles, ideal para calentar"],mid:["Media","Una mezcla de fáciles y preguntas para pensar"],hard:["Difícil","Las preguntas que más debate generan"]},lv:["","Fácil","Media","Difícil"],length:"La duración",presets:{flash:"Relámpago",classic:"Clásica",party:"Gran noche",marathon:"Maratón"},
   rounds:"Rondas",per:"Cartas por ronda",timer:"Tiempo por carta",off:"Sin",cards:"cartas",total:(n,m)=>[`${n} cartas`,`unos ${m} min`],
   start:"Empezar la partida",startNew:"Nueva partida",min2:"Añade al menos 2 jugadores.",minCat:"Elige al menos un tema.",
@@ -685,14 +748,14 @@ Object.assign(T.es,{
 const KS="pnb3-state",KH="pnb3-hist",KU="pnb3-used",KP="pnb3-player";
 function fresh(){return{v:3,dual:false,lang:/^es/i.test((navigator.languages&&navigator.languages[0])||navigator.language||"")?"es":"fr",phase:"home",resumePhase:"q",mode:"local",otab:"host",myName:"",joinCode:"",
  players:["Pablo","Lucía","Marco","Inès"].map((n,c)=>({k:"x"+c,n,s:0,c})),example:true,
- cats:{seq:true,eni:true,pie:true,cal:true,cul:true},diff:"mid",rounds:3,per:6,timer:30,
+ cats:{seq:true,eni:true,pie:true,cal:true,rap:true,cul:true},diff:"mid",rounds:3,per:6,timer:30,
  inGame:false,deck:[],i:0,round:1,inRound:0,correct:[],tied:null,gage:0,revealed:false,drumAt:0,notice:"",board:false,
  deadline:0,pausedLeft:null,answers:null,online:null,localPlayers:null,qcm:"some",seed:0,log:[],recap:false,play:"classic",bz:null,pen:[]}}
 function rd(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}}
 function wr(k,v){try{v==null?localStorage.removeItem(k):localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
 const hot=window.claude?.hot?.data;
 let S=hot?.S||rd(KS); if(!S||S.v!==3)S=fresh();
-{const f=fresh();for(const k in f)if(S[k]===undefined)S[k]=f[k];S.players.forEach((p,i)=>{if(!p.k)p.k="x"+i})}
+{const f=fresh();for(const k in f)if(S[k]===undefined)S[k]=f[k];if(S.cats&&S.cats.rap===undefined)S.cats.rap=true;S.players.forEach((p,i)=>{if(!p.k)p.k="x"+i})}
 let H=hot?.H||rd(KH)||[];
 let USED=hot?.U||rd(KU)||[];
 let USEDSET=new Set(USED);
@@ -727,7 +790,7 @@ function buildDeck(n,countFirst){
  return{deck:out,recycled};
 }
 function ensureDeck(){if(S.i>=S.deck.length){S.deck=S.deck.concat(buildDeck(10,0).deck)}}
-function armTimer(){S.deadline=Date.now()+S.timer*1000;S.pausedLeft=null;timeUpFired=false;S.bz=S.play==="buzzer"?freshBz():null;S.pen=[]}
+function armTimer(){const cid=S.deck[S.i];S.tmax=S.timer&&cid!=null&&CARDS[cid][0]==="rap"?Math.min(S.timer,10):S.timer;S.deadline=Date.now()+S.tmax*1000;S.pausedLeft=null;timeUpFired=false;S.bz=S.play==="buzzer"?freshBz():null;S.pen=[]}
 const curKey=()=>`${S.round}.${S.inRound}.${S.i}.${S.tied?S.tied.join("-"):""}`;
 
 /* ---------- grading (online) ---------- */
@@ -771,7 +834,7 @@ function resolveBuzz(v){const bz=S.bz,i=bz.who;if(i==null)return;const ok=v!=nul
  const pk=presentKeys(),el=(S.tied||S.players.map((_,j)=>j)).filter(j=>S.players[j]&&pk.has(S.players[j].k));
  if(el.every(j=>bz.locked.includes(j))||(S.timer&&remaining()<=0)){doReveal();return}
  save();render()}
-function showMC(id){const m=S.qcm||"some";if(m==="all")return true;if(m==="none")return false;return CARDS[id][0]==="cul"||((id*7+(S.seed||0))%2===0)}
+function showMC(id){if(CARDS[id][0]==="rap")return true;const m=S.qcm||"some";if(m==="all")return true;if(m==="none")return false;return CARDS[id][0]==="cul"||((id*7+(S.seed||0))%2===0)}
 /* ---------- live room ---------- */
 let STANDALONE=false;
 const MYBY=(()=>{let v=rd("pnb3-by");if(!v){v="b"+Math.random().toString(36).slice(2,10)+Date.now().toString(36);wr("pnb3-by",v)}return v})();
@@ -872,10 +935,10 @@ function autoReveal(){
  const el=eligible(S);if(!el.length)return;const ans=answersNow(curKey());
  if(el.every(i=>ans[S.players[i].k]!=null)){const k=curKey();clearTimeout(autoT);autoT=setTimeout(()=>{if(S.phase==="q"&&curKey()===k)doReveal()},900)}
 }
-function buildSt(){return{play:S.play,bz:S.bz&&S.play==="buzzer"?{w:S.bz.who,u:S.bz.until,l:S.bz.locked,n:S.bz.n,tr:S.bz.tries.slice(-6)}:null,pen:S.phase==="a"?S.pen:null,mc:S.deck[S.i]!=null?showMC(S.deck[S.i]):false,ph:S.phase==="home"?"wait":S.phase,cid:S.deck[S.i]??null,key:curKey(),round:S.round,rounds:S.rounds,per:S.per,inRound:S.inRound,timer:S.timer,dl:S.deadline,pz:S.pausedLeft,
+function buildSt(){return{tmax:S.tmax,play:S.play,bz:S.bz&&S.play==="buzzer"?{w:S.bz.who,u:S.bz.until,l:S.bz.locked,n:S.bz.n,tr:S.bz.tries.slice(-6)}:null,pen:S.phase==="a"?S.pen:null,mc:S.deck[S.i]!=null?showMC(S.deck[S.i]):false,ph:S.phase==="home"?"wait":S.phase,cid:S.deck[S.i]??null,key:curKey(),round:S.round,rounds:S.rounds,per:S.per,inRound:S.inRound,timer:S.timer,dl:S.deadline,pz:S.pausedLeft,
  tied:S.tied,pl:S.players.map(p=>[p.k,p.n,p.c,p.s]),cor:S.correct,ans:S.phase==="a"?S.answers:null,gage:S.gage,rev:S.revealed,drumAt:S.drumAt,code:S.online&&S.online.code,hk:myKey}}
 function publishSt(){if(ROLE()==="host"&&NR)NR.presence({st:buildSt()}).catch(()=>{})}
-function stToView(st){return{play:st.play,bz:st.bz?{who:st.bz.w,until:st.bz.u||0,locked:st.bz.l||[],n:st.bz.n,tries:st.bz.tr||[]}:null,pen:st.pen||[],mc:!!st.mc,phase:st.ph,cid:st.cid,key:st.key,round:st.round,rounds:st.rounds,per:st.per,inRound:st.inRound,timer:st.timer,deadline:st.dl,pausedLeft:st.pz,tied:st.tied,
+function stToView(st){return{tmax:st.tmax,play:st.play,bz:st.bz?{who:st.bz.w,until:st.bz.u||0,locked:st.bz.l||[],n:st.bz.n,tries:st.bz.tr||[]}:null,pen:st.pen||[],mc:!!st.mc,phase:st.ph,cid:st.cid,key:st.key,round:st.round,rounds:st.rounds,per:st.per,inRound:st.inRound,timer:st.timer,deadline:st.dl,pausedLeft:st.pz,tied:st.tied,
  players:(st.pl||[]).map(([k,n,c,s])=>({k,n:String(n),c:+c||0,s:+s||0})),correct:st.cor||[],answers:st.ans,gage:st.gage||0,revealed:!!st.rev,drumAt:st.drumAt||0,code:st.code,hk:st.hk}}
 function playerRefresh(){
  const st=hostSt;
@@ -946,7 +1009,7 @@ function settingsHTML(l){
  const presetOn=k=>PRESETS.find(p=>p[0]===k&&p[1]===S.rounds&&p[2]===S.per);
  return `<section class="sec"><h2><span class="n">${sectionN()}</span>${l.themes}</h2><p class="hint">${l.themesHint}</p>
   <div class="tiles"><button class="tile wide mix" style="--c:var(--ink)" data-act="mix" aria-pressed="${activeCats().length===CATS.length}"><span class="ic">${IC_MIX}</span><span style="min-width:0"><b>${l.mix}</b><small>${l.mixS(CATS.reduce((a,c)=>a+idsOf(c).filter(k=>!USEDSET.has(k)).length,0))}</small></span></button>${CATS.map(c=>{const ids=idsOf(c);const un=ids.filter(k=>!USEDSET.has(k)).length;
-   return `<button class="tile ${c==="cul"?"wide":""}" style="--c:var(--${c})" data-act="cat" data-v="${c}" aria-pressed="${!!S.cats[c]}"><span class="ic">${ICON[c]}</span><span style="min-width:0"><b>${l.cat[c]}</b><small>${l.unseen(un,ids.length)}</small></span></button>`}).join("")}</div>
+   return `<button class="tile ${c==="cul"||c==="rap"?"wide":""}" style="--c:var(--${c})" data-act="cat" data-v="${c}" aria-pressed="${!!S.cats[c]}"><span class="ic">${ICON[c]}</span><span style="min-width:0"><b>${l.cat[c]}</b><small>${l.unseen(un,ids.length)}</small></span></button>`}).join("")}</div>
   ${USED.length?`<button class="link ${armed==="reset"?"warn":""}" data-act="reset">${armed==="reset"?l.sure:l.resetQ}</button>`:""}
   ${flash?`<p class="hint">${flash}</p>`:""}
  </section>
@@ -1039,10 +1102,12 @@ function playerWait(){
 
 function catOf(id){return CARDS[id][0]}
 const OL=()=>S.lang==="es"?"fr":"es";
-function dualTxt(id,i,main){if(!S.dual)return esc(main);const o=CARDS[id][S.lang==="es"?1:2][i];return o&&o!==main?`${esc(main)}<span class="dual" lang="${OL()}">${esc(o)}</span>`:esc(main)}
+const fmtQ=s=>esc(s).replace(/⟦s:([^⟧]+)⟧/g,(m,w)=>`<span class="seqblk">${w}</span>`).replace(/⟦([rgbyv]):([^⟧]+)⟧/g,(m,c,w)=>`<span class="stroop" style="color:var(--st${c})">${w}</span>`);
+function dualTxt(id,i,main){const F=i===0?fmtQ:esc;if(!S.dual)return F(main);const o=CARDS[id][S.lang==="es"?1:2][i];return o&&o!==main?`${F(main)}<span class="dual" lang="${OL()}">${F(o)}</span>`:F(main)}
 function dualOpt(id,k,o){if(!S.dual)return esc(o);const oo=CARDS[id][S.lang==="es"?1:2][3],x=oo&&oo[k];return x&&x!==o?`${esc(o)}<span class="dual" lang="${OL()}">${esc(x)}</span>`:esc(o)}
 function face(id){return CARDS[id][S.lang==="es"?2:1]}
 const cidOf=v=>v.cid!==undefined?v.cid:S.deck[S.i];
+const TT=()=>V.tmax||V.timer;
 function remaining(){if(V.pausedLeft!=null)return V.pausedLeft;return Math.max(0,Math.ceil((V.deadline-Date.now())/1000))}
 function liveHTML(){
  const l=L(),key=ROLE()==="host"?curKey():V.key,ans=answersNow(key),el=eligible(V);
@@ -1073,7 +1138,7 @@ function question(){
   <p class="q">${dualTxt(id,0,q)}</p>
   ${optHTML}
   ${shown?`<div class="ans"><span class="lbl">${l.answer}</span><div class="a">${dualTxt(id,1,a)}</div>${w?`<div class="expl"><span class="lbl">${l.expl}</span>${esc(w)}</div>`:""}${S.dual&&CARDS[id][S.lang==="es"?1:2][2]?`<div class="expl" lang="${OL()}"><span class="lbl">${T[OL()].expl}</span>${esc(CARDS[id][S.lang==="es"?1:2][2])}</div>`:""}</div>`
-  :V.timer?`<div class="timer" id="tm"><button class="ring" ${ctrl?`data-act="pause"`:"disabled"} aria-label="${l.tapPause}"><svg viewBox="0 0 66 66"><circle class="tr" cx="33" cy="33" r="28" fill="none" stroke-width="6"/><circle class="pr" id="pr" cx="33" cy="33" r="28" fill="none" stroke-width="6" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-remaining()/V.timer)}"/></svg><span id="secs">${remaining()}</span></button><p id="tmsg">${V.pausedLeft!=null?l.paused:online?(buz?l.bzAuto:l.auto):l.tapPause}</p></div>`
+  :V.timer?`<div class="timer" id="tm"><button class="ring" ${ctrl?`data-act="pause"`:"disabled"} aria-label="${l.tapPause}"><svg viewBox="0 0 66 66"><circle class="tr" cx="33" cy="33" r="28" fill="none" stroke-width="6"/><circle class="pr" id="pr" cx="33" cy="33" r="28" fill="none" stroke-width="6" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-remaining()/TT())}"/></svg><span id="secs">${remaining()}</span></button><p id="tmsg">${V.pausedLeft!=null?l.paused:online?(buz?l.bzAuto:l.auto):l.tapPause}</p></div>`
   :`<div class="timer"><p>${online?l.auto:l.think}</p></div>`}
  </article>
  ${canAnswer?`<section class="panel"><div class="ph"><h3>${l.yourAnswer}</h3></div>
@@ -1119,8 +1184,8 @@ function recapHTML(){const l=L(),E=recapEntries();if(!E.length)return `<p class=
 function startTick(C){
  stopTimer();
  const upd=()=>{const s=document.getElementById("secs"),pr=document.getElementById("pr"),tm=document.getElementById("tm");if(!s){stopTimer();return}
-  const left=remaining();s.textContent=left;pr.style.strokeDashoffset=C*(1-left/V.timer);
-  if(left<=Math.min(8,Math.ceil(V.timer/4)))tm.classList.add("low");
+  const left=remaining();s.textContent=left;pr.style.strokeDashoffset=C*(1-left/TT());
+  if(left<=Math.min(8,Math.ceil(TT()/4)))tm.classList.add("low");
   if(left<=0){stopTimer();tm.classList.add("up");document.getElementById("tmsg").textContent=L().timeUp;const cd=document.getElementById("card");if(cd&&!cd.classList.contains("shake"))cd.classList.add("shake");
    if(ROLE()==="host"&&!timeUpFired&&!(S.play==="buzzer"&&S.bz&&S.bz.who!=null)){timeUpFired=true;const k=curKey();setTimeout(()=>{if(S.phase==="q"&&curKey()===k)doReveal()},1500)}}};
  upd();tick=setInterval(upd,250);
