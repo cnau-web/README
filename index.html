@@ -843,40 +843,57 @@ function loadPeerJS(){return new Promise((res,rej)=>{if(window.Peer)return res()
 async function peerRoom(code,role){
  try{await loadPeerJS()}catch(e){throw{code:"upstream_error"}}
  const hostId="pnb-game-"+String(code).toLowerCase();
- let peer=null,me=role==="host"?hostId:null,mine={},handlers=[],conns={},others={},hostConn=null,closed=false,retryT=null,last=[];
+ let peer=null,me=role==="host"?hostId:null,mine={},handlers=[],conns={},others={},hostConn=null,closed=false,retryT=null,watchT=null,beat=null,last=[],lastData=0,starting=false;
  const deliver=arr=>{last=arr;const peers=arr.map(x=>({peer:x.peer,by:x.by,isMe:x.peer===me,sameTab:x.peer===me,kind:"viewer",guest:false,presence:x.presence||{},updatedAt:Date.now()}));handlers.forEach(h=>h({peers,joined:[],left:[],updated:[]}))};
  const selfEntry=()=>({peer:me||"me",by:MYBY,presence:mine});
  const hostList=()=>[selfEntry(),...Object.entries(others).map(([p,o])=>({peer:p,by:o.by,presence:o.pr}))];
- const hostBroadcast=()=>{const l=hostList();deliver(l);for(const c of Object.values(conns)){try{if(c.open)c.send({t:"peers",list:l})}catch(e){}}};
+ const hostBroadcast=()=>{const l=hostList();deliver(l);for(const [id,c] of Object.entries(conns)){try{if(c.open)c.send({t:"peers",list:l})}catch(e){}}};
  const retry=(fn,ms)=>{clearTimeout(retryT);if(!closed)retryT=setTimeout(fn,ms)};
+ const netErr=t=>["network","server-error","socket-error","socket-closed","disconnected"].includes(t);
+ function fresh(){try{peer&&peer.destroy()}catch(e){}peer=null;role==="host"?startHost():startPlayer()}
  function startHost(){
   peer=new Peer(hostId);
   peer.on("open",()=>{netDown(false);hostBroadcast()});
-  peer.on("connection",c=>{c.on("data",d=>{if(d&&d.t==="p"&&d.pr&&typeof d.pr==="object"){others[c.peer]={by:String(d.by||c.peer).slice(0,40),pr:d.pr};conns[c.peer]=c;hostBroadcast()}});
-   const gone=()=>{delete others[c.peer];delete conns[c.peer];hostBroadcast()};c.on("close",gone);c.on("error",gone)});
-  peer.on("error",e=>{if(e.type==="unavailable-id"){try{peer.destroy()}catch(x){}retry(startHost,3000)}else if(e.type==="network"||e.type==="server-error"||e.type==="socket-error"||e.type==="socket-closed")netDown(true)});
-  peer.on("disconnected",()=>{if(!closed)setTimeout(()=>{try{peer.reconnect()}catch(e){}},1500)});
+  peer.on("connection",c=>{
+   c.on("data",d=>{if(d&&d.t==="p"&&d.pr&&typeof d.pr==="object"){others[c.peer]={by:String(d.by||c.peer).slice(0,40),pr:d.pr};conns[c.peer]=c;hostBroadcast()}});
+   const gone=()=>{if(conns[c.peer]===c||!conns[c.peer]){delete others[c.peer];delete conns[c.peer];hostBroadcast()}};c.on("close",gone);c.on("error",gone)});
+  peer.on("error",e=>{if(e.type==="unavailable-id"){try{peer.destroy()}catch(x){}peer=null;retry(startHost,2500)}else if(netErr(e.type))netDown(true)});
+  peer.on("disconnected",()=>{netDown(true);if(!closed)setTimeout(()=>{try{peer&&!peer.destroyed&&peer.reconnect()}catch(e){}},800)});
  }
  function connectHost(){
   if(closed||!peer||!peer.open)return;
-  try{hostConn&&hostConn.close()}catch(e){}
-  hostConn=peer.connect(hostId,{reliable:true});
-  hostConn.on("open",()=>{netDown(false);hostConn.send({t:"p",by:MYBY,pr:mine})});
-  hostConn.on("data",d=>{if(d&&d.t==="peers"&&Array.isArray(d.list))deliver(d.list)});
-  hostConn.on("close",()=>{deliver([selfEntry()]);retry(connectHost,3000)});
+  clearTimeout(watchT);try{hostConn&&hostConn.close()}catch(e){}
+  const c=peer.connect(hostId,{reliable:true});hostConn=c;
+  /* a first attempt can stay stuck without any error: give up after 4.5 s and try again */
+  watchT=setTimeout(()=>{watchT=null;if(hostConn===c&&!c.open){try{c.close()}catch(e){}retry(connectHost,500)}},4500);
+  c.on("open",()=>{if(hostConn!==c)return;clearTimeout(watchT);watchT=null;netDown(false);lastData=Date.now();c.send({t:"p",by:MYBY,pr:mine})});
+  c.on("data",d=>{if(hostConn!==c)return;lastData=Date.now();if(d&&d.t==="peers"&&Array.isArray(d.list))deliver(d.list)});
+  c.on("close",()=>{if(hostConn!==c)return;deliver([selfEntry()]);retry(connectHost,1500)});
+  c.on("error",()=>{if(hostConn!==c)return;retry(connectHost,1500)});
  }
  function startPlayer(){
   peer=new Peer();
   peer.on("open",id=>{me=id;netDown(false);connectHost()});
-  peer.on("error",e=>{if(e.type==="peer-unavailable"){deliver([selfEntry()]);retry(connectHost,3000)}else if(e.type==="network"||e.type==="server-error"||e.type==="socket-error"||e.type==="socket-closed")netDown(true)});
-  peer.on("disconnected",()=>{if(!closed)setTimeout(()=>{try{peer.reconnect()}catch(e){}},1500)});
+  peer.on("error",e=>{if(e.type==="peer-unavailable"){deliver([selfEntry()]);retry(connectHost,2000)}else if(netErr(e.type))netDown(true)});
+  peer.on("disconnected",()=>{if(!closed)setTimeout(()=>{try{peer&&!peer.destroyed&&peer.reconnect()}catch(e){}},800)});
  }
+ /* keep everything alive: phones pause the page when you switch app (to send the link on WhatsApp...) */
+ function heartbeat(){
+  if(closed)return;
+  if(!peer||peer.destroyed){fresh();return}
+  if(peer.disconnected){try{peer.reconnect()}catch(e){fresh()}return}
+  if(role==="host"){for(const [id,c] of Object.entries(conns))if(!c.open){delete conns[id];delete others[id]}hostBroadcast()}
+  else if(peer.open){const stuck=!hostConn||(!hostConn.open&&!watchT)||(hostConn.open&&Date.now()-lastData>15000);if(stuck)connectHost()}
+ }
+ beat=setInterval(heartbeat,4000);
+ const vis=()=>{if(document.visibilityState==="visible")heartbeat()};
+ document.addEventListener("visibilitychange",vis);window.addEventListener("online",heartbeat);window.addEventListener("pageshow",heartbeat);
  role==="host"?startHost():startPlayer();
  return{name:hostId,
   presence:async patch=>{for(const k in patch){if(patch[k]===null)delete mine[k];else mine[k]=patch[k]}mine=JSON.parse(JSON.stringify(mine));
    if(role==="host")hostBroadcast();else{if(hostConn&&hostConn.open){try{hostConn.send({t:"p",by:MYBY,pr:mine})}catch(e){}}deliver((last.length?last:[selfEntry()]).map(x=>x.peer===me?{...x,presence:mine}:x))}},
   onPeers:h=>{handlers.push(h);return()=>{}},
-  leave:async()=>{closed=true;clearTimeout(retryT);try{peer&&peer.destroy()}catch(e){}}};
+  leave:async()=>{closed=true;clearTimeout(retryT);clearTimeout(watchT);clearInterval(beat);document.removeEventListener("visibilitychange",vis);window.removeEventListener("online",heartbeat);window.removeEventListener("pageshow",heartbeat);try{peer&&peer.destroy()}catch(e){}}};
 }
 let NETDOWN=false;
 function netDown(v){if(NETDOWN!==v){NETDOWN=v;const n=document.getElementById("netdown");if(n)n.hidden=!v}}
