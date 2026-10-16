@@ -936,11 +936,18 @@ async function openRoom(code,role){
  return true;
 }
 async function leaveRoom(){const r=NR;NR=null;PEERS=[];hostSt=null;myAns=null;if(r){try{await r.leave()}catch(e){}}}
-function applyHash(){const m=/^#([A-Za-z]{4})$/.exec(location.hash||"");if(m&&!S.online&&!P){S.mode="online";S.otab="join";S.joinCode=m[1].toUpperCase();if(S.phase!=="home"&&!S.inGame)S.phase="home"}}
+function applyHash(){
+ const hs=(location.hash||"").toLowerCase(),clean=()=>{try{history.replaceState(null,"",location.pathname+location.search)}catch(e){}};
+ /* "#creer" / "#crear": open straight on "create my own game", detached from any game joined before */
+ if(hs==="#creer"||hs==="#crear"){P=null;myAns=null;hostSt=null;S.mode="online";S.otab="host";if(!S.online&&!S.inGame)S.phase="home";joinErr="";clean();return}
+ const m=/^#([A-Za-z]{4})$/.exec(location.hash||"");
+ if(m&&!S.online){const c=m[1].toUpperCase();if(P&&P.code!==c)P=null;if(!P){S.mode="online";S.otab="join";S.joinCode=c;if(S.phase!=="home"&&!S.inGame)S.phase="home"}}
+}
 const canShare=()=>STANDALONE&&!!navigator.share;
 function inviteMsg(code,noLink){return `On joue au Plus Nul de la Bande ! Code : ${code}\n¡Jugamos a El Más Tonto del Grupo! Código: ${code}`+(noLink?"":`\n${inviteLink(code)}`)}
 function gameMsg(){return "Le Plus Nul de la Bande : un jeu de soirée gratuit, sans compte. Ouvre le lien, choisis « En ligne » puis « Créer une partie », et invite tes amis.\nEl Más Tonto del Grupo: un juego gratis y sin cuenta. Abre el enlace, elige «En línea» y luego «Crear una partida», e invita a tus amigos."}
 const baseLink=()=>location.href.split("#")[0];
+const createLink=()=>baseLink()+"#creer";
 function doShare(text,url,btn){const done=()=>{if(btn)btn.textContent=L().shared};
  if(navigator.share){navigator.share({title:"Le Plus Nul de la Bande",text,url}).then(done,()=>{})}
  else{try{navigator.clipboard.writeText(text+"\n"+url).then(()=>{if(btn)btn.textContent=L().copied},()=>{})}catch(e){}}}
@@ -1096,7 +1103,7 @@ function home(){
  }
  app.innerHTML=`
  <div class="top" style="grid-template-columns:1fr auto"><span></span>${langToggle()}</div>
- <header class="hero"><div class="eyebrow">${l.eyebrow}</div><h1>${l.t1}<em>${l.t2}</em></h1><p>${l.tagline}</p>${STANDALONE?`<div class="sharerow">${navigator.share?`<button class="sharegame" data-act="sharegame">${IC_SHARE}${l.shareGame}</button>`:""}<a class="sharegame wa" href="https://wa.me/?text=${encodeURIComponent(gameMsg()+"\n"+baseLink())}" target="_blank" rel="noopener">${IC_WA}WhatsApp</a></div><p class="sharehint">${l.shareGameS}</p>`:""}</header>
+ <header class="hero"><div class="eyebrow">${l.eyebrow}</div><h1>${l.t1}<em>${l.t2}</em></h1><p>${l.tagline}</p>${STANDALONE?`<div class="sharerow">${navigator.share?`<button class="sharegame" data-act="sharegame">${IC_SHARE}${l.shareGame}</button>`:""}<a class="sharegame wa" href="https://wa.me/?text=${encodeURIComponent(gameMsg()+"\n"+createLink())}" target="_blank" rel="noopener">${IC_WA}WhatsApp</a></div><p class="sharehint">${l.shareGameS}</p>`:""}</header>
  ${S.online?"":`<section class="sec"><h2>${l.modeT}</h2><div class="diffs">${["local","online"].map(m=>`<button class="diff" data-act="mode" data-v="${m}" aria-pressed="${S.mode===m}"><span class="mi-ic">${m==="local"?IC_PHONE:IC_PHONES}</span><span style="min-width:0"><b>${l.modes[m][0]}</b><small>${l.modes[m][1]}</small></span></button>`).join("")}</div></section>`}
  ${body}`;
  const f=document.getElementById("addf");
@@ -1355,7 +1362,7 @@ document.addEventListener("click",e=>{
   case"recap":menuOpen=true;S.recap=true;renderMenu();break;
   case"qcm":S.qcm=v;render();break;
   case"sharelink":doShare(inviteMsg(v,true),inviteLink(v),b);break;
-  case"sharegame":doShare(gameMsg(),baseLink(),b);break;
+  case"sharegame":doShare(gameMsg(),createLink(),b);break;
   case"play":S.play=v;render();break;
   case"buzz":{if(!V||V.phase!=="q"||!V.bz||V.bz.who!=null)break;b.disabled=true;b.textContent="…";if(NR)NR.presence({buzz:{k:keyNow(),n:V.bz.n,t:Date.now()}}).catch(()=>{});if(ROLE()==="host")setTimeout(buzzCheck,150);break}
   case"copylink":{const inp=document.getElementById("invlink");const ok=()=>{b.textContent=L().copied};
