@@ -733,10 +733,17 @@ function grade(v,id){
  const nv=norm(v),dv=digits(v);
  return [fr[1],es[1]].some(e=>{const ne=norm(e),de=digits(e);if(de)return dv===de;if(!nv)return false;return nv===ne||(nv.length>=4&&ne.includes(nv))||(ne.length>=4&&nv.includes(ne))});
 }
-function showAns(v,id){
+function matchIdx(v,id){const nv=norm(v),dv=digits(v);for(const L of [1,2]){const o=CARDS[id][L][3];if(!o)continue;
+ for(let i=0;i<o.length;i++){const dg=digits(o[i]);if(dg?(dv!==""&&dv===dg):(nv!==""&&nv===norm(o[i])))return i}}return -1}
+function lgOfKey(k){for(const p of PEERS){if(keyOf(p)===k&&p.presence&&p.presence.lg)return String(p.presence.lg).slice(0,5)}return ""}
+/* An answer shown in the viewer's own language: picks and recognised typed answers are translated; unknown text keeps its writer's language tag. */
+function showAns(v,id,k){
  if(v==null||v==="")return null;
- if(String(v)[0]==="#"){const o=face(id)[3];const i=+String(v).slice(1);return o&&o[i]!=null?`${"ABCD"[i]} · ${o[i]}`:"?"}
- return String(v);
+ const o=face(id)[3];
+ if(String(v)[0]==="#"){const i=+String(v).slice(1);return o&&o[i]!=null?`${"ABCD"[i]} · ${o[i]}`:"?"}
+ const i=matchIdx(v,id);if(i>=0&&o)return o[i];
+ if(grade(v,id))return face(id)[1];
+ const lg=k?lgOfKey(k):"";return lg&&lg!==S.lang&&lg!=="fr+es"?`${v} (${lg.toUpperCase()})`:String(v);
 }
 
 const BUZ=()=>ONLINE()&&!!V&&V.play==="buzzer";
@@ -1047,7 +1054,7 @@ function question(){
   :`<div class="opt ${shown?(o===a?"right":"dim"):""}"><span class="k">${"ABCD"[k]}</span><span>${dualOpt(id,k,o)}</span></div>`).join("")}</div>`:"";
  const C=2*Math.PI*28;
  const ansMap=V.answers||{};
- const whoChip=k=>{const p=V.players[k];const on=V.correct.includes(k);const sa=online?showAns(ansMap[p.k],id):null;
+ const whoChip=k=>{const p=V.players[k];const on=V.correct.includes(k);const sa=online?showAns(ansMap[p.k],id,p.k):null;
   const pn=(V.pen||[]).includes(k)?` <b class="pen">${l.penalty}</b>`:"";
   const inner=`${av(p)}<span class="nm">${esc(p.n)}${pn}${online?`<small>${sa?esc(sa):`<i>${l.noAnswer}</i>`}</small>`:""}</span><span class="ck"></span>`;
   return ctrl?`<button class="pc" data-act="chip" data-v="${k}" aria-pressed="${on}">${inner}</button>`:`<div class="pc ro" aria-pressed="${on}">${inner}</div>`};
@@ -1087,7 +1094,7 @@ function buzzHTML(myIdx){
  else if(bz.who===myIdx)main=`<p class="buzzed">${l.yourTurn}</p><p class="hint2" id="bzleft">${l.ansLeft(Math.max(0,Math.ceil((bz.until-Date.now())/1000)))}</p>`;
  else{const p=V.players[bz.who]||{n:"?",c:0};main=`<div class="buzzed">${av(p)}<span>${l.buzzed(esc(p.n))}</span></div><p class="hint2">${l.buzzedS}</p><p class="hint2" id="bzleft">${l.ansLeft(Math.max(0,Math.ceil((bz.until-Date.now())/1000)))}</p>`}
  const id=cidOf(V);
- const tr=bz.tries.length?`<div class="tries"><span class="lbl">${l.tries}</span>${bz.tries.map(([i,v,ok])=>{const p=V.players[i]||{n:"?"};const sa=showAns(v,id);return `<span class="${ok?"okk":"ko"}">${ok?"✓":"✗"} ${esc(p.n)} · ${sa?esc(sa):l.noTry}</span>`}).join("")}</div>`:"";
+ const tr=bz.tries.length?`<div class="tries"><span class="lbl">${l.tries}</span>${bz.tries.map(([i,v,ok])=>{const p=V.players[i]||{n:"?"};const sa=showAns(v,id,p.k);return `<span class="${ok?"okk":"ko"}">${ok?"✓":"✗"} ${esc(p.n)} · ${sa?esc(sa):l.noTry}</span>`}).join("")}</div>`:"";
  return `<section class="panel buzzbox">${main}${tr}</section>`}
 function readyLiveHTML(){const l=L(),key=keyNow(),r=readyKeys(key),pk=presentKeys(),pl=V.players.filter(p=>pk.has(p.k));const n=pl.filter(p=>r.has(p.k)).length;
  return `<p class="hint2">${l.readyCount(n,pl.length)}</p><div class="dots">${pl.map(p=>`<span class="dot ${r.has(p.k)?"ok":""}">${av(p)}${esc(p.n)}</span>`).join("")}</div>`}
@@ -1099,7 +1106,7 @@ function recapHTML(){const l=L(),E=recapEntries();if(!E.length)return `<p class=
  const names={};((V&&V.players)||S.players).forEach(p=>names[p.k]=p);
  return `<div class="recap">${E.map((e,n)=>{const [q,a,w]=face(e.id);const c=catOf(e.id);const cor=new Set(e.cor||[]);
   const hasAns=ONLINE()&&e.ans;
-  const pen=new Set(e.pen||[]);const lines=hasAns?Object.values(names).map(p=>{const sa=showAns(e.ans[p.k],e.id);const ok=cor.has(p.k);return `<span class="${ok?"okk":"ko"}">${ok?"✓":"✗"} ${esc(p.n)} · ${sa?esc(sa):l.noAnswer}${pen.has(p.k)?" (−1)":""}</span>`}).join("")
+  const pen=new Set(e.pen||[]);const lines=hasAns?Object.values(names).map(p=>{const sa=showAns(e.ans[p.k],e.id,p.k);const ok=cor.has(p.k);return `<span class="${ok?"okk":"ko"}">${ok?"✓":"✗"} ${esc(p.n)} · ${sa?esc(sa):l.noAnswer}${pen.has(p.k)?" (−1)":""}</span>`}).join("")
    :(cor.size?`<span class="okk">✓ ${l.got} : ${[...cor].map(k=>esc(names[k]?names[k].n:"?")).join(", ")}</span>`:`<span class="ko">${l.nobodyGot}</span>`);
   return `<div class="rc" style="--c:var(--${c})"><div class="rch"><i></i>${n+1} · ${l.catS[c]}</div><p class="rq">${dualTxt(e.id,0,q)}</p><p class="ra">${dualTxt(e.id,1,a)}</p><div class="rl">${lines}</div>${w?`<details><summary>${l.showExpl}</summary><div class="expl">${esc(w)}</div></details>`:""}</div>`}).join("")}</div>`}
 function startTick(C){
