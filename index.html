@@ -800,17 +800,39 @@ function buildDeck(n,countFirst){
 }
 function ensureDeck(){if(S.i>=S.deck.length){S.deck=S.deck.concat(buildDeck(10,0).deck)}}
 function armTimer(){const cid=S.deck[S.i];S.tmax=S.timer&&cid!=null&&CARDS[cid][0]==="rap"?Math.min(S.timer,10):S.timer;S.deadline=Date.now()+S.tmax*1000;S.pausedLeft=null;timeUpFired=false;S.bz=S.play==="buzzer"?freshBz():null;S.pen=[]}
-const curKey=()=>`${S.round}.${S.inRound}.${S.i}.${S.tied?S.tied.join("-"):""}`;
+const curKey=()=>`${S.gid||"g"}.${S.round}.${S.inRound}.${S.i}.${S.tied?S.tied.join("-"):""}`;
 
 /* ---------- grading (online) ---------- */
 function norm(s){return String(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[«»"'’`.,;:!?¡¿()\-–—€%°]/g," ").replace(/\b(le|la|les|l|un|une|des|de|du|d|el|los|las|una|unos|unas|del|al|en|a|au|aux|sur|con|avec|y|et|il|elle|es|est|son|sa|ses|su|ton|tu|ta)\b/g," ").replace(/\s+/g," ").trim()}
 const digits=s=>String(s).replace(/[^0-9]/g,"");
+const STOP=new Set("le la les l un une des de du d el los las una unos unas del al en a au aux sur con avec y et il elle ils es est esta estan son sa ses su sus ton tu ta mon ma mes mi pas ne no non oui si que qui pour par para sin sans se lo on ce c lui hay aucun aucune ninguno ninguna".split(" "));
+const NUMW={zero:0,cero:0,un:1,une:1,uno:1,una:1,deux:2,dos:2,trois:3,tres:3,quatre:4,cuatro:4,cinq:5,cinco:5,six:6,seis:6,sept:7,siete:7,huit:8,ocho:8,neuf:9,nueve:9,dix:10,diez:10,onze:11,once:11,douze:12,doce:12,treize:13,trece:13,quatorze:14,catorce:14,quinze:15,quince:15,seize:16,dieciseis:16,vingt:20,veinte:20,trente:30,treinta:30,cent:100,cien:100};
+const words=s=>norm(s).split(" ").filter(w=>w&&!STOP.has(w));
+const numOf=s=>{const n=String(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[a-z]+/g,w=>NUMW[w]!==undefined?" "+NUMW[w]+" ":" "+w+" ");return digits(n)};
+function lev(a,b){const m=a.length,n=b.length;if(Math.abs(m-n)>2)return 9;const d=Array.from({length:m+1},(_,i)=>{const r=new Array(n+1).fill(0);r[0]=i;return r});for(let j=0;j<=n;j++)d[0][j]=j;
+ for(let i=1;i<=m;i++)for(let j=1;j<=n;j++){d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));if(i>1&&j>1&&a[i-1]===b[j-2]&&a[i-2]===b[j-1])d[i][j]=Math.min(d[i][j],d[i-2][j-2]+1)}return d[m][n]}
+function wmatch(a,b){if(a===b)return true;const sa=a.replace(/(es|s|x)$/,""),sb=b.replace(/(es|s|x)$/,"");if(sa.length>=3&&sa===sb)return true;const L=Math.max(a.length,b.length),d=lev(a,b);return(L>=5&&d<=1)||(L>=9&&d<=2)}
+/* typed answer vs expected: articles ignored, key words compared with typo/plural tolerance, numbers compared as numbers (words too) */
+function textOk(v,e,wrong){
+ const re=String(e).trim().toLowerCase(),rv=String(v).trim().toLowerCase();
+ if(re.length<=3&&!/\s/.test(re))return rv.replace(/[^\p{L}\p{N}]/gu,"")===re.replace(/[^\p{L}\p{N}]/gu,"");
+ const nv=norm(v),ne=norm(e);if(!nv)return false;if(nv===ne)return true;
+ const de=digits(e),ew=words(e).filter(w=>!/\d/.test(w)),vw=words(v);
+ if(de&&ew.length<=2)return numOf(v)===de;
+ if(!ew.length)return false;
+ /* the key words: those of the answer that no wrong proposal uses */
+ const ww=(wrong||[]).flatMap(o=>words(o));let K=ew.filter(w=>!ww.some(x=>wmatch(x,w)));if(!K.length)K=ew;
+ const hit=K.filter(w=>vw.some(x=>wmatch(x,w))).length;
+ return K.length<=2?hit===K.length:hit>=1;
+}
 function grade(v,id){
  if(!v||id==null)return false;
  const fr=CARDS[id][1],es=CARDS[id][2];
  if(String(v)[0]==="#")return !!fr[3]&&v==="#"+fr[3].indexOf(fr[1]);
- const nv=norm(v),dv=digits(v);
- return [fr[1],es[1]].some(e=>{const ne=norm(e),de=digits(e);if(de)return dv===de;if(!nv)return false;return nv===ne||(nv.length>=4&&ne.includes(nv))||(ne.length>=4&&nv.includes(ne))});
+ const ci=fr[3]?fr[3].indexOf(fr[1]):-1,mi=matchIdx(v,id);
+ if(mi>=0&&ci>=0)return mi===ci;
+ const wf=fr[3]?fr[3].filter((_,i)=>i!==ci):[],we=es[3]?es[3].filter((_,i)=>i!==ci):[];
+ return textOk(v,fr[1],wf)||textOk(v,es[1],we);
 }
 function matchIdx(v,id){const nv=norm(v),dv=digits(v);for(const L of [1,2]){const o=CARDS[id][L][3];if(!o)continue;
  for(let i=0;i<o.length;i++){const dg=digits(o[i]);if(dg?(dv!==""&&dv===dg):(nv!==""&&nv===norm(o[i])))return i}}return -1}
@@ -1197,7 +1219,8 @@ function question(){
    <div class="who">${active.filter(k=>V.players[k]).map(whoChip).join("")}</div></section>
   ${online?readyHTML():`<div class="actions"><button class="btn primary" data-act="validate" id="vbtn">${l.validate(V.correct.length)}</button></div>`}`
  :ctrl?`<div class="actions"><button class="btn primary" data-act="reveal">${l.reveal}</button><button class="btn quiet" data-act="skip">${l.skip}</button></div>`:""}`;
- const af=document.getElementById("ansf");
+ const af=document.getElementById("ansf"),ai=document.getElementById("ansin");
+ if(ai){let t=null;ai.oninput=()=>{clearTimeout(t);const v=ai.value.trim();if(v&&!BUZ())t=setTimeout(()=>sendAns(v),450)}}
  if(af)af.onsubmit=e=>{e.preventDefault();const v=document.getElementById("ansin").value.trim();if(v)sendAns(v)};
  if(!shown&&V.timer)startTick(C);
  if(!shown&&buz){bzInt=setInterval(()=>{const e=document.getElementById("bzleft"),b=V.bz;if(e&&b&&b.who!=null)e.textContent=L().ansLeft(Math.max(0,Math.ceil((b.until-Date.now())/1000)));
@@ -1298,7 +1321,7 @@ function startGame(){
  H=[];S.players.forEach(p=>p.s=0);S.deck=[];
  const need=S.rounds*S.per;const {deck,recycled}=buildDeck(need+12,need);
  Object.assign(S,{deck,i:0,round:1,inRound:0,correct:[],tied:null,revealed:false,drumAt:0,answers:null,inGame:true,phase:"q",notice:recycled?L().recycled(recycled):""});
- S.gage=Math.random()*GAGES.fr.length|0;S.seed=Math.random()*1000|0;S.log=[];myRdy=null;armTimer();render();
+ S.gage=Math.random()*GAGES.fr.length|0;S.seed=Math.random()*1000|0;S.gid=Math.random().toString(36).slice(2,8);S.log=[];myRdy=null;myAns=null;if(NR)NR.presence({ans:null,rdy:null,buzz:null}).catch(()=>{});armTimer();render();
 }
 function doReveal(){
  push();markUsed(S.deck[S.i]);S.phase="a";S.notice="";
