@@ -129,6 +129,9 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .opt .k{width:28px;height:28px;border-radius:8px;background:var(--ink);color:var(--paper);display:grid;place-items:center;font-size:13px;font-weight:700;flex:none}
 .opt.right{border-color:var(--ok);background:var(--ok-bg)} .opt.right .k{background:var(--ok)}
 .opt.dim{opacity:.4}
+.row2{display:flex;gap:8px}.row2>.btn{flex:1;min-width:0}
+.opt.bad{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,#fff)}
+.pl .edn{background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}
 .timer{display:flex;align-items:center;gap:14px;padding-top:14px;border-top:1px dashed var(--line)}
 .ring{position:relative;width:66px;height:66px;border-radius:50%;flex:none}
 .ring svg{width:66px;height:66px;transform:rotate(-90deg)}
@@ -741,13 +744,13 @@ const GAGES={
 
 const T={
  fr:{t1:"Le Plus Nul",t2:"de la Bande",eyebrow:"Soirée jeux · Édition France–Espagne",tagline:"Logique, pièges et culture. Tout le monde joue, un seul finit dernier.",
-  players:"Les joueurs",playersHint:"De 2 à 12 joueurs. Un seul téléphone suffit.",example:"Ce sont des noms d'exemple : ajoute les vôtres.",name:"Prénom",add:"Ajouter",remove:"Retirer",
+  players:"Les joueurs",playersHint:"De 1 à 12 joueurs. Touche un nom pour le modifier. Un seul téléphone suffit.",example:"Ce sont des noms d'exemple : ajoute les vôtres, ou touche un nom pour le modifier.",name:"Prénom",add:"Ajouter",remove:"Retirer",
   themes:"Les thèmes",themesHint:"Touche un thème pour l'activer ou le retirer, ou mélange tout.",mix:"Tout mélanger",mixS:n=>`Tous les thèmes · ${n} questions inédites`,unseen:(n,t)=>`${n} inédites sur ${t}`,
   cat:{seq:"Suites logiques",eni:"Énigmes",pie:"Pièges",cal:"Calcul mental",rap:"Réflexes · pour les plus rapides",cul:"Culture France · Espagne"},
   catS:{seq:"Suite logique",eni:"Énigme",pie:"Piège",cal:"Calcul mental",rap:"Réflexe",cul:"Culture"},
   diffT:"La difficulté",diffs:{easy:["Facile","Que des questions accessibles, idéal pour s'échauffer"],mid:["Moyen","Un mélange de facile et de questions qui font réfléchir"],hard:["Difficile","Les questions qui font le plus débattre"]},lv:["","Facile","Moyen","Difficile"],length:"La durée",presets:{flash:"Éclair",classic:"Classique",party:"Grande soirée",marathon:"Marathon"},
   rounds:"Manches",per:"Cartes par manche",timer:"Chrono par carte",off:"Sans",cards:"cartes",total:(n,m)=>[`${n} cartes`,`environ ${m} min`],
-  start:"Lancer la partie",startNew:"Nouvelle partie",min2:"Ajoute au moins 2 joueurs.",minCat:"Choisis au moins un thème.",
+  start:"Lancer la partie",startNew:"Nouvelle partie",min2:"Ajoute au moins 1 joueur.",minCat:"Choisis au moins un thème.",
   resumeT:"Partie en cours",resumeS:(r,R,c,C)=>`Manche ${r} sur ${R} · carte ${c} sur ${C}`,resume:"Reprendre la partie",abandon:"Abandonner la partie",sure:"Touche encore pour confirmer",
   resetQ:"Remettre toutes les questions à zéro",resetDone:"C'est fait : toutes les questions sont de nouveau inédites.",
   recycled:n=>`Il ne restait plus assez de questions inédites : ${n} carte${n>1?"s":""} déjà vue${n>1?"s":""} reviendr${n>1?"ont":"a"}.`,
@@ -763,13 +766,13 @@ const T={
   mHome:"Accueil",mHomeS:"La partie reste sauvegardée, tu pourras la reprendre",mBoard:"Voir le classement",mQuit:"Abandonner la partie",mQuitS:"Les scores seront effacés",
   close:"Fermer",language:"Langue",pts2:"pts"},
  es:{t1:"El Más Tonto",t2:"del Grupo",eyebrow:"Noche de juegos · Edición Francia–España",tagline:"Lógica, trampas y cultura. Juegan todos, solo uno acaba último.",
-  players:"Jugadores",playersHint:"De 2 a 12 jugadores. Basta con un móvil.",example:"Son nombres de ejemplo: añade los vuestros.",name:"Nombre",add:"Añadir",remove:"Quitar",
+  players:"Jugadores",playersHint:"De 1 a 12 jugadores. Toca un nombre para cambiarlo. Basta con un móvil.",example:"Son nombres de ejemplo: añade los vuestros o toca un nombre para cambiarlo.",name:"Nombre",add:"Añadir",remove:"Quitar",
   themes:"Temas",themesHint:"Toca un tema para activarlo o quitarlo, o mézclalo todo.",mix:"Mezclarlo todo",mixS:n=>`Todos los temas · ${n} preguntas sin salir`,unseen:(n,t)=>`${n} sin salir de ${t}`,
   cat:{seq:"Series lógicas",eni:"Acertijos",pie:"Trampas",cal:"Cálculo mental",rap:"Reflejos · para los más rápidos",cul:"Cultura Francia · España"},
   catS:{seq:"Serie lógica",eni:"Acertijo",pie:"Trampa",cal:"Cálculo mental",rap:"Reflejo",cul:"Cultura"},
   diffT:"La dificultad",diffs:{easy:["Fácil","Solo preguntas asequibles, ideal para calentar"],mid:["Media","Una mezcla de fáciles y preguntas para pensar"],hard:["Difícil","Las preguntas que más debate generan"]},lv:["","Fácil","Media","Difícil"],length:"La duración",presets:{flash:"Relámpago",classic:"Clásica",party:"Gran noche",marathon:"Maratón"},
   rounds:"Rondas",per:"Cartas por ronda",timer:"Tiempo por carta",off:"Sin",cards:"cartas",total:(n,m)=>[`${n} cartas`,`unos ${m} min`],
-  start:"Empezar la partida",startNew:"Nueva partida",min2:"Añade al menos 2 jugadores.",minCat:"Elige al menos un tema.",
+  start:"Empezar la partida",startNew:"Nueva partida",min2:"Añade al menos 1 jugador.",minCat:"Elige al menos un tema.",
   resumeT:"Partida en curso",resumeS:(r,R,c,C)=>`Ronda ${r} de ${R} · carta ${c} de ${C}`,resume:"Seguir la partida",abandon:"Abandonar la partida",sure:"Toca otra vez para confirmar",
   resetQ:"Poner todas las preguntas a cero",resetDone:"Hecho: todas las preguntas vuelven a ser nuevas.",
   recycled:n=>`No quedaban bastantes preguntas nuevas: volverán ${n} carta${n>1?"s":""} ya vista${n>1?"s":""}.`,
@@ -786,7 +789,7 @@ const T={
   close:"Cerrar",language:"Idioma",pts2:"pts"}
 };
 
-Object.assign(T.fr,{
+Object.assign(T.fr,{restartQ:"Recommencer l'épreuve",restarted:"Épreuve recommencée : réponses effacées, chrono relancé.",soloLbl:"Ton score",soloMsg:r=>r>=.8?"Bravo, tu n'es vraiment pas le plus nul !":r>=.5?"Pas mal du tout !":r>=.3?"Peut mieux faire...":"Aïe... le plus nul, c'est toi !",tapOpt:"Touche une réponse pour la vérifier",
  lockedPl:"Partie en cours : la liste des joueurs est bloquée. Abandonne la partie pour la modifier.",
  shareBtn:"Partager le lien",shareGameS:"Envoie le jeu à qui tu veux : chacun peut créer sa propre partie, même sans toi.",waBtn:"Envoyer sur WhatsApp",shareGame:"Partager le jeu",shared:"Partagé !",
  langHint:"Chacun joue dans sa langue : FR, ES ou FR+ES, en haut de l'accueil ou dans le Menu. Les réponses comptent dans les deux langues.",
@@ -811,7 +814,7 @@ Object.assign(T.fr,{
  roomOff:"Le jeu en ligne ne marche pas ici. Ouvre la page dans Claude, connecté à ton compte, après avoir été invité dessus.",roomFail:"Impossible de rejoindre ce code. Vérifie-le et réessaie.",
  codeErr:"Le code fait 4 lettres.",nameErr:"Écris ton prénom.",auto:"La réponse s'affiche quand tout le monde a répondu ou à la fin du chrono.",full:"La salle est pleine (12 joueurs)."
 });
-Object.assign(T.es,{
+Object.assign(T.es,{restartQ:"Repetir la prueba",restarted:"Prueba reiniciada: respuestas borradas y reloj a cero.",soloLbl:"Tu puntuación",soloMsg:r=>r>=.8?"¡Bravo, no eres nada tonto!":r>=.5?"¡Nada mal!":r>=.3?"Puedes hacerlo mejor...":"Uy... ¡el más tonto eres tú!",tapOpt:"Toca una respuesta para comprobarla",
  lockedPl:"Partida en curso: la lista de jugadores está bloqueada. Abandona la partida para cambiarla.",
  shareBtn:"Compartir el enlace",shareGameS:"Envía el juego a quien quieras: cada uno puede crear su propia partida, incluso sin ti.",waBtn:"Enviar por WhatsApp",shareGame:"Compartir el juego",shared:"¡Compartido!",
  langHint:"Cada uno juega en su idioma: FR, ES o FR+ES, arriba en el inicio o en el Menú. Las respuestas valen en los dos idiomas.",
@@ -877,7 +880,7 @@ function buildDeck(n,countFirst){
   let avail=cats.filter(c=>pools[c].length);
   if(!avail.length){cats.forEach(c=>pools[c]=shuffle(idsOf(c).filter(k=>!out.includes(k))).map(k=>[k,1]));avail=cats.filter(c=>pools[c].length);
    if(!avail.length){cats.forEach(c=>pools[c]=shuffle(idsOf(c)).map(k=>[k,1]));avail=cats.filter(c=>pools[c].length);if(!avail.length)break}}
-  const choice=avail.length>1?avail.filter(c=>c!==last):avail;
+  const all=[...S.deck,...out],cyc=all.length%avail.length,hist=cyc?all.slice(-cyc).map(k=>CARDS[k][0]):[];let choice=avail.length>1?avail.filter(c=>!hist.includes(c)&&c!==last):avail;if(!choice.length)choice=avail.length>1?avail.filter(c=>c!==last):avail;
   const c=choice[Math.random()*choice.length|0];const usedT=new Set([...S.deck,...out].map(k=>TPL[k]));const pc=pools[c];
   let j=pc.findIndex(x=>!x[1]&&!usedT.has(TPL[x[0]]));if(j<0)j=pc.findIndex(x=>!usedT.has(TPL[x[0]]));if(j<0)j=0;const [k,u]=pc.splice(j,1)[0];
   out.push(k);last=c;if(u&&out.length<=countFirst)recycled++;
@@ -885,7 +888,7 @@ function buildDeck(n,countFirst){
  return{deck:out,recycled};
 }
 function ensureDeck(){if(S.i>=S.deck.length){S.deck=S.deck.concat(buildDeck(10,0).deck)}}
-function armTimer(){const cid=S.deck[S.i];S.tmax=S.timer&&cid!=null&&CARDS[cid][0]==="rap"?Math.min(S.timer,10):S.timer;S.deadline=Date.now()+S.tmax*1000;S.pausedLeft=null;timeUpFired=false;S.bz=hostBuz()?freshBz():null;S.pen=[]}
+function armTimer(){const cid=S.deck[S.i];S.tmax=S.timer&&cid!=null&&CARDS[cid][0]==="rap"?Math.min(S.timer,10):S.timer;S.deadline=Date.now()+S.tmax*1000;S.pausedLeft=null;timeUpFired=false;S.bz=hostBuz()?freshBz():null;S.pen=[];S.lpick=null;if(S.notice&&S.notice.restarted)S.notice=""}
 const curKey=()=>`${S.gid||"g"}${S.ug?"u"+S.ug:""}.${S.round}.${S.inRound}.${S.i}.${S.tied?S.tied.join("-"):""}`;
 
 /* ---------- grading (online) ---------- */
@@ -1110,10 +1113,10 @@ function autoReveal(){
  else{clearTimeout(autoT);autoT=null}
 }
 function buildSt(){return{now:Date.now(),buz:hostBuz(),tmax:S.tmax,play:S.play,bz:S.bz&&hostBuz()?{w:S.bz.who,u:S.bz.until,l:S.bz.locked,n:S.bz.n,tr:S.phase==="q"?S.bz.tries.slice(-6).map(([i,v,o])=>[i,v==null?v:String(v).slice(0,24),o]):[]}:null,pen:S.phase==="a"?S.pen:null,mc:S.deck[S.i]!=null?showMC(S.deck[S.i]):false,ph:S.phase==="home"?"wait":S.phase,cid:S.deck[S.i]??null,key:curKey(),round:S.round,rounds:S.rounds,per:S.per,inRound:S.inRound,timer:S.timer,dl:S.deadline,pz:S.pausedLeft,
- tied:S.tied,pl:S.players.map(p=>[p.k,p.n,p.c,p.s]),cor:S.correct,ans:S.phase==="a"&&S.answers?Object.fromEntries(Object.entries(S.answers).map(([k,v])=>[k,String(v).slice(0,28)])):null,gage:S.gage,rev:S.revealed,drumAt:S.drumAt,code:S.online&&S.online.code,hk:myKey,nc:CARDS.length}}
+ tied:S.tied,pl:S.players.map(p=>[p.k,p.n,p.c,p.s]),cor:S.correct,ans:S.phase==="a"&&S.answers?Object.fromEntries(Object.entries(S.answers).map(([k,v])=>[k,String(v).slice(0,28)])):null,gage:S.gage,rev:S.revealed,drumAt:S.drumAt,code:S.online&&S.online.code,hk:myKey,nc:CARDS.length,rs:S.notice&&S.notice.restarted?1:0}}
 function verReload(nc){let k="pnb-ver"+nc;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){return}location.replace(location.pathname+"?v="+nc+"-"+Date.now()%100000+location.hash)}
 function publishSt(){if(ROLE()==="host"&&NR)NR.presence({st:buildSt()}).catch(()=>{})}
-function stToView(st){if(st.nc>CARDS.length)verReload(st.nc);if(st.now&&st.now!==lastHostNow){lastHostNow=st.now;CLKOFF=Date.now()-st.now}const sh=t=>t?t+CLKOFF:t;return{buz:!!st.buz,tmax:st.tmax,play:st.play,bz:st.bz?{who:st.bz.w,until:sh(st.bz.u||0),locked:st.bz.l||[],n:st.bz.n,tries:st.bz.tr||[]}:null,pen:st.pen||[],mc:!!st.mc,phase:st.ph,cid:st.cid,key:st.key,round:st.round,rounds:st.rounds,per:st.per,inRound:st.inRound,timer:st.timer,deadline:sh(st.dl),pausedLeft:st.pz,tied:st.tied,
+function stToView(st){if(st.nc>CARDS.length)verReload(st.nc);if(st.now&&st.now!==lastHostNow){lastHostNow=st.now;CLKOFF=Date.now()-st.now}const sh=t=>t?t+CLKOFF:t;return{rs:!!st.rs,buz:!!st.buz,tmax:st.tmax,play:st.play,bz:st.bz?{who:st.bz.w,until:sh(st.bz.u||0),locked:st.bz.l||[],n:st.bz.n,tries:st.bz.tr||[]}:null,pen:st.pen||[],mc:!!st.mc,phase:st.ph,cid:st.cid,key:st.key,round:st.round,rounds:st.rounds,per:st.per,inRound:st.inRound,timer:st.timer,deadline:sh(st.dl),pausedLeft:st.pz,tied:st.tied,
  players:(st.pl||[]).map(([k,n,c,s])=>({k,n:String(n),c:+c||0,s:+s||0})),correct:st.cor||[],answers:st.ans,gage:st.gage||0,revealed:!!st.rev,drumAt:sh(st.drumAt||0),code:st.code,hk:st.hk}}
 function playerRefresh(){
  const st=hostSt;
@@ -1207,7 +1210,7 @@ function settingsHTML(l){
 }
 function home(){
  const l=L();secN=0;const online=S.mode==="online";
- const canLocal=S.players.length>=2&&activeCats().length>0;
+ const canLocal=S.players.length>=1&&activeCats().length>0;
  let body="";
  if(!online){
   body=`${S.inGame?`<section class="resume"><h3>${l.resumeT}</h3><p>${S.tied?l.tie:l.resumeS(S.round,S.rounds,Math.min(S.inRound+1,S.per),S.per)}</p>
@@ -1216,10 +1219,10 @@ function home(){
   <section class="sec"><h2><span class="n">${sectionN()}</span>${l.players}</h2>
    <p class="hint">${S.example?l.example:l.playersHint}</p>
    ${S.inGame?`<p class="hint">${l.lockedPl}</p>`:`<form class="add" id="addf"><input id="pname" placeholder="${l.name}" maxlength="16" autocomplete="off" aria-label="${l.name}"><button class="btn primary" style="width:auto;min-height:50px;padding:0 18px;font-size:16px">${l.add}</button></form>
-   `}<div class="plist">${S.players.map((p,k)=>`<span class="pl">${av(p)}<span class="nm">${esc(p.n)}</span>${S.inGame?"":`<button class="x" data-act="del" data-v="${k}" aria-label="${l.remove} ${esc(p.n)}">✕</button>`}</span>`).join("")}</div>
+   `}<div class="plist">${S.players.map((p,k)=>`<span class="pl">${av(p)}${S.inGame?`<span class="nm">${esc(p.n)}</span>`:`<button class="nm edn" data-act="edname" data-v="${k}" aria-label="${esc(p.n)}">${esc(p.n)}</button>`}${S.inGame?"":`<button class="x" data-act="del" data-v="${k}" aria-label="${l.remove} ${esc(p.n)}">✕</button>`}</span>`).join("")}</div>
   </section>${settingsHTML(l)}
   <div class="sticky actions"><button class="btn primary" data-act="start" ${canLocal?"":"disabled"}>${S.inGame?l.startNew:l.start}</button></div>
-  ${!canLocal?`<p class="err">${S.players.length<2?l.min2:l.minCat}</p>`:""}`;
+  ${!canLocal?`<p class="err">${S.players.length<1?l.min2:l.minCat}</p>`:""}`;
  }else if(S.online){
   body=`<section class="resume"><h3>${l.roomOpen(esc(S.online.code))}</h3><p>${l.lobbyHow}</p>
    <div class="actions"><button class="btn primary" data-act="backroom">${l.backRoom}</button>
@@ -1302,8 +1305,9 @@ function question(){
  const mine=myAns&&myAns.k===myKeyNow?myAns.v:"";
  const myIdx=V.players.findIndex(p=>p.k===myKey),buz=BUZ()&&!!V.bz,bzMine=buz&&V.bz.who===myIdx&&myIdx>=0;
  const canAnswer=online&&!shown&&(buz?bzMine:(!V.tied||V.tied.some(i=>V.players[i]&&V.players[i].k===myKey)));
- const optHTML=opts?`<div class="opts">${opts.map((o,k)=>canAnswer?`<button class="opt pick ${mine==="#"+k?"sel":""}" data-act="pick" data-v="${k}"><span class="k">${"ABCD"[k]}</span><span>${dualOpt(id,k,o)}</span></button>`
-  :`<div class="opt ${shown?(o===a?"right":"dim"):""}"><span class="k">${"ABCD"[k]}</span><span>${dualOpt(id,k,o)}</span></div>`).join("")}</div>`:"";
+ const lp=!online&&S.lpick&&S.lpick.k===curKey()?S.lpick.v:-1,lTap=!online&&ctrl&&!shown;
+ const optHTML=opts?`<div class="opts">${opts.map((o,k)=>lTap?`<button class="opt pick" data-act="lpick" data-v="${k}"><span class="k">${"ABCD"[k]}</span><span>${dualOpt(id,k,o)}</span></button>`:canAnswer?`<button class="opt pick ${mine==="#"+k?"sel":""}" data-act="pick" data-v="${k}"><span class="k">${"ABCD"[k]}</span><span>${dualOpt(id,k,o)}</span></button>`
+  :`<div class="opt ${shown?(o===a?"right":k===lp?"bad":"dim"):""}"><span class="k">${"ABCD"[k]}</span><span>${dualOpt(id,k,o)}</span></div>`).join("")}</div>`:"";
  const C=2*Math.PI*28;
  const ansMap=V.answers||{};
  const whoChip=k=>{const p=V.players[k];const on=V.correct.includes(k);const sa=online?showAns(ansMap[p.k],id,p.k):null;
@@ -1311,7 +1315,7 @@ function question(){
   const inner=`${av(p)}<span class="nm">${esc(p.n)}${pn}${online?`<small>${sa?esc(sa):`<i>${l.noAnswer}</i>`}</small>`:""}</span><span class="ck"></span>`;
   return ctrl?`<button class="pc" data-act="chip" data-v="${k}" aria-pressed="${on}">${inner}</button>`:`<div class="pc ro" aria-pressed="${on}">${inner}</div>`};
  app.innerHTML=gameTop()+`
- ${S.notice&&S.notice.n&&!shown&&ctrl?`<p class="notice">${esc(l.recycled(S.notice.n))}</p>`:""}
+ ${S.notice&&S.notice.n&&!shown&&ctrl?`<p class="notice">${esc(l.recycled(S.notice.n))}</p>`:""}${!shown&&(V===S?S.notice&&S.notice.restarted:V.rs)?`<p class="notice">↺ ${l.restarted}</p>`:""}
  ${ROLE()==="player"&&myKey&&V.players.length>=12&&!V.players.some(p=>p.k===myKey)?`<p class="notice bad">${l.full}</p>`:""}
  ${V.tied?`<p class="notice">${l.tieSub} : ${V.tied.map(k=>esc(V.players[k]?.n||"?")).join(", ")}</p>`:""}
  <article class="card" id="card" style="--c:var(--${c})">
@@ -1332,7 +1336,7 @@ function question(){
    ${online&&ctrl?`<p class="hint2">${l.hostCheck}</p>`:""}
    <div class="who">${active.filter(k=>V.players[k]).map(whoChip).join("")}</div></section>
   ${online?readyHTML():`<div class="actions"><button class="btn primary" data-act="validate" id="vbtn">${l.validate(V.correct.length)}</button></div>`}`
- :ctrl?`<div class="actions"><button class="btn primary" data-act="reveal">${l.reveal}</button><button class="btn quiet" data-act="skip">${l.skip}</button></div>`:""}`;
+ :ctrl?`<div class="actions"><button class="btn primary" data-act="reveal">${l.reveal}</button><div class="row2"><button class="btn quiet" data-act="restartq">↺ ${l.restartQ}</button><button class="btn quiet" data-act="skip">${l.skip}</button></div></div>`:""}`;
  const af=document.getElementById("ansf"),ai=document.getElementById("ansin");
  if(ai){ai.oninput=()=>{clearTimeout(ansT);const v=ai.value.trim(),k=keyNow();if(v&&!BUZ())ansT=setTimeout(()=>{if(keyNow()===k&&V&&V.phase==="q"&&!(myAns&&myAns.k===k&&myAns.v===v))sendAns(v)},800)}}
  if(af)af.onsubmit=e=>{e.preventDefault();const v=document.getElementById("ansin").value.trim();if(v)sendAns(v)};
@@ -1398,6 +1402,9 @@ function summary(){
 function loser(){if(V.tied&&V.tied.length===1)return V.tied[0];const l=lastOnes();return l.length?l[0]:0}
 function final(){
  const l=L(),G=GAGES[S.lang],k=loser(),p=V.players[k]||{n:"?",s:0,c:0},ctrl=CTRL();
+ if(V.players.length===1){const tot=Math.max(1,(V.log||[]).length),s=Math.max(0,p.s);
+  app.innerHTML=gameTop()+`<article class="card verdict" style="--c:var(--ok)"><span class="lbl">${l.soloLbl}</span><div class="big pop">${s} / ${tot}</div><p class="hint" style="margin:0">${esc(p.n)} · ${l.soloMsg(s/tot)}</p></article>
+  ${ctrl?`<div class="actions"><button class="btn primary" data-act="rematch">${l.rematch}</button><button class="btn ghost" data-act="recap">${l.recap}</button><button class="btn quiet" data-act="gohome">${l.home}</button></div>`:""}`;return}
  const since=Date.now()-V.drumAt;
  if(!V.revealed||since<2250){
   const d=V.revealed?3-Math.floor(since/750):"?";
@@ -1483,6 +1490,8 @@ document.addEventListener("click",e=>{
   case"closeroom":if(armed==="closeroom"){armed=null;closeMenu();leaveRoom().then(()=>{S.online=null;S.inGame=false;S.phase="home";H=[];restoreLocal();render()})}else{arm("closeroom");render()}break;
   case"startonline":if(presentCount()>=2&&activeCats().length){const pk=presentKeys();S.players=S.players.filter(p=>pk.has(p.k));startGame()}break;
   case"pick":if(V&&V.phase==="q")sendAns("#"+v);break;
+  case"lpick":{if(!ctl||S.online||S.phase!=="q")break;const key=curKey(),k=+v,id=S.deck[S.i];doReveal();S.lpick={k:key,v:k};const fo=face(id);const ok=fo[3]&&fo[3][k]===fo[1];const el=S.tied||S.players.map((_,i)=>i);if(el.length===1)S.correct=ok?[el[0]]:[];save();render();break}
+  case"edname":{if(S.inGame)break;const pp=S.players[+v];if(!pp)break;S.players.splice(+v,1);if(S.example){S.example=false}render();const inp=document.getElementById("pname");if(inp){inp.value=pp.n;inp.focus();inp.select()}break}
   case"del":if(S.inGame)break;S.players.splice(+v,1);S.example=false;render();break;
   case"cat":S.cats[v]=!S.cats[v];render();break;
   case"mix":CATS.forEach(c=>S.cats[c]=true);render();break;
@@ -1511,6 +1520,7 @@ document.addEventListener("click",e=>{
   case"quit":if(armed==="quit"){armed=null;closeMenu();S.inGame=false;H=[];S.players.forEach(p=>p.s=0);S.phase="home";render()}else{arm("quit");renderMenu()}break;
   case"pause":{if(!ctl||S.phase!=="q")break;if(S.pausedLeft==null)S.pausedLeft=remaining();else{S.deadline=Date.now()+S.pausedLeft*1000;S.pausedLeft=null}save();publishSt();const m=document.getElementById("tmsg");if(m)m.textContent=S.pausedLeft!=null?L().paused:(S.online?L().auto:L().tapPause);break}
   case"reveal":if(ctl)doReveal();break;
+  case"restartq":if(ctl&&S.phase==="q"){push();S.ug=(S.ug||0)+1;S.answers=null;S.correct=[];S.lpick=null;S.live=null;myRdy=null;myAns=null;bzRecv={};if(NR)NR.presence({ans:null,rdy:null,buzz:null}).catch(()=>{});armTimer();S.notice={restarted:1};save();publishSt();render()}break;
   case"skip":if(ctl){push();markUsed(S.deck[S.i]);S.i++;ensureDeck();S.notice="";armTimer();render()}break;
   case"chip":{if(!ctl)break;const k=+v,i=S.correct.indexOf(k);i<0?S.correct.push(k):S.correct.splice(i,1);b.setAttribute("aria-pressed",i<0);{const vb=document.getElementById("vbtn");if(vb)vb.textContent=L().validate(S.correct.length)}save();publishSt();break}
   case"none":if(ctl){S.correct=[];render()}break;
