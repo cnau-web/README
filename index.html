@@ -1075,12 +1075,12 @@ function applyHash(){
 const canShare=()=>STANDALONE&&!!navigator.share;
 function inviteMsg(code,noLink){return `On joue au Plus Nul de la Bande ! Code : ${code}\n¡Jugamos a El Más Tonto del Grupo! Código: ${code}`+(noLink?"":`\n${inviteLink(code)}`)}
 function gameMsg(){return "Le Plus Nul de la Bande : un jeu de soirée gratuit, sans compte. Ouvre le lien, choisis « En ligne » puis « Créer une partie », et invite tes amis.\nEl Más Tonto del Grupo: un juego gratis y sin cuenta. Abre el enlace, elige «En línea» y luego «Crear una partida», e invita a tus amigos."}
-const baseLink=()=>location.href.split("#")[0];
+const baseLink=()=>location.href.split("#")[0].replace(/[?]v=[0-9-]+$/,"");
 const createLink=()=>baseLink()+"#creer";
 function doShare(text,url,btn){const done=()=>{if(btn)btn.textContent=L().shared};
  if(navigator.share){navigator.share({title:"Le Plus Nul de la Bande",text,url}).then(done,()=>{})}
  else{try{navigator.clipboard.writeText(text+"\n"+url).then(()=>{if(btn)btn.textContent=L().copied},()=>{})}catch(e){}}}
-function inviteLink(code){return location.href.split("#")[0]+"#"+code}
+function inviteLink(code){return location.href.split("#")[0].replace(/[?]v=[0-9-]+$/,"")+"#"+code}
 function onPeers(ch){
  PEERS=ch.peers.filter(p=>p.kind==="viewer");
  const me=PEERS.find(p=>p.sameTab);if(me)myKey=keyOf(me);
@@ -1110,9 +1110,10 @@ function autoReveal(){
  else{clearTimeout(autoT);autoT=null}
 }
 function buildSt(){return{now:Date.now(),buz:hostBuz(),tmax:S.tmax,play:S.play,bz:S.bz&&hostBuz()?{w:S.bz.who,u:S.bz.until,l:S.bz.locked,n:S.bz.n,tr:S.phase==="q"?S.bz.tries.slice(-6).map(([i,v,o])=>[i,v==null?v:String(v).slice(0,24),o]):[]}:null,pen:S.phase==="a"?S.pen:null,mc:S.deck[S.i]!=null?showMC(S.deck[S.i]):false,ph:S.phase==="home"?"wait":S.phase,cid:S.deck[S.i]??null,key:curKey(),round:S.round,rounds:S.rounds,per:S.per,inRound:S.inRound,timer:S.timer,dl:S.deadline,pz:S.pausedLeft,
- tied:S.tied,pl:S.players.map(p=>[p.k,p.n,p.c,p.s]),cor:S.correct,ans:S.phase==="a"&&S.answers?Object.fromEntries(Object.entries(S.answers).map(([k,v])=>[k,String(v).slice(0,28)])):null,gage:S.gage,rev:S.revealed,drumAt:S.drumAt,code:S.online&&S.online.code,hk:myKey}}
+ tied:S.tied,pl:S.players.map(p=>[p.k,p.n,p.c,p.s]),cor:S.correct,ans:S.phase==="a"&&S.answers?Object.fromEntries(Object.entries(S.answers).map(([k,v])=>[k,String(v).slice(0,28)])):null,gage:S.gage,rev:S.revealed,drumAt:S.drumAt,code:S.online&&S.online.code,hk:myKey,nc:CARDS.length}}
+function verReload(nc){let k="pnb-ver"+nc;try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){return}location.replace(location.pathname+"?v="+nc+"-"+Date.now()%100000+location.hash)}
 function publishSt(){if(ROLE()==="host"&&NR)NR.presence({st:buildSt()}).catch(()=>{})}
-function stToView(st){if(st.now&&st.now!==lastHostNow){lastHostNow=st.now;CLKOFF=Date.now()-st.now}const sh=t=>t?t+CLKOFF:t;return{buz:!!st.buz,tmax:st.tmax,play:st.play,bz:st.bz?{who:st.bz.w,until:sh(st.bz.u||0),locked:st.bz.l||[],n:st.bz.n,tries:st.bz.tr||[]}:null,pen:st.pen||[],mc:!!st.mc,phase:st.ph,cid:st.cid,key:st.key,round:st.round,rounds:st.rounds,per:st.per,inRound:st.inRound,timer:st.timer,deadline:sh(st.dl),pausedLeft:st.pz,tied:st.tied,
+function stToView(st){if(st.nc>CARDS.length)verReload(st.nc);if(st.now&&st.now!==lastHostNow){lastHostNow=st.now;CLKOFF=Date.now()-st.now}const sh=t=>t?t+CLKOFF:t;return{buz:!!st.buz,tmax:st.tmax,play:st.play,bz:st.bz?{who:st.bz.w,until:sh(st.bz.u||0),locked:st.bz.l||[],n:st.bz.n,tries:st.bz.tr||[]}:null,pen:st.pen||[],mc:!!st.mc,phase:st.ph,cid:st.cid,key:st.key,round:st.round,rounds:st.rounds,per:st.per,inRound:st.inRound,timer:st.timer,deadline:sh(st.dl),pausedLeft:st.pz,tied:st.tied,
  players:(st.pl||[]).map(([k,n,c,s])=>({k,n:String(n),c:+c||0,s:+s||0})),correct:st.cor||[],answers:st.ans,gage:st.gage||0,revealed:!!st.rev,drumAt:sh(st.drumAt||0),code:st.code,hk:st.hk}}
 function playerRefresh(){
  const st=hostSt;
