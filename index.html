@@ -129,6 +129,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .opt .k{width:28px;height:28px;border-radius:8px;background:var(--ink);color:var(--paper);display:grid;place-items:center;font-size:13px;font-weight:700;flex:none}
 .opt.right{border-color:var(--ok);background:var(--ok-bg)} .opt.right .k{background:var(--ok)}
 .opt.dim{opacity:.4}
+.myres{margin:12px 0 0;padding:10px 12px;border-radius:12px;font-weight:600;background:color-mix(in srgb,var(--bad) 12%,#fff);color:var(--ink)}.myres.ok{background:var(--ok-bg)}
 .row2{display:flex;gap:8px}.row2>.btn{flex:1;min-width:0}
 .opt.bad{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,#fff)}
 .pl .edn{background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}
@@ -789,7 +790,7 @@ const T={
   close:"Cerrar",language:"Idioma",pts2:"pts"}
 };
 
-Object.assign(T.fr,{restartQ:"Recommencer l'épreuve",restarted:"Épreuve recommencée : réponses effacées, chrono relancé.",soloLbl:"Ton score",soloMsg:r=>r>=.8?"Bravo, tu n'es vraiment pas le plus nul !":r>=.5?"Pas mal du tout !":r>=.3?"Peut mieux faire...":"Aïe... le plus nul, c'est toi !",tapOpt:"Touche une réponse pour la vérifier",
+Object.assign(T.fr,{check:"Vérifier",restartQ:"Recommencer l'épreuve",restarted:"Épreuve recommencée : réponses effacées, chrono relancé.",soloLbl:"Ton score",soloMsg:r=>r>=.8?"Bravo, tu n'es vraiment pas le plus nul !":r>=.5?"Pas mal du tout !":r>=.3?"Peut mieux faire...":"Aïe... le plus nul, c'est toi !",tapOpt:"Touche une réponse pour la vérifier",
  lockedPl:"Partie en cours : la liste des joueurs est bloquée. Abandonne la partie pour la modifier.",
  shareBtn:"Partager le lien",shareGameS:"Envoie le jeu à qui tu veux : chacun peut créer sa propre partie, même sans toi.",waBtn:"Envoyer sur WhatsApp",shareGame:"Partager le jeu",shared:"Partagé !",
  langHint:"Chacun joue dans sa langue : FR, ES ou FR+ES, en haut de l'accueil ou dans le Menu. Les réponses comptent dans les deux langues.",
@@ -814,7 +815,7 @@ Object.assign(T.fr,{restartQ:"Recommencer l'épreuve",restarted:"Épreuve recomm
  roomOff:"Le jeu en ligne ne marche pas ici. Ouvre la page dans Claude, connecté à ton compte, après avoir été invité dessus.",roomFail:"Impossible de rejoindre ce code. Vérifie-le et réessaie.",
  codeErr:"Le code fait 4 lettres.",nameErr:"Écris ton prénom.",auto:"La réponse s'affiche quand tout le monde a répondu ou à la fin du chrono.",full:"La salle est pleine (12 joueurs)."
 });
-Object.assign(T.es,{restartQ:"Repetir la prueba",restarted:"Prueba reiniciada: respuestas borradas y reloj a cero.",soloLbl:"Tu puntuación",soloMsg:r=>r>=.8?"¡Bravo, no eres nada tonto!":r>=.5?"¡Nada mal!":r>=.3?"Puedes hacerlo mejor...":"Uy... ¡el más tonto eres tú!",tapOpt:"Toca una respuesta para comprobarla",
+Object.assign(T.es,{check:"Comprobar",restartQ:"Repetir la prueba",restarted:"Prueba reiniciada: respuestas borradas y reloj a cero.",soloLbl:"Tu puntuación",soloMsg:r=>r>=.8?"¡Bravo, no eres nada tonto!":r>=.5?"¡Nada mal!":r>=.3?"Puedes hacerlo mejor...":"Uy... ¡el más tonto eres tú!",tapOpt:"Toca una respuesta para comprobarla",
  lockedPl:"Partida en curso: la lista de jugadores está bloqueada. Abandona la partida para cambiarla.",
  shareBtn:"Compartir el enlace",shareGameS:"Envía el juego a quien quieras: cada uno puede crear su propia partida, incluso sin ti.",waBtn:"Enviar por WhatsApp",shareGame:"Compartir el juego",shared:"¡Compartido!",
  langHint:"Cada uno juega en su idioma: FR, ES o FR+ES, arriba en el inicio o en el Menú. Las respuestas valen en los dos idiomas.",
@@ -888,7 +889,7 @@ function buildDeck(n,countFirst){
  return{deck:out,recycled};
 }
 function ensureDeck(){if(S.i>=S.deck.length){S.deck=S.deck.concat(buildDeck(10,0).deck)}}
-function armTimer(){const cid=S.deck[S.i];S.tmax=S.timer&&cid!=null&&CARDS[cid][0]==="rap"?Math.min(S.timer,10):S.timer;S.deadline=Date.now()+S.tmax*1000;S.pausedLeft=null;timeUpFired=false;S.bz=hostBuz()?freshBz():null;S.pen=[];S.lpick=null;if(S.notice&&S.notice.restarted)S.notice=""}
+function armTimer(){const cid=S.deck[S.i];S.tmax=S.timer&&cid!=null&&CARDS[cid][0]==="rap"?Math.min(S.timer,10):S.timer;S.deadline=Date.now()+S.tmax*1000;S.pausedLeft=null;timeUpFired=false;S.bz=hostBuz()?freshBz():null;S.pen=[];S.lpick=null;S.lans=null;if(S.notice&&S.notice.restarted)S.notice=""}
 const curKey=()=>`${S.gid||"g"}${S.ug?"u"+S.ug:""}.${S.round}.${S.inRound}.${S.i}.${S.tied?S.tied.join("-"):""}`;
 
 /* ---------- grading (online) ---------- */
@@ -906,7 +907,8 @@ function textOk(v,e,wrong){
  const re=String(e).trim().toLowerCase(),rv=String(v).trim().toLowerCase();
  if(digits(e)&&digits(e)===String(e).replace(/[^0-9]/g,"")&&/^[\d\s.,]+$/.test(String(e).trim()))return numOf(v)===digits(e);
  if(re.length<=3&&!/\s/.test(re))return rv.replace(/[^\p{L}\p{N}]/gu,"")===re.replace(/[^\p{L}\p{N}]/gu,"");
- const nv=norm(v),ne=norm(e);if(!nv)return false;if(nv===ne)return true;
+ if(rv===re)return true;
+ const nv=norm(v),ne=norm(e);if(!ne){const st=s=>String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/^(l'|l’|el |la |le |les |los |las )/,"").replace(/[^a-z0-9]/g,"");return st(v)!==""&&st(v)===st(e)}if(!nv)return false;if(nv===ne)return true;
  const de=digits(e),ew=words(e).filter(w=>!/\d/.test(w)),vw=words(v);
  if(de&&ew.length<=2)return numOf(v)===de;
  if(!ew.length)return false;
@@ -936,8 +938,12 @@ function grade(v,id){
  const wf=fr[3]?fr[3].filter((_,i)=>i!==ci):[],we=es[3]?es[3].filter((_,i)=>i!==ci):[];
  return textOk(v,fr[1],wf)||textOk(v,es[1],we)||altOk(v,id);
 }
-function matchIdx(v,id){const nv=norm(v),dv=digits(v);for(const L of [1,2]){const o=CARDS[id][L][3];if(!o)continue;
- for(let i=0;i<o.length;i++){const dg=digits(o[i]);if(dg?(dv!==""&&dv===dg):(nv!==""&&nv===norm(o[i])))return i}}return -1}
+function matchIdx(v,id){const raw=s=>String(s).trim().toLowerCase().replace(/\s+/g," "),rv=raw(v),nv=norm(v),dv=digits(v),lt=s=>norm(s).replace(/[0-9]/g,"").replace(/\s+/g," ").trim();
+ for(const L of [1,2]){const o=CARDS[id][L][3];if(o){const i=o.findIndex(x=>raw(x)===rv);if(i>=0)return i}}
+ for(const L of [1,2]){const o=CARDS[id][L][3];if(!o)continue;
+  for(let i=0;i<o.length;i++){if(!digits(o[i])&&nv!==""&&nv===norm(o[i]))return i}
+  if(dv!==""){const c=[];o.forEach((x,i)=>{if(digits(x)===dv)c.push(i)});if(c.length===1)return c[0];if(c.length>1){const c2=c.filter(i=>lt(o[i])===lt(v));if(c2.length===1)return c2[0]}}}
+ return -1}
 function lgOfKey(k){for(const p of PEERS){if(keyOf(p)===k&&p.presence&&p.presence.lg)return String(p.presence.lg).slice(0,5)}return ""}
 /* An answer shown in the viewer's own language: picks and recognised typed answers are translated; unknown text keeps its writer's language tag. */
 function showAns(v,id,k){
@@ -1322,10 +1328,15 @@ function question(){
   <div class="cardhd"><span class="badge">${ICON[c]}${l.catS[c]}</span><span class="lvl dk" title="${l.lv[LEVEL[id]]}">${[1,2,3].map(n=>`<i class="${n<=LEVEL[id]?"on":""}"></i>`).join("")}<span class="lt">${l.lv[LEVEL[id]]}</span></span></div>
   <p class="q">${dualTxt(id,0,q)}</p>
   ${optHTML}
+  ${shown&&!online&&S.lans&&S.lans.k===curKey()?(()=>{const ok=grade(S.lans.v,id);return `<p class="myres ${ok?"ok":"ko"}">${l.yourAnswer} : <b>${esc(S.lans.v)}</b> ${ok?"✓":"✗"}</p>`})():""}
   ${shown?`<div class="ans"><span class="lbl">${l.answer}</span><div class="a">${dualTxt(id,1,a)}</div>${w?`<div class="expl"><span class="lbl">${l.expl}</span>${esc(w)}</div>`:""}${S.dual&&CARDS[id][S.lang==="es"?1:2][2]?`<div class="expl" lang="${OL()}"><span class="lbl">${T[OL()].expl}</span>${esc(CARDS[id][S.lang==="es"?1:2][2])}</div>`:""}</div>`
   :V.timer?`<div class="timer" id="tm"><button class="ring" ${ctrl?`data-act="pause"`:"disabled"} aria-label="${l.tapPause}"><svg viewBox="0 0 66 66"><circle class="tr" cx="33" cy="33" r="28" fill="none" stroke-width="6"/><circle class="pr" id="pr" cx="33" cy="33" r="28" fill="none" stroke-width="6" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-remaining()/TT())}"/></svg><span id="secs">${remaining()}</span></button><p id="tmsg">${V.pausedLeft!=null?l.paused:online?(buz?l.bzAuto:l.auto):l.tapPause}</p></div>`
   :`<div class="timer"><p>${online?l.auto:l.think}</p></div>`}
  </article>
+ ${!online&&ctrl&&!shown&&V.players.length===1?`<section class="panel"><div class="ph"><h3>${l.yourAnswer}</h3></div>
+   ${opts?`<p class="hint2">${l.pickHint}</p>`:""}
+   <form class="add" id="lansf"><input id="lansin" maxlength="40" autocomplete="off" placeholder="${opts?esc(l.orWrite):""}" aria-label="${l.yourAnswer}"><button class="btn primary" style="width:auto;min-height:50px;padding:0 18px;font-size:16px">${l.check}</button></form>
+  </section>`:""}
  ${canAnswer?`<section class="panel"><div class="ph"><h3>${l.yourAnswer}</h3></div>
    ${opts?`<p class="hint2">${l.pickHint}</p>`:""}
    <form class="add" id="ansf"><input id="ansin" maxlength="40" autocomplete="off" placeholder="${opts?esc(l.orWrite):""}" value="${esc(mine&&mine[0]!=="#"?mine:"")}" aria-label="${l.yourAnswer}"><button class="btn primary" style="width:auto;min-height:50px;padding:0 18px;font-size:16px">${l.send}</button></form>
@@ -1337,6 +1348,7 @@ function question(){
    <div class="who">${active.filter(k=>V.players[k]).map(whoChip).join("")}</div></section>
   ${online?readyHTML():`<div class="actions"><button class="btn primary" data-act="validate" id="vbtn">${l.validate(V.correct.length)}</button></div>`}`
  :ctrl?`<div class="actions"><button class="btn primary" data-act="reveal">${l.reveal}</button><div class="row2"><button class="btn quiet" data-act="restartq">↺ ${l.restartQ}</button><button class="btn quiet" data-act="skip">${l.skip}</button></div></div>`:""}`;
+ const lf=document.getElementById("lansf");if(lf)lf.onsubmit=e=>{e.preventDefault();const v=document.getElementById("lansin").value.trim();if(!v||S.phase!=="q"||S.online)return;try{document.activeElement.blur()}catch(x){}const key=curKey(),id=S.deck[S.i];doReveal();S.lans={k:key,v};const el=S.tied||S.players.map((_,i)=>i);if(el.length===1)S.correct=grade(v,id)?[el[0]]:[];save();render()};
  const af=document.getElementById("ansf"),ai=document.getElementById("ansin");
  if(ai){ai.oninput=()=>{clearTimeout(ansT);const v=ai.value.trim(),k=keyNow();if(v&&!BUZ())ansT=setTimeout(()=>{if(keyNow()===k&&V&&V.phase==="q"&&!(myAns&&myAns.k===k&&myAns.v===v))sendAns(v)},800)}}
  if(af)af.onsubmit=e=>{e.preventDefault();const v=document.getElementById("ansin").value.trim();if(v)sendAns(v)};
